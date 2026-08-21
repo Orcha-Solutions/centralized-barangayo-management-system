@@ -161,9 +161,8 @@ export default function LoginPage() {
           <Field label="Email">
             <input
               className="cbms-input"
-              type="email"
+              type="text"
               autoComplete="username"
-              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -174,7 +173,6 @@ export default function LoginPage() {
               className="cbms-input"
               type="password"
               autoComplete="current-password"
-              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -210,24 +208,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div
-          style={{
-            marginTop: 18,
-            paddingTop: 14,
-            borderTop: "1px solid var(--cbms-line)",
-            fontSize: 11.5,
-            color: "var(--cbms-muted)",
-            lineHeight: 1.6,
-          }}
-        >
-          <strong>Demo accounts</strong> (password <code>Cbms#2026</code>)
-          <br />
-          lgu@marikina.gov.ph — LGU_ADMIN (city-wide)
-          <br />
-          dilg@dilg.gov.ph — DILG_VIEWER (aggregates only)
-          <br />
-          Both are staff roles and require a TOTP code.
-        </div>
+
       </div>
     </div>
   );

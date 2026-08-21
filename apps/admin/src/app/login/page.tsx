@@ -123,11 +123,10 @@ export default function LoginPage() {
           <Field label="Email">
             <input
               className="cbms-input"
-              type="email"
+              type="text"
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
           </Field>
           <Field label="Password">
@@ -137,7 +136,6 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </Field>
 
@@ -180,22 +178,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div style={{ marginTop: 20, borderTop: "1px solid var(--cbms-line)", paddingTop: 14 }}>
-          <div className="cbms-label">Demo accounts (password: {DEMO_PASSWORD})</div>
-          <div className="adm-quickchips">
-            {DEMO_ACCOUNTS.map((a) => (
-              <button
-                key={a.email}
-                type="button"
-                className={`adm-quickchip${email === a.email ? " adm-quickchip--active" : ""}`}
-                onClick={() => pick(a.email)}
-                title={a.email}
-              >
-                {a.label}
-              </button>
-            ))}
-          </div>
-        </div>
+
       </div>
     </div>
   );

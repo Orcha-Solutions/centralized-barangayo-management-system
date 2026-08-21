@@ -80,7 +80,7 @@ export class MockBimsGateway implements BimsGateway {
   readonly name = "LGUSS-BIMS (mock adapter)";
   readonly isMock = true;
 
-  async isAuthorized(): Promise<boolean> {
+  async isAuthorized(barangayPsgc: string): Promise<boolean> {
     // No live interface exists. Always false until a DILG MOA is in place.
     return false;
   }

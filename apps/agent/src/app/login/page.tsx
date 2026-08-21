@@ -129,11 +129,10 @@ export default function LoginPage() {
                 <Field label="Email">
                   <input
                     className="cbms-input"
-                    type="email"
+                    type="text"
                     autoComplete="username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
                   />
                 </Field>
                 <Field label="Password">
@@ -143,7 +142,6 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    required
                   />
                 </Field>
               </>
@@ -165,7 +163,6 @@ export default function LoginPage() {
                     value={totp}
                     onChange={(e) => setTotp(e.target.value.replace(/\D/g, ""))}
                     style={{ fontSize: 22, letterSpacing: "0.35em", textAlign: "center" }}
-                    required
                     autoFocus
                   />
                 </Field>
@@ -190,18 +187,7 @@ export default function LoginPage() {
           </form>
         )}
 
-        <div className="ag-divider" />
 
-        <div className="ag-note" style={{ marginBottom: 0 }}>
-          <strong>Demo credential.</strong> This build signs in with{" "}
-          <code>treasurer@barangka.gov.ph</code> / <code>Cbms#2026</code>, because that seeded
-          account carries the <code>wallet:encode</code> permission the cash-out endpoint requires.
-          A production deployment would issue each outlet its own{" "}
-          <strong>AGENT_MERCHANT</strong> credential — that role already exists in the CBMS
-          permission matrix with exactly two grants, <code>wallet:view</code> and{" "}
-          <code>wallet:encode</code>, and is <em>not</em> a staff role, so an outlet clerk signs in
-          with a device-bound PIN instead of an office TOTP.
-        </div>
       </div>
     </div>
   );

@@ -35,11 +35,6 @@ export default function LoginPage() {
     setError(null);
 
     const value = identifier.trim();
-    // The API authenticates on email only; be honest instead of silently failing.
-    if (!value.includes("@")) {
-      setError(t("login_phone_unsupported"));
-      return;
-    }
 
     setBusy(true);
     try {
@@ -85,7 +80,6 @@ export default function LoginPage() {
               placeholder={t("login_identifier_ph")}
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              required
             />
           </Field>
 
@@ -97,7 +91,6 @@ export default function LoginPage() {
               placeholder={t("login_password_ph")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
             />
           </Field>
 
@@ -111,36 +104,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div style={{ marginTop: 22, borderTop: "1px solid var(--cbms-line)", paddingTop: 14 }}>
-          <div
-            style={{
-              fontSize: 11.5,
-              fontWeight: 700,
-              color: "var(--cbms-muted)",
-              textTransform: "uppercase",
-              letterSpacing: ".05em",
-              marginBottom: 8,
-            }}
-          >
-            {t("login_quickfill")}
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {DEMO_ACCOUNTS.map((email) => (
-              <button
-                key={email}
-                type="button"
-                className="cbms-chip cbms-chip--navy"
-                style={{ border: "none", cursor: "pointer" }}
-                onClick={() => quickFill(email)}
-              >
-                {email}
-              </button>
-            ))}
-          </div>
-          <p style={{ fontSize: 11.5, color: "var(--cbms-muted)", marginTop: 10 }}>
-            {t("login_demo_note")}
-          </p>
-        </div>
+
 
         <p style={{ fontSize: 11, color: "var(--cbms-muted)", marginTop: 16, lineHeight: 1.5 }}>
           {t("companion_note")}
