@@ -12,15 +12,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "db:generate": "pnpm --filter @cbms/db exec prisma generate",
-    "db:push": "pnpm --filter @cbms/db exec prisma db push",
-    "db:migrate": "pnpm --filter @cbms/db exec prisma migrate dev",
-    "db:studio": "pnpm --filter @cbms/db exec prisma studio",
-    "db:reset": "pnpm --filter @cbms/db exec prisma db push --force-reset",
-    "seed": "pnpm --filter @cbms/db run seed",
-    "setup": "docker compose up -d && pnpm install && pnpm db:generate && pnpm db:push && pnpm seed",
-    "clean": "turbo run clean && rimraf node_modules",
-    "mfa": "pnpm --filter @cbms/db exec dotenv -e ../../.env -- tsx prisma/mfa-code.ts"
+    "setup": "pnpm install",
+    "clean": "turbo run clean && rimraf node_modules"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

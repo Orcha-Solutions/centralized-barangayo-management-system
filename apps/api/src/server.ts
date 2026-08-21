@@ -46,7 +46,7 @@ await app.register(rateLimit, {
 });
 
 // ---- error mapping ----
-app.setErrorHandler((error, req, reply) => {
+app.setErrorHandler((error: any, req, reply) => {
   if (error instanceof ZodError) {
     return reply.status(422).send({
       error: "ValidationError",
@@ -75,12 +75,9 @@ app.setErrorHandler((error, req, reply) => {
 
 // ---- health & observability ----
 app.get("/health", async () => {
-  const started = Date.now();
-  await prisma.$queryRaw`SELECT 1`;
   return {
     status: "ok",
     service: "cbms-api",
-    dbLatencyMs: Date.now() - started,
     uptimeSec: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
   };

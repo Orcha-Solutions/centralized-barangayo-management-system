@@ -1,22 +1,4 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: cbms-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: cbms
-      POSTGRES_PASSWORD: cbms_dev_password
-      POSTGRES_DB: cbms
-    ports:
-      - "5433:5432"
-    volumes:
-      - cbms_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cbms -d cbms"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   mailhog:
     image: mailhog/mailhog:latest
     container_name: cbms-mailhog
@@ -45,5 +27,4 @@ services:
       retries: 10
 
 volumes:
-  cbms_pgdata:
   cbms_miniodata:

@@ -1,0 +1,1442 @@
+enum TenantMode {
+  companion // LGUSS-BIMS is system of record; CBMS reads/annotates
+  standalone // CBMS records authoritative (pilots/demos)
+}
+
+enum RecordSource {
+  CBMS
+  BIMS
+  IMPORT
+}
+
+Table Region {
+  id String [pk, default: `cuid()`]
+  psgcCode String [unique]
+  name String
+  createdAt DateTime [default: `now()`]
+}
+
+Table Province {
+  id String [pk, default: `cuid()`]
+  psgcCode String [unique]
+  name String
+  regionId String
+}
+
+Table City {
+  id String [pk, default: `cuid()`]
+  psgcCode String [unique]
+  name String
+  isCity Boolean [default: `true`]
+  provinceId String
+}
+
+enum BarangayStatus {
+  pending // registered, awaiting LGU admin approval (MC 2025-104 §4.2.1)
+  active
+  suspended
+}
+
+Table Barangay {
+  id String [pk, default: `cuid()`]
+  psgcCode String [unique]
+  name String
+  cityId String
+  status BarangayStatus [default: `pending`]
+  mode TenantMode [default: `companion`]
+  logoUrl String?
+  brandPrimary String? [default: `"#0A2463"`]
+  brandAccent String? [default: `"#FDB913"`]
+  addressLine String?
+  contactPhone String?
+  contactEmail String?
+  hotline String?
+  puroks String[] [default: `[]`]
+  approvedAt DateTime?
+  approvedById String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+enum RoleKey {
+  SYSTEM_ADMIN
+  LGU_ADMIN
+  PUNONG_BARANGAY
+  BARANGAY_SECRETARY
+  BARANGAY_TREASURER
+  SB_MEMBER
+  SK_OFFICIAL
+  LUPON_SECRETARY
+  VAW_DESK_OFFICER
+  BHW
+  TANOD
+  RESIDENT
+  AGENT_MERCHANT
+  DILG_VIEWER
+}
+
+enum ScopeLevel {
+  platform
+  region
+  province
+  city
+  barangay
+  self
+}
+
+Table Role {
+  id String [pk, default: `cuid()`]
+  key RoleKey [unique]
+  name String
+  description String?
+  scope ScopeLevel
+  isStaff Boolean [default: `true`]
+}
+
+Table Permission {
+  id String [pk, default: `cuid()`]
+  key String [unique]
+  module String
+  action String
+}
+
+Table RolePermission {
+  roleId String
+  permissionId String
+}
+
+Table User {
+  id String [pk, default: `cuid()`]
+  email String? [unique]
+  phone String? [unique]
+  passwordHash String?
+  fullName String
+  avatarUrl String?
+  isActive Boolean [default: `true`]
+  mfaEnabled Boolean [default: `false`]
+  mfaSecret String?
+  barangayId String?
+  cityId String?
+  inhabitantId String? [unique]
+  lastLoginAt DateTime?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table UserRole {
+  userId String
+  roleId String
+}
+
+Table Session {
+  id String [pk, default: `cuid()`]
+  userId String
+  token String [unique]
+  ip String?
+  userAgent String?
+  mfaPassed Boolean [default: `false`]
+  expiresAt DateTime
+  createdAt DateTime [default: `now()`]
+}
+
+Table AuditLog {
+  id String [pk, default: `cuid()`]
+  barangayId String?
+  actorId String?
+  actorRole String?
+  action String
+  entity String
+  entityId String?
+  beforeHash String?
+  afterHash String?
+  diff Json?
+  ip String?
+  userAgent String?
+  isAiAction Boolean [default: `false`]
+  createdAt DateTime [default: `now()`]
+}
+
+enum ConsentPurpose {
+  SERVICE_DELIVERY
+  DISBURSEMENT
+  BIMS_SHARING
+  HEALTH_PROGRAM
+  ANALYTICS
+}
+
+enum ConsentStatus {
+  granted
+  withdrawn
+  expired
+}
+
+Table ConsentRecord {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  householdId String?
+  inhabitantId String?
+  purpose ConsentPurpose
+  status ConsentStatus [default: `granted`]
+  grantedBy String
+  grantedAt DateTime [default: `now()`]
+  withdrawnAt DateTime?
+  evidenceUrl String?
+  notes String?
+  createdAt DateTime [default: `now()`]
+}
+
+enum Sex {
+  male
+  female
+}
+
+enum CivilStatus {
+  single
+  married
+  widowed
+  separated
+  annulled
+}
+
+Table Household {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  householdNo String
+  purok String?
+  sitio String?
+  addressLine String
+  latitude Float?
+  longitude Float?
+  dwellingType String?
+  tenureStatus String?
+  waterSource String?
+  toiletFacility String?
+  electricitySource String?
+  monthlyIncomeBand String?
+  is4Ps Boolean [default: `false`]
+  headId String? [unique]
+  source RecordSource [default: `CBMS`]
+  bimsRef String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table Inhabitant {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  householdId String?
+  relationToHead String?
+  firstName String
+  middleName String?
+  lastName String
+  suffix String?
+  sex Sex
+  birthDate DateTime
+  birthPlace String?
+  civilStatus CivilStatus [default: `single`]
+  citizenship String [default: `"Filipino"`]
+  philsysNo String?
+  contactPhone String?
+  contactEmail String?
+  occupation String?
+  educationLevel String?
+  religion String?
+  bloodType String?
+  monthlyIncome Decimal?
+  isSenior Boolean [default: `false`]
+  isPwd Boolean [default: `false`]
+  pwdType String?
+  isSoloParent Boolean [default: `false`]
+  is4Ps Boolean [default: `false`]
+  isIndigenous Boolean [default: `false`]
+  isPregnant Boolean [default: `false`]
+  isBedridden Boolean [default: `false`]
+  isOfw Boolean [default: `false`]
+  isVoter Boolean [default: `false`]
+  isDeceased Boolean [default: `false`]
+  deceasedDate DateTime?
+  residencyStart DateTime?
+  isResident Boolean [default: `true`]
+  source RecordSource [default: `CBMS`]
+  bimsRef String?
+  photoUrl String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table ResidencyHistory {
+  id String [pk, default: `cuid()`]
+  inhabitantId String
+  event String
+  effectiveAt DateTime
+  fromAddress String?
+  toAddress String?
+  remarks String?
+  createdAt DateTime [default: `now()`]
+}
+
+enum RequestStatus {
+  draft
+  submitted
+  awaiting_payment
+  paid
+  for_approval
+  approved
+  released
+  rejected
+  cancelled
+}
+
+enum PaymentMethod {
+  wallet
+  otc_cash
+  waived
+}
+
+Table CertificateType {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  code String
+  name String
+  description String?
+  fee Decimal [default: `0`]
+  validityDays Int [default: `180`]
+  isActive Boolean [default: `true`]
+  requiresApproval Boolean [default: `true`]
+  requirements String[] [default: `[]`]
+  exemptNote String?
+  templateBody String?
+}
+
+Table CertificateRequest {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  typeId String
+  inhabitantId String
+  referenceNo String [unique]
+  purpose String
+  status RequestStatus [default: `submitted`]
+  fee Decimal [default: `0`]
+  paymentMethod PaymentMethod?
+  paidAt DateTime?
+  orNumber String?
+  approvedById String?
+  approvedAt DateTime?
+  rejectedReason String?
+  issuedAt DateTime?
+  expiresAt DateTime?
+  verifyCode String? [unique]
+  pdfUrl String?
+  submittedAt DateTime [default: `now()`]
+  releasedAt DateTime?
+  processingMs Int?
+  source RecordSource [default: `CBMS`]
+  bimsRef String?
+  aiDraft String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+enum BlotterCategory {
+  dispute
+  theft
+  physical_injury
+  noise
+  vandalism
+  vawc
+  drugs
+  traffic
+  other
+}
+
+Table BlotterEntry {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  entryNo String
+  category BlotterCategory [default: `other`]
+  incidentAt DateTime
+  location String
+  narrative String
+  reportedBy String
+  respondentName String?
+  isConfidential Boolean [default: `false`]
+  recordedById String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+enum KpStage {
+  filed
+  mediation // Punong Barangay, 15 days
+  conciliation // Pangkat, 15 days + 15 extension
+  settled
+  repudiated
+  cfa_issued // Certificate to File Action
+  dismissed
+  withdrawn
+}
+
+Table KpCase {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  caseNo String
+  blotterId String? [unique]
+  subject String
+  description String
+  stage KpStage [default: `filed`]
+  isConfidential Boolean [default: `false`]
+  filedAt DateTime [default: `now()`]
+  mediationDueAt DateTime?
+  conciliationDueAt DateTime?
+  extendedDueAt DateTime?
+  closedAt DateTime?
+  settlementTerms String?
+  cfaReason String?
+  pangkatMembers String[] [default: `[]`]
+  source RecordSource [default: `CBMS`]
+  bimsRef String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+enum PartyRole {
+  complainant
+  respondent
+  witness
+}
+
+Table KpParty {
+  id String [pk, default: `cuid()`]
+  caseId String
+  role PartyRole
+  inhabitantId String?
+  nameOverride String?
+  address String?
+  contact String?
+}
+
+Table KpHearing {
+  id String [pk, default: `cuid()`]
+  caseId String
+  scheduledAt DateTime
+  stage KpStage
+  attended Boolean?
+  minutes String?
+  outcome String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table KpDocument {
+  id String [pk, default: `cuid()`]
+  caseId String
+  kind String
+  pdfUrl String?
+  issuedAt DateTime [default: `now()`]
+}
+
+enum PropertyType {
+  infrastructure
+  non_infrastructure
+}
+
+enum PropertyStatus {
+  operational
+  under_construction
+  unserviceable
+  closed
+}
+
+Table Property {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  name String
+  type PropertyType [default: `infrastructure`]
+  status PropertyStatus [default: `operational`]
+  category String
+  capacity Int [default: `0`]
+  acquiredAt DateTime?
+  acquisitionCost Decimal?
+  custodian String?
+  description String?
+  latitude Float?
+  longitude Float?
+  addressLine String?
+  isEvacuationCenter Boolean [default: `false`]
+  source RecordSource [default: `CBMS`]
+  bimsRef String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table MaintenanceRecord {
+  id String [pk, default: `cuid()`]
+  propertyId String
+  performedAt DateTime
+  kind String
+  cost Decimal?
+  remarks String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table Material {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  name String
+  unit String [default: `"pc"`]
+  quantity Int [default: `0`]
+  reorderLevel Int [default: `0`]
+  location String?
+  updatedAt DateTime
+  createdAt DateTime [default: `now()`]
+}
+
+Table Hazard {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  purok String
+  hazardType String
+  riskLevel String
+  notes String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table EvacuationCenter {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  propertyId String? [unique]
+  name String
+  capacity Int
+  addressLine String?
+  latitude Float?
+  longitude Float?
+  isOpen Boolean [default: `false`]
+  createdAt DateTime [default: `now()`]
+}
+
+enum DisasterEventStatus {
+  monitoring
+  active
+  recovery
+  closed
+}
+
+Table DisasterEvent {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  name String
+  hazardType String
+  status DisasterEventStatus [default: `monitoring`]
+  declaredAt DateTime [default: `now()`]
+  closedAt DateTime?
+  summary String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table EvacuationRecord {
+  id String [pk, default: `cuid()`]
+  eventId String
+  centerId String
+  householdId String
+  headcount Int [default: `1`]
+  checkInAt DateTime [default: `now()`]
+  checkOutAt DateTime?
+}
+
+Table ReliefDistribution {
+  id String [pk, default: `cuid()`]
+  eventId String
+  householdId String
+  goods String
+  quantity Int [default: `1`]
+  cashAmount Decimal?
+  releasedAt DateTime [default: `now()`]
+  releasedBy String?
+  receivedBy String?
+}
+
+Table GadPlan {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  year Int
+  totalBudget Decimal
+  gadBudget Decimal
+  status String [default: `"draft"`]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table GadActivity {
+  id String [pk, default: `cuid()`]
+  planId String
+  title String
+  attribution String
+  genderIssue String?
+  budget Decimal
+  actualSpend Decimal?
+  targetOutput String?
+  actualOutput String?
+  quarter Int?
+  status String [default: `"planned"`]
+}
+
+enum LegislationKind {
+  ordinance
+  resolution
+  executive_order
+}
+
+enum LegislationStatus {
+  draft
+  enacted
+  vetoed
+  amended
+  repealed
+}
+
+Table Legislation {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  kind LegislationKind
+  number String
+  series Int
+  title String
+  body String?
+  status LegislationStatus [default: `draft`]
+  sponsors String[] [default: `[]`]
+  firstReadingAt DateTime?
+  secondReadingAt DateTime?
+  enactedAt DateTime?
+  fileUrl String?
+  isPublished Boolean [default: `false`]
+  amendsId String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table DevelopmentPlan {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  title String
+  vision String?
+  startYear Int
+  endYear Int
+  status String [default: `"active"`]
+  createdAt DateTime [default: `now()`]
+}
+
+enum ProjectStatus {
+  proposed
+  approved
+  ongoing
+  completed
+  deferred
+}
+
+Table DevProject {
+  id String [pk, default: `cuid()`]
+  planId String
+  title String
+  description String?
+  sector String
+  budget Decimal
+  fundingSource String?
+  status ProjectStatus [default: `proposed`]
+  targetYear Int
+  progressPct Int [default: `0`]
+  alignmentTags String[] [default: `[]`]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table Institution {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  code String
+  name String
+  description String?
+  accreditedAt DateTime?
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+}
+
+Table InstitutionMember {
+  id String [pk, default: `cuid()`]
+  institutionId String
+  inhabitantId String?
+  nameOverride String?
+  position String
+  termStart DateTime?
+  termEnd DateTime?
+}
+
+Table InstitutionMinutes {
+  id String [pk, default: `cuid()`]
+  institutionId String
+  meetingAt DateTime
+  agenda String?
+  minutes String?
+  fileUrl String?
+}
+
+Table Budget {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  year Int
+  ordinanceId String?
+  totalAmount Decimal
+  skFundAmount Decimal [default: `0`]
+  status String [default: `"draft"`]
+  createdAt DateTime [default: `now()`]
+}
+
+Table BudgetLine {
+  id String [pk, default: `cuid()`]
+  budgetId String
+  expenseClass String
+  accountCode String
+  description String
+  amount Decimal
+  obligated Decimal [default: `0`]
+  disbursed Decimal [default: `0`]
+}
+
+enum LedgerDirection {
+  debit
+  credit
+}
+
+enum FundType {
+  general
+  sk
+  gad
+  disaster
+  trust
+}
+
+Table LedgerEntry {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  postedAt DateTime [default: `now()`]
+  fund FundType [default: `general`]
+  accountCode String
+  description String
+  direction LedgerDirection
+  amount Decimal
+  orNumber String?
+  dvNumber String?
+  refType String?
+  refId String?
+  transactionId String?
+  createdById String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table OfficialReceipt {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  orNumber String
+  payorName String
+  amount Decimal
+  particulars String
+  issuedAt DateTime [default: `now()`]
+  issuedById String?
+  refType String?
+  refId String?
+}
+
+Table SitePage {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  slug String
+  title String
+  body String
+  isPublished Boolean [default: `true`]
+  sortOrder Int [default: `0`]
+  updatedAt DateTime
+}
+
+Table SitePost {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  slug String
+  title String
+  excerpt String?
+  body String
+  coverUrl String?
+  publishedAt DateTime?
+  isPublished Boolean [default: `false`]
+  createdAt DateTime [default: `now()`]
+}
+
+Table ReportRun {
+  id String [pk, default: `cuid()`]
+  barangayId String?
+  cityId String?
+  key String
+  period String?
+  format String [default: `"csv"`]
+  params Json?
+  status String [default: `"completed"`]
+  fileUrl String?
+  rowCount Int?
+  generatedById String?
+  createdAt DateTime [default: `now()`]
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  escalated
+  resolved
+  closed
+}
+
+Table Ticket {
+  id String [pk, default: `cuid()`]
+  barangayId String?
+  subject String
+  body String
+  category String [default: `"technical"`]
+  status TicketStatus [default: `open`]
+  priority String [default: `"normal"`]
+  raisedById String?
+  assignedToId String?
+  resolvedAt DateTime?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table TicketResponse {
+  id String [pk, default: `cuid()`]
+  ticketId String
+  authorId String?
+  body String
+  isInternal Boolean [default: `false`]
+  createdAt DateTime [default: `now()`]
+}
+
+Table FileObject {
+  id String [pk, default: `cuid()`]
+  barangayId String?
+  key String [unique]
+  filename String
+  mimeType String
+  sizeBytes Int
+  scanStatus String [default: `"pending"`]
+  uploadedById String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table FeatureFlag {
+  id String [pk, default: `cuid()`]
+  key String [unique]
+  enabled Boolean [default: `false`]
+  scope String [default: `"global"`]
+  notes String?
+  updatedAt DateTime
+}
+
+Table BimsSyncRun {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  dataset String
+  direction String [default: `"pull"`]
+  status String [default: `"success"`]
+  pulled Int [default: `0`]
+  conflicts Int [default: `0`]
+  message String?
+  startedAt DateTime [default: `now()`]
+  finishedAt DateTime?
+}
+
+enum WalletOwnerType {
+  resident
+  official
+  treasury
+  merchant
+  agent
+}
+
+enum KycTier {
+  tier1 // single ID / PhilSys, low limits
+  tier2 // full KYC
+}
+
+enum WalletStatus {
+  active
+  frozen
+  closed
+}
+
+Table Wallet {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  ownerType WalletOwnerType
+  inhabitantId String? [unique]
+  emiAccountRef String [unique]
+  kycTier KycTier [default: `tier1`]
+  status WalletStatus [default: `active`]
+  balanceCentavos BigInt [default: `0`]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+enum TxnType {
+  disbursement
+  fee_collection
+  bill_payment
+  merchant_payment
+  p2p_transfer
+  cash_in
+  cash_out
+  reversal
+  adjustment
+}
+
+enum TxnStatus {
+  pending
+  completed
+  failed
+  reversed
+}
+
+Table WalletTransaction {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  type TxnType
+  status TxnStatus [default: `pending`]
+  fromWalletId String?
+  toWalletId String?
+  amountCentavos BigInt
+  feeCentavos BigInt [default: `0`]
+  currency String [default: `"PHP"`]
+  reference String [unique]
+  description String?
+  emiTxnRef String?
+  batchItemId String? [unique]
+  certificateRequestId String?
+  billPaymentId String? [unique]
+  agentId String?
+  merchantId String?
+  completedAt DateTime?
+  createdAt DateTime [default: `now()`]
+}
+
+enum BatchStatus {
+  draft
+  for_approval
+  approved
+  executing
+  completed
+  failed
+  cancelled
+}
+
+enum BatchKind {
+  payroll_honoraria
+  allowance_stipend
+  ayuda_social
+}
+
+Table DisbursementBatch {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  batchNo String
+  kind BatchKind
+  title String
+  fund FundType [default: `general`]
+  status BatchStatus [default: `draft`]
+  preparedById String?
+  approvedById String?
+  approvedAt DateTime?
+  executedAt DateTime?
+  totalCentavos BigInt [default: `0`]
+  itemCount Int [default: `0`]
+  sourceNote String?
+  disasterEventId String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+enum BatchItemStatus {
+  pending
+  paid
+  failed
+  otc_fallback // no wallet / declined digital — pay over the counter
+  cancelled
+}
+
+Table DisbursementBatchItem {
+  id String [pk, default: `cuid()`]
+  batchId String
+  inhabitantId String?
+  walletId String?
+  payeeName String
+  amountCentavos BigInt
+  status BatchItemStatus [default: `pending`]
+  remarks String?
+  paidAt DateTime?
+}
+
+Table Merchant {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  walletId String [unique]
+  businessName String
+  ownerName String
+  category String [default: `"sari_sari"`]
+  addressLine String?
+  qrCode String [unique]
+  mdrBps Int [default: `0`]
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+}
+
+Table Agent {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  walletId String [unique]
+  outletName String
+  ownerName String
+  addressLine String?
+  commissionBps Int [default: `50`]
+  cashOnHandCentavos BigInt [default: `0`]
+  floatAlertThreshold BigInt [default: `500000`]
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+}
+
+Table AgentFloatLog {
+  id String [pk, default: `cuid()`]
+  agentId String
+  kind String
+  amountCentavos BigInt
+  balanceAfterCentavos BigInt
+  note String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table Biller {
+  id String [pk, default: `cuid()`]
+  code String [unique]
+  name String
+  category String
+  commissionCentavos BigInt [default: `300`]
+  isActive Boolean [default: `true`]
+}
+
+Table BillPayment {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  billerId String
+  walletId String
+  accountNo String
+  amountCentavos BigInt
+  convenienceFeeCentavos BigInt [default: `500`]
+  status TxnStatus [default: `pending`]
+  paidAt DateTime?
+  createdAt DateTime [default: `now()`]
+}
+
+Table Dispute {
+  id String [pk, default: `cuid()`]
+  transactionId String [unique]
+  raisedById String?
+  reason String
+  status String [default: `"open"`]
+  resolution String?
+  resolvedAt DateTime?
+  createdAt DateTime [default: `now()`]
+}
+
+Table AiInteraction {
+  id String [pk, default: `cuid()`]
+  barangayId String?
+  userId String?
+  surface String
+  prompt String
+  response String
+  citations Json?
+  model String?
+  tokensIn Int?
+  tokensOut Int?
+  latencyMs Int?
+  escalatedTicketId String?
+  createdAt DateTime [default: `now()`]
+}
+
+enum AiRunStatus {
+  running
+  awaiting_approval
+  completed
+  failed
+  rejected
+}
+
+Table AiWorkflowRun {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  workflow String
+  refType String?
+  refId String?
+  status AiRunStatus [default: `running`]
+  startedAt DateTime [default: `now()`]
+  finishedAt DateTime?
+}
+
+Table AiWorkflowStep {
+  id String [pk, default: `cuid()`]
+  runId String
+  seq Int
+  name String
+  input Json?
+  output Json?
+  status String [default: `"completed"`]
+  isHumanGate Boolean [default: `false`]
+  decidedById String?
+  createdAt DateTime [default: `now()`]
+}
+
+enum ConcernStatus {
+  submitted
+  acknowledged
+  in_progress
+  resolved
+  rejected
+}
+
+Table Concern {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  inhabitantId String?
+  referenceNo String [unique]
+  category String
+  description String
+  photoUrl String?
+  resolutionPhotoUrl String?
+  latitude Float?
+  longitude Float?
+  purok String?
+  status ConcernStatus [default: `submitted`]
+  slaDueAt DateTime?
+  acknowledgedAt DateTime?
+  resolvedAt DateTime?
+  assignedToId String?
+  resolutionNote String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+enum SosStatus {
+  active
+  acknowledged
+  dispatched
+  resolved
+  false_alarm
+  test
+}
+
+Table SosAlert {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  inhabitantId String?
+  kind String
+  latitude Float?
+  longitude Float?
+  note String?
+  status SosStatus [default: `active`]
+  isTest Boolean [default: `false`]
+  acknowledgedAt DateTime?
+  respondedById String?
+  resolvedAt DateTime?
+  responseNote String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table Announcement {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  title String
+  body String
+  category String [default: `"general"`]
+  severity String [default: `"info"`]
+  channels String[] [default: `["in_app"]`]
+  publishedAt DateTime?
+  isPublished Boolean [default: `false`]
+  disasterEventId String?
+  authorId String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table AnnouncementReply {
+  id String [pk, default: `cuid()`]
+  announcementId String
+  inhabitantId String?
+  body String
+  isModerated Boolean [default: `false`]
+  isHidden Boolean [default: `false`]
+  createdAt DateTime [default: `now()`]
+}
+
+enum AppointmentStatus {
+  booked
+  checked_in
+  serving
+  completed
+  no_show
+  cancelled
+}
+
+Table Appointment {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  inhabitantId String?
+  service String
+  scheduledAt DateTime
+  queueNumber String?
+  status AppointmentStatus [default: `booked`]
+  checkedInAt DateTime?
+  servedAt DateTime?
+  completedAt DateTime?
+  notes String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table Feedback {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  inhabitantId String?
+  rating Int
+  comment String?
+  service String
+  certificateRequestId String?
+  concernId String?
+  isGrievance Boolean [default: `false`]
+  escalatedAt DateTime?
+  createdAt DateTime [default: `now()`]
+}
+
+Table DigitalId {
+  id String [pk, default: `cuid()`]
+  inhabitantId String [unique]
+  idNumber String [unique]
+  qrCode String [unique]
+  issuedAt DateTime [default: `now()`]
+  expiresAt DateTime?
+  isRevoked Boolean [default: `false`]
+  photoUrl String?
+}
+
+Table HealthCampaign {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  name String
+  kind String
+  cohortFilter Json?
+  startsAt DateTime
+  endsAt DateTime?
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+}
+
+Table HealthRecord {
+  id String [pk, default: `cuid()`]
+  campaignId String?
+  inhabitantId String
+  kind String
+  notes String?
+  recordedAt DateTime [default: `now()`]
+  recordedById String?
+  followUpAt DateTime?
+}
+
+Table JobPost {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  title String
+  employer String
+  kind String [default: `"job"`]
+  description String
+  location String?
+  salaryRange String?
+  contact String?
+  closesAt DateTime?
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+}
+
+Table JobApplication {
+  id String [pk, default: `cuid()`]
+  jobPostId String
+  inhabitantId String
+  status String [default: `"submitted"`]
+  note String?
+  createdAt DateTime [default: `now()`]
+}
+
+Table BenefitApplication {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  inhabitantId String
+  program String
+  status String [default: `"submitted"`]
+  documents String[] [default: `[]`]
+  reviewedById String?
+  reviewNote String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table PbCycle {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  title String
+  year Int
+  opensAt DateTime
+  closesAt DateTime
+  status String [default: `"open"`]
+  createdAt DateTime [default: `now()`]
+}
+
+Table PbOption {
+  id String [pk, default: `cuid()`]
+  cycleId String
+  projectId String?
+  label String
+  detail String?
+  voteCount Int [default: `0`]
+}
+
+Table PbVote {
+  id String [pk, default: `cuid()`]
+  cycleId String
+  optionId String
+  inhabitantId String
+  createdAt DateTime [default: `now()`]
+}
+
+Table Assembly {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  title String
+  scheduledAt DateTime
+  agenda String?
+  minutes String?
+  isPublished Boolean [default: `false`]
+  createdAt DateTime [default: `now()`]
+}
+
+
+Ref: Province.regionId > Region.id
+Ref: City.provinceId > Province.id
+Ref: Barangay.cityId > City.id
+Ref: RolePermission.roleId > Role.id
+Ref: RolePermission.permissionId > Permission.id
+Ref: User.barangayId > Barangay.id
+Ref: User.cityId > City.id
+Ref: User.inhabitantId > Inhabitant.id
+Ref: UserRole.userId > User.id
+Ref: UserRole.roleId > Role.id
+Ref: Session.userId > User.id
+Ref: AuditLog.barangayId > Barangay.id
+Ref: AuditLog.actorId > User.id
+Ref: ConsentRecord.barangayId > Barangay.id
+Ref: ConsentRecord.householdId > Household.id
+Ref: ConsentRecord.inhabitantId > Inhabitant.id
+Ref: Household.barangayId > Barangay.id
+Ref: Inhabitant.barangayId > Barangay.id
+Ref: Inhabitant.householdId > Household.id
+Ref: ResidencyHistory.inhabitantId > Inhabitant.id
+Ref: CertificateType.barangayId > Barangay.id
+Ref: CertificateRequest.barangayId > Barangay.id
+Ref: CertificateRequest.typeId > CertificateType.id
+Ref: CertificateRequest.inhabitantId > Inhabitant.id
+Ref: BlotterEntry.barangayId > Barangay.id
+Ref: KpCase.barangayId > Barangay.id
+Ref: KpCase.blotterId > BlotterEntry.id
+Ref: KpParty.caseId > KpCase.id
+Ref: KpParty.inhabitantId > Inhabitant.id
+Ref: KpHearing.caseId > KpCase.id
+Ref: KpDocument.caseId > KpCase.id
+Ref: Property.barangayId > Barangay.id
+Ref: MaintenanceRecord.propertyId > Property.id
+Ref: Material.barangayId > Barangay.id
+Ref: Hazard.barangayId > Barangay.id
+Ref: EvacuationCenter.barangayId > Barangay.id
+Ref: EvacuationCenter.propertyId > Property.id
+Ref: DisasterEvent.barangayId > Barangay.id
+Ref: EvacuationRecord.eventId > DisasterEvent.id
+Ref: EvacuationRecord.centerId > EvacuationCenter.id
+Ref: EvacuationRecord.householdId > Household.id
+Ref: ReliefDistribution.eventId > DisasterEvent.id
+Ref: ReliefDistribution.householdId > Household.id
+Ref: GadPlan.barangayId > Barangay.id
+Ref: GadActivity.planId > GadPlan.id
+Ref: Legislation.barangayId > Barangay.id
+Ref: Legislation.amendsId > Legislation.id
+Ref: DevelopmentPlan.barangayId > Barangay.id
+Ref: DevProject.planId > DevelopmentPlan.id
+Ref: Institution.barangayId > Barangay.id
+Ref: InstitutionMember.institutionId > Institution.id
+Ref: InstitutionMember.inhabitantId > Inhabitant.id
+Ref: InstitutionMinutes.institutionId > Institution.id
+Ref: Budget.barangayId > Barangay.id
+Ref: BudgetLine.budgetId > Budget.id
+Ref: LedgerEntry.barangayId > Barangay.id
+Ref: LedgerEntry.transactionId > WalletTransaction.id
+Ref: OfficialReceipt.barangayId > Barangay.id
+Ref: SitePage.barangayId > Barangay.id
+Ref: SitePost.barangayId > Barangay.id
+Ref: ReportRun.barangayId > Barangay.id
+Ref: Ticket.barangayId > Barangay.id
+Ref: TicketResponse.ticketId > Ticket.id
+Ref: FileObject.barangayId > Barangay.id
+Ref: BimsSyncRun.barangayId > Barangay.id
+Ref: Wallet.barangayId > Barangay.id
+Ref: Wallet.inhabitantId > Inhabitant.id
+Ref: WalletTransaction.fromWalletId > Wallet.id
+Ref: WalletTransaction.toWalletId > Wallet.id
+Ref: WalletTransaction.certificateRequestId > CertificateRequest.id
+Ref: WalletTransaction.agentId > Agent.id
+Ref: WalletTransaction.merchantId > Merchant.id
+Ref: DisbursementBatch.barangayId > Barangay.id
+Ref: DisbursementBatchItem.batchId > DisbursementBatch.id
+Ref: DisbursementBatchItem.inhabitantId > Inhabitant.id
+Ref: DisbursementBatchItem.walletId > Wallet.id
+Ref: Merchant.barangayId > Barangay.id
+Ref: Merchant.walletId > Wallet.id
+Ref: Agent.barangayId > Barangay.id
+Ref: Agent.walletId > Wallet.id
+Ref: AgentFloatLog.agentId > Agent.id
+Ref: BillPayment.billerId > Biller.id
+Ref: Dispute.transactionId > WalletTransaction.id
+Ref: AiInteraction.barangayId > Barangay.id
+Ref: AiWorkflowStep.runId > AiWorkflowRun.id
+Ref: Concern.barangayId > Barangay.id
+Ref: Concern.inhabitantId > Inhabitant.id
+Ref: SosAlert.barangayId > Barangay.id
+Ref: SosAlert.inhabitantId > Inhabitant.id
+Ref: Announcement.barangayId > Barangay.id
+Ref: AnnouncementReply.announcementId > Announcement.id
+Ref: Appointment.barangayId > Barangay.id
+Ref: Appointment.inhabitantId > Inhabitant.id
+Ref: Feedback.barangayId > Barangay.id
+Ref: Feedback.inhabitantId > Inhabitant.id
+Ref: Feedback.certificateRequestId > CertificateRequest.id
+Ref: Feedback.concernId > Concern.id
+Ref: DigitalId.inhabitantId > Inhabitant.id
+Ref: HealthCampaign.barangayId > Barangay.id
+Ref: HealthRecord.campaignId > HealthCampaign.id
+Ref: HealthRecord.inhabitantId > Inhabitant.id
+Ref: JobPost.barangayId > Barangay.id
+Ref: JobApplication.jobPostId > JobPost.id
+Ref: JobApplication.inhabitantId > Inhabitant.id
+Ref: BenefitApplication.barangayId > Barangay.id
+Ref: BenefitApplication.inhabitantId > Inhabitant.id
+Ref: PbCycle.barangayId > Barangay.id
+Ref: PbOption.cycleId > PbCycle.id
+Ref: PbOption.projectId > DevProject.id
+Ref: PbVote.cycleId > PbCycle.id
+Ref: PbVote.optionId > PbOption.id
+Ref: PbVote.inhabitantId > Inhabitant.id
+Ref: Assembly.barangayId > Barangay.id
