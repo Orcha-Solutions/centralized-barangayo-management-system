@@ -1,0 +1,32 @@
+{
+  "name": "CBMS Agent",
+  "short_name": "CBMS Agent",
+  "description": "Cash-in / cash-out and merchant terminal for CBMS e-wallet agents.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0A2463",
+  "background_color": "#0A2463",
+  "lang": "en-PH",
+  "categories": ["finance", "government", "utilities"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Cash-out", "short_name": "Cash-out", "url": "/cash-out" },
+    { "name": "Float", "short_name": "Float", "url": "/float" }
+  ]
+}

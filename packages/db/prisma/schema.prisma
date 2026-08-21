@@ -1,0 +1,1965 @@
+// CBMS — Centralized Barangay Management System
+// Complete data model. Group A = LGUSS-BIMS parity, Group B = CBMS whitespace.
+//
+// Tenancy: every domain row carries barangayId (scoped in packages/db middleware).
+// Provenance: rows sourced from LGUSS-BIMS carry source=BIMS and are read-only in companion mode.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// CORE — PSGC, tenancy, identity, RBAC, audit, consent
+// ============================================================
+
+enum TenantMode {
+  companion // LGUSS-BIMS is system of record; CBMS reads/annotates
+  standalone // CBMS records authoritative (pilots/demos)
+}
+
+enum RecordSource {
+  CBMS
+  BIMS
+  IMPORT
+}
+
+model Region {
+  id        String     @id @default(cuid())
+  psgcCode  String     @unique
+  name      String
+  provinces Province[]
+  createdAt DateTime   @default(now())
+}
+
+model Province {
+  id       String @id @default(cuid())
+  psgcCode String @unique
+  name     String
+  regionId String
+  region   Region @relation(fields: [regionId], references: [id])
+  cities   City[]
+
+  @@index([regionId])
+}
+
+/// City or Municipality — the LGU tier (hub).
+model City {
+  id         String     @id @default(cuid())
+  psgcCode   String     @unique
+  name       String
+  isCity     Boolean    @default(true)
+  provinceId String
+  province   Province   @relation(fields: [provinceId], references: [id])
+  barangays  Barangay[]
+  users      User[]
+
+  @@index([provinceId])
+}
+
+enum BarangayStatus {
+  pending // registered, awaiting LGU admin approval (MC 2025-104 §4.2.1)
+  active
+  suspended
+}
+
+model Barangay {
+  id       String @id @default(cuid())
+  psgcCode String @unique
+  name     String
+  cityId   String
+  city     City   @relation(fields: [cityId], references: [id])
+
+  status BarangayStatus @default(pending)
+  mode   TenantMode     @default(companion)
+
+  // Profile Management (A13)
+  logoUrl      String?
+  brandPrimary String? @default("#0A2463")
+  brandAccent  String? @default("#FDB913")
+  addressLine  String?
+  contactPhone String?
+  contactEmail String?
+  hotline      String?
+  puroks       String[] @default([])
+
+  approvedAt   DateTime?
+  approvedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users                User[]
+  households           Household[]
+  inhabitants          Inhabitant[]
+  consents             ConsentRecord[]
+  certificateTypes     CertificateType[]
+  certificateRequests  CertificateRequest[]
+  blotterEntries       BlotterEntry[]
+  kpCases              KpCase[]
+  properties           Property[]
+  materials            Material[]
+  evacuationCenters    EvacuationCenter[]
+  disasterEvents       DisasterEvent[]
+  hazards              Hazard[]
+  gadPlans             GadPlan[]
+  legislations         Legislation[]
+  developmentPlans     DevelopmentPlan[]
+  institutions         Institution[]
+  budgets              Budget[]
+  ledgerEntries        LedgerEntry[]
+  officialReceipts     OfficialReceipt[]
+  sitePages            SitePage[]
+  sitePosts            SitePost[]
+  reportRuns           ReportRun[]
+  tickets              Ticket[]
+  files                FileObject[]
+  wallets              Wallet[]
+  disbursementBatches  DisbursementBatch[]
+  merchants            Merchant[]
+  agents               Agent[]
+  concerns             Concern[]
+  sosAlerts            SosAlert[]
+  announcements        Announcement[]
+  appointments         Appointment[]
+  feedback             Feedback[]
+  healthCampaigns      HealthCampaign[]
+  jobPosts             JobPost[]
+  benefitApplications  BenefitApplication[]
+  pbCycles             PbCycle[]
+  assemblies           Assembly[]
+  auditLogs            AuditLog[]
+  aiInteractions       AiInteraction[]
+  syncRuns             BimsSyncRun[]
+
+  @@index([cityId])
+  @@index([status])
+}
+
+// ---- Identity & RBAC ----
+
+enum RoleKey {
+  SYSTEM_ADMIN
+  LGU_ADMIN
+  PUNONG_BARANGAY
+  BARANGAY_SECRETARY
+  BARANGAY_TREASURER
+  SB_MEMBER
+  SK_OFFICIAL
+  LUPON_SECRETARY
+  VAW_DESK_OFFICER
+  BHW
+  TANOD
+  RESIDENT
+  AGENT_MERCHANT
+  DILG_VIEWER
+}
+
+enum ScopeLevel {
+  platform
+  region
+  province
+  city
+  barangay
+  self
+}
+
+model Role {
+  id          String     @id @default(cuid())
+  key         RoleKey    @unique
+  name        String
+  description String?
+  scope       ScopeLevel
+  isStaff     Boolean    @default(true) // staff roles require MFA
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+/// Permissions are `module:action` — e.g. "inhabitants:encode", "wallet:disburse".
+model Permission {
+  id     String @id @default(cuid())
+  key    String @unique
+  module String
+  action String
+  roles  RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String? @unique
+  phone        String? @unique
+  passwordHash String?
+  fullName     String
+  avatarUrl    String?
+
+  isActive  Boolean @default(true)
+  mfaEnabled Boolean @default(false)
+  mfaSecret  String?
+
+  // Tenancy scope
+  barangayId String?
+  barangay   Barangay? @relation(fields: [barangayId], references: [id])
+  cityId     String?
+  city       City?     @relation(fields: [cityId], references: [id])
+
+  // Link to the inhabitant record (residents & officials)
+  inhabitantId String?     @unique
+  inhabitant   Inhabitant? @relation(fields: [inhabitantId], references: [id])
+
+  roles       UserRole[]
+  sessions    Session[]
+  auditLogs   AuditLog[]
+  lastLoginAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barangayId])
+  @@index([cityId])
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  ip        String?
+  userAgent String?
+  mfaPassed Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ---- Audit & consent (RA 10173) ----
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  barangayId String?
+  barangay   Barangay? @relation(fields: [barangayId], references: [id])
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  actorRole  String?
+  action     String // e.g. "certificate.approve"
+  entity     String // e.g. "CertificateRequest"
+  entityId   String?
+  beforeHash String?
+  afterHash  String?
+  diff       Json?
+  ip         String?
+  userAgent  String?
+  isAiAction Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId, createdAt])
+  @@index([entity, entityId])
+}
+
+enum ConsentPurpose {
+  SERVICE_DELIVERY
+  DISBURSEMENT
+  BIMS_SHARING
+  HEALTH_PROGRAM
+  ANALYTICS
+}
+
+enum ConsentStatus {
+  granted
+  withdrawn
+  expired
+}
+
+/// Per-household consent artifact. Nothing leaves the barangay's own operations without one.
+model ConsentRecord {
+  id          String         @id @default(cuid())
+  barangayId  String
+  barangay    Barangay       @relation(fields: [barangayId], references: [id])
+  householdId String?
+  household   Household?     @relation(fields: [householdId], references: [id])
+  inhabitantId String?
+  inhabitant  Inhabitant?    @relation(fields: [inhabitantId], references: [id])
+
+  purpose     ConsentPurpose
+  status      ConsentStatus  @default(granted)
+  grantedBy   String // name of the household member who signed
+  grantedAt   DateTime       @default(now())
+  withdrawnAt DateTime?
+  evidenceUrl String? // scanned signed form
+  notes       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([barangayId, purpose, status])
+  @@index([householdId])
+}
+
+// ============================================================
+// A1 — INHABITANT PROFILING (BIPS / RBI)
+// ============================================================
+
+enum Sex {
+  male
+  female
+}
+
+enum CivilStatus {
+  single
+  married
+  widowed
+  separated
+  annulled
+}
+
+model Household {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  householdNo String
+  purok       String?
+  sitio       String?
+  addressLine String
+  latitude    Float?
+  longitude   Float?
+
+  // Socioeconomic (RBI form fields)
+  dwellingType    String?
+  tenureStatus    String?
+  waterSource     String?
+  toiletFacility  String?
+  electricitySource String?
+  monthlyIncomeBand String?
+  is4Ps           Boolean @default(false)
+
+  headId  String?     @unique
+  members Inhabitant[] @relation("HouseholdMembers")
+
+  source     RecordSource @default(CBMS)
+  bimsRef    String?
+  consents   ConsentRecord[]
+  reliefs    ReliefDistribution[]
+  evacuations EvacuationRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([barangayId, householdNo])
+  @@index([barangayId, purok])
+}
+
+model Inhabitant {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  householdId String?
+  household   Household? @relation("HouseholdMembers", fields: [householdId], references: [id])
+  relationToHead String?
+
+  // Identity
+  firstName  String
+  middleName String?
+  lastName   String
+  suffix     String?
+  sex        Sex
+  birthDate  DateTime
+  birthPlace String?
+  civilStatus CivilStatus @default(single)
+  citizenship String      @default("Filipino")
+  philsysNo   String? // PCN — validated format, mock-verified
+  contactPhone String?
+  contactEmail String?
+
+  // Socioeconomic
+  occupation      String?
+  educationLevel  String?
+  religion        String?
+  bloodType       String?
+  monthlyIncome   Decimal? @db.Decimal(12, 2)
+
+  // Sectoral flags (drive A5 vulnerable registry, B3 benefits, health cohorts)
+  isSenior       Boolean @default(false)
+  isPwd          Boolean @default(false)
+  pwdType        String?
+  isSoloParent   Boolean @default(false)
+  is4Ps          Boolean @default(false)
+  isIndigenous   Boolean @default(false)
+  isPregnant     Boolean @default(false)
+  isBedridden    Boolean @default(false)
+  isOfw          Boolean @default(false)
+  isVoter        Boolean @default(false)
+  isDeceased     Boolean @default(false)
+  deceasedDate   DateTime?
+
+  // Residency
+  residencyStart DateTime?
+  isResident     Boolean   @default(true)
+
+  source  RecordSource @default(CBMS)
+  bimsRef String?
+
+  photoUrl String?
+
+  user                User?
+  consents            ConsentRecord[]
+  certificateRequests CertificateRequest[]
+  wallet              Wallet?
+  kpParties           KpParty[]
+  institutionMembers  InstitutionMember[]
+  concerns            Concern[]
+  sosAlerts           SosAlert[]
+  appointments        Appointment[]
+  feedback            Feedback[]
+  healthRecords       HealthRecord[]
+  jobApplications     JobApplication[]
+  benefitApplications BenefitApplication[]
+  pbVotes             PbVote[]
+  digitalId           DigitalId?
+  batchItems          DisbursementBatchItem[]
+  residencyHistory    ResidencyHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barangayId, lastName, firstName])
+  @@index([barangayId, isDeceased, isResident])
+  @@index([householdId])
+  @@index([philsysNo])
+}
+
+model ResidencyHistory {
+  id           String     @id @default(cuid())
+  inhabitantId String
+  inhabitant   Inhabitant @relation(fields: [inhabitantId], references: [id], onDelete: Cascade)
+  event        String // moved_in | moved_out | transferred | deceased
+  effectiveAt  DateTime
+  fromAddress  String?
+  toAddress    String?
+  remarks      String?
+  createdAt    DateTime   @default(now())
+
+  @@index([inhabitantId])
+}
+
+// ============================================================
+// A2 — ISSUANCE MANAGEMENT (BCIS)
+// ============================================================
+
+enum RequestStatus {
+  draft
+  submitted
+  awaiting_payment
+  paid
+  for_approval
+  approved
+  released
+  rejected
+  cancelled
+}
+
+enum PaymentMethod {
+  wallet
+  otc_cash
+  waived
+}
+
+model CertificateType {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  code        String // BRGY_CLEARANCE, RESIDENCY, INDIGENCY, BUSINESS, FIRST_TIME_JOBSEEKER, GOOD_MORAL
+  name        String
+  description String?
+  fee         Decimal  @db.Decimal(10, 2) @default(0)
+  validityDays Int     @default(180)
+  isActive    Boolean  @default(true)
+  requiresApproval Boolean @default(true)
+  // Requirements list shown to residents (transparency board)
+  requirements String[] @default([])
+  // Exemptions: e.g. first-time jobseeker is free by law (RA 11261)
+  exemptNote  String?
+  templateBody String? // markdown/handlebars body for the PDF
+
+  requests CertificateRequest[]
+
+  @@unique([barangayId, code])
+  @@index([barangayId])
+}
+
+model CertificateRequest {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  typeId String
+  type   CertificateType @relation(fields: [typeId], references: [id])
+
+  inhabitantId String
+  inhabitant   Inhabitant @relation(fields: [inhabitantId], references: [id])
+
+  referenceNo String        @unique
+  purpose     String
+  status      RequestStatus @default(submitted)
+
+  fee           Decimal       @db.Decimal(10, 2) @default(0)
+  paymentMethod PaymentMethod?
+  paidAt        DateTime?
+  orNumber      String?
+
+  // Approval (a human always signs)
+  approvedById String?
+  approvedAt   DateTime?
+  rejectedReason String?
+
+  // Issued artifact
+  issuedAt      DateTime?
+  expiresAt     DateTime?
+  verifyCode    String?   @unique // public /verify/{code}
+  pdfUrl        String?
+
+  // RA 11032 turnaround tracking
+  submittedAt   DateTime  @default(now())
+  releasedAt    DateTime?
+  processingMs  Int?
+
+  source  RecordSource @default(CBMS)
+  bimsRef String?
+
+  aiDraft     String?
+  feedback    Feedback[]
+  transactions WalletTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barangayId, status])
+  @@index([inhabitantId])
+  @@index([verifyCode])
+}
+
+// ============================================================
+// A3 — KATARUNGANG PAMBARANGAY & BLOTTER (KPISBH)
+// ============================================================
+
+enum BlotterCategory {
+  dispute
+  theft
+  physical_injury
+  noise
+  vandalism
+  vawc
+  drugs
+  traffic
+  other
+}
+
+model BlotterEntry {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  entryNo     String
+  category    BlotterCategory @default(other)
+  incidentAt  DateTime
+  location    String
+  /// Encrypted at rest (packages/db field encryption).
+  narrative   String
+  reportedBy  String
+  respondentName String?
+  isConfidential Boolean @default(false) // VAWC/VAC — restricted visibility
+
+  recordedById String?
+  kpCase       KpCase?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([barangayId, entryNo])
+  @@index([barangayId, incidentAt])
+  @@index([barangayId, isConfidential])
+}
+
+enum KpStage {
+  filed
+  mediation // Punong Barangay, 15 days
+  conciliation // Pangkat, 15 days + 15 extension
+  settled
+  repudiated
+  cfa_issued // Certificate to File Action
+  dismissed
+  withdrawn
+}
+
+model KpCase {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  caseNo      String
+  blotterId   String?      @unique
+  blotter     BlotterEntry? @relation(fields: [blotterId], references: [id])
+
+  subject     String
+  /// Encrypted at rest.
+  description String
+  stage       KpStage  @default(filed)
+  isConfidential Boolean @default(false)
+
+  filedAt          DateTime  @default(now())
+  mediationDueAt   DateTime? // filedAt + 15 days (RA 7160 §410)
+  conciliationDueAt DateTime?
+  extendedDueAt    DateTime?
+  closedAt         DateTime?
+
+  settlementTerms String?
+  cfaReason       String?
+  pangkatMembers  String[] @default([])
+
+  parties  KpParty[]
+  hearings KpHearing[]
+  documents KpDocument[]
+
+  source  RecordSource @default(CBMS)
+  bimsRef String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([barangayId, caseNo])
+  @@index([barangayId, stage])
+}
+
+enum PartyRole {
+  complainant
+  respondent
+  witness
+}
+
+model KpParty {
+  id           String     @id @default(cuid())
+  caseId       String
+  case         KpCase     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  role         PartyRole
+  inhabitantId String?
+  inhabitant   Inhabitant? @relation(fields: [inhabitantId], references: [id])
+  nameOverride String? // for non-residents
+  address      String?
+  contact      String?
+
+  @@index([caseId])
+}
+
+model KpHearing {
+  id        String   @id @default(cuid())
+  caseId    String
+  case      KpCase   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  stage     KpStage
+  attended  Boolean?
+  minutes   String?
+  outcome   String?
+  createdAt DateTime @default(now())
+
+  @@index([caseId, scheduledAt])
+}
+
+model KpDocument {
+  id        String   @id @default(cuid())
+  caseId    String
+  case      KpCase   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  kind      String // summons | notice_of_hearing | amicable_settlement | cfa
+  pdfUrl    String?
+  issuedAt  DateTime @default(now())
+
+  @@index([caseId])
+}
+
+// ============================================================
+// A4 — PROPERTY & ASSET MANAGEMENT (BAMS)
+// ============================================================
+
+enum PropertyType {
+  infrastructure
+  non_infrastructure
+}
+
+enum PropertyStatus {
+  operational
+  under_construction
+  unserviceable
+  closed
+}
+
+model Property {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  name     String
+  type     PropertyType   @default(infrastructure)
+  status   PropertyStatus @default(operational)
+  /// Governance area, e.g. "Good Fiscal or Financial Administration or Fiscal Sustainability"
+  category String
+  capacity Int            @default(0)
+
+  acquiredAt   DateTime?
+  acquisitionCost Decimal? @db.Decimal(14, 2)
+  custodian    String? // LGC §375 accountability
+  description  String?
+
+  latitude  Float?
+  longitude Float?
+  addressLine String?
+
+  isEvacuationCenter Boolean @default(false)
+  evacuationCenter   EvacuationCenter?
+
+  maintenance MaintenanceRecord[]
+
+  source  RecordSource @default(CBMS)
+  bimsRef String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barangayId, status])
+  @@index([barangayId, type])
+}
+
+model MaintenanceRecord {
+  id         String   @id @default(cuid())
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  performedAt DateTime
+  kind       String // repair | inspection | upgrade
+  cost       Decimal? @db.Decimal(12, 2)
+  remarks    String?
+  createdAt  DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+/// Consumables / supplies inventory (Material Management).
+model Material {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  name       String
+  unit       String   @default("pc")
+  quantity   Int      @default(0)
+  reorderLevel Int    @default(0)
+  location   String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId])
+}
+
+// ============================================================
+// A5 — DISASTER RESILIENCE (BDRIS)
+// ============================================================
+
+model Hazard {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  purok      String
+  hazardType String // flood | landslide | fire | earthquake | storm_surge
+  riskLevel  String // low | medium | high
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId])
+}
+
+model EvacuationCenter {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  propertyId String?  @unique
+  property   Property? @relation(fields: [propertyId], references: [id])
+
+  name     String
+  capacity Int
+  addressLine String?
+  latitude Float?
+  longitude Float?
+  isOpen   Boolean @default(false)
+
+  evacuations EvacuationRecord[]
+
+  createdAt DateTime @default(now())
+
+  @@index([barangayId])
+}
+
+enum DisasterEventStatus {
+  monitoring
+  active
+  recovery
+  closed
+}
+
+model DisasterEvent {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  name       String
+  hazardType String
+  status     DisasterEventStatus @default(monitoring)
+  declaredAt DateTime @default(now())
+  closedAt   DateTime?
+  summary    String?
+
+  evacuations EvacuationRecord[]
+  reliefs     ReliefDistribution[]
+
+  createdAt DateTime @default(now())
+
+  @@index([barangayId, status])
+}
+
+model EvacuationRecord {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     DisasterEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  centerId  String
+  center    EvacuationCenter @relation(fields: [centerId], references: [id])
+  householdId String
+  household Household @relation(fields: [householdId], references: [id])
+  headcount Int      @default(1)
+  checkInAt  DateTime @default(now())
+  checkOutAt DateTime?
+
+  @@index([eventId])
+  @@index([householdId])
+}
+
+model ReliefDistribution {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       DisasterEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  goods       String
+  quantity    Int      @default(1)
+  /// Optional cash aid paid through the wallet (B1) — links the ayuda flow.
+  cashAmount  Decimal? @db.Decimal(12, 2)
+  releasedAt  DateTime @default(now())
+  releasedBy  String?
+  receivedBy  String?
+
+  @@unique([eventId, householdId, goods])
+  @@index([eventId])
+}
+
+// ============================================================
+// A6 — GAD PLAN & BUDGET (BGADPBMS)
+// ============================================================
+
+model GadPlan {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  year       Int
+  totalBudget Decimal @db.Decimal(14, 2) // barangay annual budget
+  gadBudget   Decimal @db.Decimal(14, 2) // must be >= 5% of totalBudget
+  status      String  @default("draft") // draft | approved | closed
+  activities  GadActivity[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([barangayId, year])
+}
+
+model GadActivity {
+  id        String  @id @default(cuid())
+  planId    String
+  plan      GadPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  title     String
+  attribution String // client-focused | organization-focused
+  genderIssue String?
+  budget    Decimal @db.Decimal(12, 2)
+  actualSpend Decimal? @db.Decimal(12, 2)
+  targetOutput String?
+  actualOutput String?
+  quarter   Int?
+  status    String  @default("planned")
+
+  @@index([planId])
+}
+
+// ============================================================
+// A7 — ORDINANCES & RESOLUTIONS (BORIS)
+// ============================================================
+
+enum LegislationKind {
+  ordinance
+  resolution
+  executive_order
+}
+
+enum LegislationStatus {
+  draft
+  enacted
+  vetoed
+  amended
+  repealed
+}
+
+model Legislation {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  kind      LegislationKind
+  number    String
+  series    Int
+  title     String
+  body      String?
+  status    LegislationStatus @default(draft)
+  sponsors  String[]          @default([])
+  firstReadingAt  DateTime?
+  secondReadingAt DateTime?
+  enactedAt DateTime?
+  fileUrl   String?
+  isPublished Boolean @default(false) // pushes to A11 public site
+
+  amendsId   String?
+  amends     Legislation?  @relation("LegislationRelations", fields: [amendsId], references: [id])
+  amendedBy  Legislation[] @relation("LegislationRelations")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([barangayId, kind, number, series])
+  @@index([barangayId, status])
+}
+
+// ============================================================
+// A8 — BARANGAY DEVELOPMENT PLAN (BDP)
+// ============================================================
+
+model DevelopmentPlan {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  title      String
+  vision     String?
+  startYear  Int
+  endYear    Int
+  status     String   @default("active")
+  projects   DevProject[]
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId])
+}
+
+enum ProjectStatus {
+  proposed
+  approved
+  ongoing
+  completed
+  deferred
+}
+
+model DevProject {
+  id       String @id @default(cuid())
+  planId   String
+  plan     DevelopmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  title    String
+  description String?
+  sector   String // health | infrastructure | education | livelihood | environment | peace_order
+  budget   Decimal @db.Decimal(14, 2)
+  fundingSource String? // IRA/NTA | LGU | national | grant
+  status   ProjectStatus @default(proposed)
+  targetYear Int
+  progressPct Int @default(0)
+  alignmentTags String[] @default([])
+
+  pbOptions PbOption[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([planId, status])
+}
+
+// ============================================================
+// A9 — BARANGAY-BASED INSTITUTIONS (BBI)
+// ============================================================
+
+model Institution {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  code       String // BDRRMC | BADAC | BCPC | LUPON | SK | WOMEN | FARMERS | YOUTH
+  name       String
+  description String?
+  accreditedAt DateTime?
+  isActive   Boolean  @default(true)
+  members    InstitutionMember[]
+  minutes    InstitutionMinutes[]
+  createdAt  DateTime @default(now())
+
+  @@unique([barangayId, code])
+  @@index([barangayId])
+}
+
+model InstitutionMember {
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  inhabitantId  String?
+  inhabitant    Inhabitant? @relation(fields: [inhabitantId], references: [id])
+  nameOverride  String?
+  position      String
+  termStart     DateTime?
+  termEnd       DateTime?
+
+  @@index([institutionId])
+}
+
+model InstitutionMinutes {
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  meetingAt     DateTime
+  agenda        String?
+  minutes       String?
+  fileUrl       String?
+
+  @@index([institutionId])
+}
+
+// ============================================================
+// A10 — FINANCIAL MANAGEMENT (BFMS-style ledger) + TREASURY
+// ============================================================
+
+model Budget {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  year       Int
+  /// Links to the appropriation ordinance in A7.
+  ordinanceId String?
+  totalAmount Decimal @db.Decimal(14, 2)
+  skFundAmount Decimal @db.Decimal(14, 2) @default(0)
+  status     String   @default("draft") // draft | enacted | closed
+  lines      BudgetLine[]
+  createdAt  DateTime @default(now())
+
+  @@unique([barangayId, year])
+}
+
+model BudgetLine {
+  id       String  @id @default(cuid())
+  budgetId String
+  budget   Budget  @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  /// COA expense class: PS (personnel services), MOOE, CO (capital outlay)
+  expenseClass String
+  accountCode  String
+  description  String
+  amount       Decimal @db.Decimal(14, 2)
+  obligated    Decimal @db.Decimal(14, 2) @default(0)
+  disbursed    Decimal @db.Decimal(14, 2) @default(0)
+
+  @@index([budgetId])
+}
+
+enum LedgerDirection {
+  debit
+  credit
+}
+
+enum FundType {
+  general
+  sk
+  gad
+  disaster
+  trust
+}
+
+/// Double-entry ledger. Every wallet transaction (B1) posts here.
+model LedgerEntry {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  postedAt   DateTime @default(now())
+  fund       FundType @default(general)
+  accountCode String
+  description String
+  direction  LedgerDirection
+  amount     Decimal  @db.Decimal(14, 2)
+
+  /// Reference documents
+  orNumber   String?
+  dvNumber   String? // disbursement voucher
+  refType    String? // certificate_request | disbursement_batch | wallet_txn | manual
+  refId      String?
+
+  transactionId String?
+  transaction   WalletTransaction? @relation(fields: [transactionId], references: [id])
+
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([barangayId, postedAt])
+  @@index([refType, refId])
+}
+
+model OfficialReceipt {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  orNumber   String
+  payorName  String
+  amount     Decimal  @db.Decimal(12, 2)
+  particulars String
+  issuedAt   DateTime @default(now())
+  issuedById String?
+  refType    String?
+  refId      String?
+
+  @@unique([barangayId, orNumber])
+  @@index([barangayId, issuedAt])
+}
+
+// ============================================================
+// A11 — PUBLIC WEBSITE + CMS
+// ============================================================
+
+model SitePage {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  slug       String
+  title      String
+  body       String
+  isPublished Boolean @default(true)
+  sortOrder  Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([barangayId, slug])
+}
+
+model SitePost {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  slug       String
+  title      String
+  excerpt    String?
+  body       String
+  coverUrl   String?
+  publishedAt DateTime?
+  isPublished Boolean @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([barangayId, slug])
+  @@index([barangayId, isPublished])
+}
+
+// ============================================================
+// A12 — REPORT MANAGEMENT
+// ============================================================
+
+model ReportRun {
+  id         String   @id @default(cuid())
+  barangayId String?
+  barangay   Barangay? @relation(fields: [barangayId], references: [id])
+  cityId     String?
+  key        String // rbi_export | csm_summary | ser | kp_docket | nboo_quarterly ...
+  period     String? // 2026-Q1
+  format     String  @default("csv")
+  params     Json?
+  status     String  @default("completed")
+  fileUrl    String?
+  rowCount   Int?
+  generatedById String?
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId, key])
+}
+
+// ============================================================
+// A13 — PLATFORM ADMIN (tickets, files, flags)
+// ============================================================
+
+enum TicketStatus {
+  open
+  in_progress
+  escalated
+  resolved
+  closed
+}
+
+model Ticket {
+  id         String   @id @default(cuid())
+  barangayId String?
+  barangay   Barangay? @relation(fields: [barangayId], references: [id])
+  subject    String
+  body       String
+  category   String   @default("technical")
+  status     TicketStatus @default(open)
+  priority   String   @default("normal")
+  raisedById String?
+  assignedToId String?
+  resolvedAt DateTime?
+  responses  TicketResponse[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([barangayId, status])
+}
+
+model TicketResponse {
+  id       String @id @default(cuid())
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId String?
+  body     String
+  isInternal Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model FileObject {
+  id         String   @id @default(cuid())
+  barangayId String?
+  barangay   Barangay? @relation(fields: [barangayId], references: [id])
+  key        String   @unique
+  filename   String
+  mimeType   String
+  sizeBytes  Int
+  scanStatus String   @default("pending") // pending | clean | infected (stub)
+  uploadedById String?
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId])
+}
+
+model FeatureFlag {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  enabled   Boolean @default(false)
+  scope     String  @default("global")
+  notes     String?
+  updatedAt DateTime @updatedAt
+}
+
+// ---- BIMS adapter sync state (§6) ----
+model BimsSyncRun {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  dataset    String // inhabitants | issuances | properties
+  direction  String   @default("pull")
+  status     String   @default("success")
+  pulled     Int      @default(0)
+  conflicts  Int      @default(0)
+  message    String?
+  startedAt  DateTime @default(now())
+  finishedAt DateTime?
+
+  @@index([barangayId, dataset])
+}
+
+// ============================================================
+// B1 — BARANGAY E-WALLET
+// ============================================================
+
+enum WalletOwnerType {
+  resident
+  official
+  treasury
+  merchant
+  agent
+}
+
+enum KycTier {
+  tier1 // single ID / PhilSys, low limits
+  tier2 // full KYC
+}
+
+enum WalletStatus {
+  active
+  frozen
+  closed
+}
+
+model Wallet {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  ownerType WalletOwnerType
+  inhabitantId String?     @unique
+  inhabitant   Inhabitant? @relation(fields: [inhabitantId], references: [id])
+
+  /// Mock EMI account handle — real provider swaps in behind packages/payments.
+  emiAccountRef String  @unique
+  kycTier   KycTier      @default(tier1)
+  status    WalletStatus @default(active)
+  /// Stored in centavos to avoid float drift.
+  balanceCentavos BigInt @default(0)
+
+  merchant Merchant?
+  agent    Agent?
+
+  outgoing WalletTransaction[] @relation("FromWallet")
+  incoming WalletTransaction[] @relation("ToWallet")
+  batchItems DisbursementBatchItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barangayId, ownerType])
+}
+
+enum TxnType {
+  disbursement
+  fee_collection
+  bill_payment
+  merchant_payment
+  p2p_transfer
+  cash_in
+  cash_out
+  reversal
+  adjustment
+}
+
+enum TxnStatus {
+  pending
+  completed
+  failed
+  reversed
+}
+
+model WalletTransaction {
+  id         String   @id @default(cuid())
+  barangayId String
+
+  type   TxnType
+  status TxnStatus @default(pending)
+
+  fromWalletId String?
+  fromWallet   Wallet? @relation("FromWallet", fields: [fromWalletId], references: [id])
+  toWalletId   String?
+  toWallet     Wallet? @relation("ToWallet", fields: [toWalletId], references: [id])
+
+  amountCentavos BigInt
+  /// Fee is charged to the disbursing/collecting side — never deducted from ayuda.
+  feeCentavos    BigInt  @default(0)
+  currency       String  @default("PHP")
+
+  reference   String  @unique
+  description String?
+  /// External provider reference (mock EMI).
+  emiTxnRef   String?
+
+  batchItemId String? @unique
+  certificateRequestId String?
+  certificateRequest   CertificateRequest? @relation(fields: [certificateRequestId], references: [id])
+  billPaymentId String? @unique
+  agentId       String?
+  agent         Agent?  @relation(fields: [agentId], references: [id])
+  merchantId    String?
+  merchant      Merchant? @relation(fields: [merchantId], references: [id])
+
+  ledgerEntries LedgerEntry[]
+  dispute       Dispute?
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([barangayId, createdAt])
+  @@index([type, status])
+}
+
+enum BatchStatus {
+  draft
+  for_approval
+  approved
+  executing
+  completed
+  failed
+  cancelled
+}
+
+enum BatchKind {
+  payroll_honoraria
+  allowance_stipend
+  ayuda_social
+}
+
+model DisbursementBatch {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+
+  batchNo String
+  kind    BatchKind
+  title   String
+  fund    FundType    @default(general)
+  status  BatchStatus @default(draft)
+
+  /// Maker–checker: preparer and approver must differ.
+  preparedById String?
+  approvedById String?
+  approvedAt   DateTime?
+  executedAt   DateTime?
+
+  totalCentavos BigInt @default(0)
+  itemCount     Int    @default(0)
+
+  /// Ayuda batches snapshot a consent-checked beneficiary list.
+  sourceNote String?
+  disasterEventId String?
+
+  items DisbursementBatchItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([barangayId, batchNo])
+  @@index([barangayId, status])
+}
+
+enum BatchItemStatus {
+  pending
+  paid
+  failed
+  otc_fallback // no wallet / declined digital — pay over the counter
+  cancelled
+}
+
+model DisbursementBatchItem {
+  id      String @id @default(cuid())
+  batchId String
+  batch   DisbursementBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  inhabitantId String?
+  inhabitant   Inhabitant? @relation(fields: [inhabitantId], references: [id])
+  walletId     String?
+  wallet       Wallet?     @relation(fields: [walletId], references: [id])
+
+  payeeName      String
+  amountCentavos BigInt
+  status         BatchItemStatus @default(pending)
+  remarks        String?
+  paidAt         DateTime?
+
+  @@index([batchId, status])
+}
+
+model Merchant {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  walletId   String   @unique
+  wallet     Wallet   @relation(fields: [walletId], references: [id])
+
+  businessName String
+  ownerName    String
+  category     String   @default("sari_sari")
+  addressLine  String?
+  qrCode       String   @unique
+  /// Merchant discount rate in basis points (0 at launch to build acceptance).
+  mdrBps       Int      @default(0)
+  isActive     Boolean  @default(true)
+
+  transactions WalletTransaction[]
+  createdAt    DateTime @default(now())
+
+  @@index([barangayId])
+}
+
+model Agent {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  walletId   String   @unique
+  wallet     Wallet   @relation(fields: [walletId], references: [id])
+
+  outletName  String
+  ownerName   String
+  addressLine String?
+  /// Commission share in basis points on cash-in/out.
+  commissionBps Int   @default(50)
+  /// Physical cash on hand (centavos) — drives liquidity alerts.
+  cashOnHandCentavos BigInt @default(0)
+  floatAlertThreshold BigInt @default(500000) // ₱5,000
+  isActive    Boolean @default(true)
+
+  transactions WalletTransaction[]
+  floatLogs    AgentFloatLog[]
+  createdAt    DateTime @default(now())
+
+  @@index([barangayId])
+}
+
+model AgentFloatLog {
+  id       String @id @default(cuid())
+  agentId  String
+  agent    Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  kind     String // rebalance_in | rebalance_out | cash_in | cash_out
+  amountCentavos BigInt
+  balanceAfterCentavos BigInt
+  note     String?
+  createdAt DateTime @default(now())
+
+  @@index([agentId, createdAt])
+}
+
+model Biller {
+  id       String @id @default(cuid())
+  code     String @unique
+  name     String
+  category String // utility | telco | government | financial
+  /// Commission the biller pays us per collection, in centavos.
+  commissionCentavos BigInt @default(300)
+  isActive Boolean @default(true)
+  payments BillPayment[]
+}
+
+model BillPayment {
+  id        String @id @default(cuid())
+  barangayId String
+  billerId  String
+  biller    Biller @relation(fields: [billerId], references: [id])
+  walletId  String
+  accountNo String
+  amountCentavos BigInt
+  /// Small, transparent convenience fee shown up front.
+  convenienceFeeCentavos BigInt @default(500)
+  status    TxnStatus @default(pending)
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([barangayId, createdAt])
+}
+
+model Dispute {
+  id            String @id @default(cuid())
+  transactionId String @unique
+  transaction   WalletTransaction @relation(fields: [transactionId], references: [id])
+  raisedById    String?
+  reason        String
+  status        String @default("open") // open | investigating | resolved | rejected
+  resolution    String?
+  resolvedAt    DateTime?
+  createdAt     DateTime @default(now())
+}
+
+// ============================================================
+// B2 — AI AGENTIC LAYER
+// ============================================================
+
+model AiInteraction {
+  id         String   @id @default(cuid())
+  barangayId String?
+  barangay   Barangay? @relation(fields: [barangayId], references: [id])
+  userId     String?
+  surface    String // resident_assistant | staff_copilot | analytics_copilot | oversight
+  prompt     String
+  response   String
+  /// Citations back to tenant data (module + record ids) so answers are checkable.
+  citations  Json?
+  model      String?
+  tokensIn   Int?
+  tokensOut  Int?
+  latencyMs  Int?
+  escalatedTicketId String?
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId, surface, createdAt])
+}
+
+enum AiRunStatus {
+  running
+  awaiting_approval
+  completed
+  failed
+  rejected
+}
+
+/// Inspectable state machine for agentic workflows (e.g. certificate issuance).
+model AiWorkflowRun {
+  id         String @id @default(cuid())
+  barangayId String
+  workflow   String // certificate_issuance | ...
+  refType    String?
+  refId      String?
+  status     AiRunStatus @default(running)
+  steps      AiWorkflowStep[]
+  startedAt  DateTime @default(now())
+  finishedAt DateTime?
+
+  @@index([barangayId, workflow, status])
+}
+
+model AiWorkflowStep {
+  id      String @id @default(cuid())
+  runId   String
+  run     AiWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  seq     Int
+  name    String
+  input   Json?
+  output  Json?
+  status  String   @default("completed")
+  isHumanGate Boolean @default(false)
+  decidedById String?
+  createdAt DateTime @default(now())
+
+  @@index([runId, seq])
+}
+
+// ============================================================
+// B3 — RESIDENT SELF-SERVICE SUITE
+// ============================================================
+
+enum ConcernStatus {
+  submitted
+  acknowledged
+  in_progress
+  resolved
+  rejected
+}
+
+/// Report a Concern — the barangay "311".
+model Concern {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  inhabitantId String?
+  inhabitant   Inhabitant? @relation(fields: [inhabitantId], references: [id])
+
+  referenceNo String @unique
+  category    String // streetlight | flooding | garbage | pothole | noise | stray_animal | other
+  description String
+  photoUrl    String?
+  resolutionPhotoUrl String?
+  latitude    Float?
+  longitude   Float?
+  purok       String?
+
+  status      ConcernStatus @default(submitted)
+  /// RA 11032 SLA tracking.
+  slaDueAt    DateTime?
+  acknowledgedAt DateTime?
+  resolvedAt  DateTime?
+  assignedToId String?
+  resolutionNote String?
+
+  feedback  Feedback[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([barangayId, status])
+  @@index([barangayId, category])
+}
+
+enum SosStatus {
+  active
+  acknowledged
+  dispatched
+  resolved
+  false_alarm
+  test
+}
+
+model SosAlert {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  inhabitantId String?
+  inhabitant   Inhabitant? @relation(fields: [inhabitantId], references: [id])
+
+  kind      String // medical | fire | crime | flood
+  latitude  Float?
+  longitude Float?
+  note      String?
+  status    SosStatus @default(active)
+  isTest    Boolean   @default(false)
+
+  acknowledgedAt DateTime?
+  respondedById  String?
+  resolvedAt     DateTime?
+  responseNote   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([barangayId, status, createdAt])
+}
+
+model Announcement {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  title      String
+  body       String
+  category   String   @default("general") // general | utility | emergency | event
+  severity   String   @default("info") // info | warning | critical
+  /// Channels: in_app, email, sms (SMS reserved for critical + OTP)
+  channels   String[] @default(["in_app"])
+  publishedAt DateTime?
+  isPublished Boolean @default(false)
+  disasterEventId String?
+  authorId   String?
+  replies    AnnouncementReply[]
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId, isPublished, publishedAt])
+}
+
+model AnnouncementReply {
+  id             String       @id @default(cuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  inhabitantId   String?
+  body           String
+  isModerated    Boolean      @default(false)
+  isHidden       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([announcementId])
+}
+
+enum AppointmentStatus {
+  booked
+  checked_in
+  serving
+  completed
+  no_show
+  cancelled
+}
+
+model Appointment {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  inhabitantId String?
+  inhabitant   Inhabitant? @relation(fields: [inhabitantId], references: [id])
+
+  service    String // certificate | kp_hearing | health | general
+  scheduledAt DateTime
+  queueNumber String?
+  status     AppointmentStatus @default(booked)
+  checkedInAt DateTime?
+  servedAt   DateTime?
+  completedAt DateTime?
+  notes      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([barangayId, scheduledAt])
+  @@index([barangayId, status])
+}
+
+/// Client Satisfaction Measurement (RA 11032).
+model Feedback {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  inhabitantId String?
+  inhabitant   Inhabitant? @relation(fields: [inhabitantId], references: [id])
+
+  /// 1–5 one-tap rating.
+  rating     Int
+  comment    String?
+  service    String // certificate | concern | health | frontline
+  certificateRequestId String?
+  certificateRequest   CertificateRequest? @relation(fields: [certificateRequestId], references: [id])
+  concernId  String?
+  concern    Concern? @relation(fields: [concernId], references: [id])
+
+  isGrievance Boolean  @default(false)
+  escalatedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([barangayId, createdAt])
+  @@index([barangayId, service])
+}
+
+model DigitalId {
+  id           String     @id @default(cuid())
+  inhabitantId String     @unique
+  inhabitant   Inhabitant @relation(fields: [inhabitantId], references: [id], onDelete: Cascade)
+  idNumber     String     @unique
+  qrCode       String     @unique
+  issuedAt     DateTime   @default(now())
+  expiresAt    DateTime?
+  isRevoked    Boolean    @default(false)
+  photoUrl     String?
+}
+
+model HealthCampaign {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  name       String
+  kind       String // immunization | prenatal | senior_checkup | deworming | medicine_refill
+  /// Cohort filter expressed against A1 sectoral flags.
+  cohortFilter Json?
+  startsAt   DateTime
+  endsAt     DateTime?
+  isActive   Boolean  @default(true)
+  records    HealthRecord[]
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId])
+}
+
+model HealthRecord {
+  id           String     @id @default(cuid())
+  campaignId   String?
+  campaign     HealthCampaign? @relation(fields: [campaignId], references: [id])
+  inhabitantId String
+  inhabitant   Inhabitant @relation(fields: [inhabitantId], references: [id], onDelete: Cascade)
+  kind         String
+  /// Encrypted at rest.
+  notes        String?
+  recordedAt   DateTime   @default(now())
+  recordedById String?
+  followUpAt   DateTime?
+
+  @@index([inhabitantId])
+  @@index([campaignId])
+}
+
+model JobPost {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  title      String
+  employer   String
+  kind       String   @default("job") // job | training | scholarship
+  description String
+  location   String?
+  salaryRange String?
+  contact    String?
+  closesAt   DateTime?
+  isActive   Boolean  @default(true)
+  applications JobApplication[]
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId, isActive])
+}
+
+model JobApplication {
+  id           String     @id @default(cuid())
+  jobPostId    String
+  jobPost      JobPost    @relation(fields: [jobPostId], references: [id], onDelete: Cascade)
+  inhabitantId String
+  inhabitant   Inhabitant @relation(fields: [inhabitantId], references: [id])
+  status       String     @default("submitted") // submitted | endorsed | hired | rejected
+  note         String?
+  createdAt    DateTime   @default(now())
+
+  @@unique([jobPostId, inhabitantId])
+}
+
+model BenefitApplication {
+  id           String     @id @default(cuid())
+  barangayId   String
+  barangay     Barangay   @relation(fields: [barangayId], references: [id])
+  inhabitantId String
+  inhabitant   Inhabitant @relation(fields: [inhabitantId], references: [id])
+  program      String // 4ps | solo_parent | senior | pwd | scholarship
+  status       String     @default("submitted") // submitted | endorsed | approved | rejected
+  documents    String[]   @default([])
+  reviewedById String?
+  reviewNote   String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([barangayId, program, status])
+}
+
+/// Participatory budgeting cycle.
+model PbCycle {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  title      String
+  year       Int
+  opensAt    DateTime
+  closesAt   DateTime
+  status     String   @default("open") // draft | open | closed
+  options    PbOption[]
+  votes      PbVote[]
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId, status])
+}
+
+model PbOption {
+  id        String  @id @default(cuid())
+  cycleId   String
+  cycle     PbCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   DevProject? @relation(fields: [projectId], references: [id])
+  label     String
+  detail    String?
+  voteCount Int     @default(0)
+  votes     PbVote[]
+
+  @@index([cycleId])
+}
+
+model PbVote {
+  id           String     @id @default(cuid())
+  cycleId      String
+  cycle        PbCycle    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  optionId     String
+  option       PbOption   @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  inhabitantId String
+  inhabitant   Inhabitant @relation(fields: [inhabitantId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  /// One vote per verified resident per cycle.
+  @@unique([cycleId, inhabitantId])
+  @@index([optionId])
+}
+
+model Assembly {
+  id         String   @id @default(cuid())
+  barangayId String
+  barangay   Barangay @relation(fields: [barangayId], references: [id])
+  title      String
+  scheduledAt DateTime
+  agenda     String?
+  minutes    String?
+  isPublished Boolean @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([barangayId, scheduledAt])
+}

@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cbms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cbms
+      POSTGRES_PASSWORD: cbms_dev_password
+      POSTGRES_DB: cbms
+    ports:
+      - "5433:5432"
+    volumes:
+      - cbms_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cbms -d cbms"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: cbms-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  minio:
+    image: minio/minio:latest
+    container_name: cbms-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: cbms
+      MINIO_ROOT_PASSWORD: cbms_dev_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - cbms_miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  cbms_pgdata:
+  cbms_miniodata:

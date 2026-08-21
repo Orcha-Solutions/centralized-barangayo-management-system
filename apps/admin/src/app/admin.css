@@ -1,0 +1,386 @@
+/* Barangay Console — additions on top of the @cbms/ui design system. */
+
+.adm-sidebar-foot {
+  margin-top: auto;
+  padding: 14px 18px 18px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: #8fa4d4;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.adm-navtoggle {
+  display: none;
+}
+
+.adm-topbar-id__name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--cbms-ink);
+  line-height: 1.2;
+}
+.adm-topbar-id__role {
+  font-size: 11px;
+  color: var(--cbms-muted);
+}
+
+.adm-chiprow {
+  display: inline-flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.adm-stack {
+  display: grid;
+  gap: 16px;
+}
+.adm-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.adm-spacer {
+  flex: 1;
+}
+.adm-muted {
+  color: var(--cbms-muted);
+  font-size: 12.5px;
+}
+.adm-strong {
+  font-weight: 600;
+  color: var(--cbms-navy);
+}
+.adm-empty {
+  padding: 26px;
+  text-align: center;
+  color: var(--cbms-muted);
+  font-size: 13px;
+}
+
+/* progress + utilisation bars */
+.adm-progress {
+  height: 9px;
+  background: var(--cbms-card);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.adm-progress__bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+.adm-progress__bar--navy {
+  background: var(--cbms-navy);
+}
+.adm-progress__bar--gold {
+  background: var(--cbms-gold);
+}
+.adm-progress__bar--red {
+  background: var(--cbms-red);
+}
+.adm-progress__bar--green {
+  background: var(--cbms-green);
+}
+.adm-progress__label {
+  font-size: 11.5px;
+  color: var(--cbms-muted);
+  margin-top: 5px;
+}
+
+/* CSS-only bar chart */
+.adm-bars {
+  display: grid;
+  gap: 9px;
+}
+.adm-bar {
+  display: grid;
+  grid-template-columns: 130px 1fr 82px;
+  gap: 12px;
+  align-items: center;
+  font-size: 12.5px;
+}
+.adm-bar__label {
+  color: var(--cbms-muted);
+}
+.adm-bar__track {
+  height: 16px;
+  background: #f1f5f9;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.adm-bar__fill {
+  height: 100%;
+  border-radius: 5px;
+}
+.adm-bar__fill--navy {
+  background: var(--cbms-navy);
+}
+.adm-bar__fill--gold {
+  background: var(--cbms-gold);
+}
+.adm-bar__fill--red {
+  background: var(--cbms-red);
+}
+.adm-bar__fill--green {
+  background: var(--cbms-green);
+}
+.adm-bar__value {
+  text-align: right;
+  font-weight: 600;
+  color: var(--cbms-navy);
+}
+
+/* tabs */
+.adm-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--cbms-line);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.adm-tabs__tab {
+  border: none;
+  background: none;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--cbms-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+}
+.adm-tabs__tab--active {
+  color: var(--cbms-navy);
+  border-bottom-color: var(--cbms-gold);
+}
+
+/* SOS dispatch board */
+.adm-sos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 14px;
+}
+.adm-sos-card {
+  background: #fff;
+  border: 1px solid var(--cbms-line);
+  border-left: 5px solid var(--cbms-red);
+  border-radius: var(--cbms-radius);
+  padding: 15px 16px;
+  box-shadow: var(--cbms-shadow);
+}
+.adm-sos-card--test {
+  border-left-color: var(--cbms-muted);
+}
+.adm-sos-card--handled {
+  border-left-color: var(--cbms-gold);
+}
+.adm-sos-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.adm-sos-card__kind {
+  font-size: 24px;
+}
+.adm-sos-card__title {
+  font-weight: 700;
+  color: var(--cbms-navy);
+  font-size: 15px;
+}
+.adm-sos-card__meta {
+  font-size: 12px;
+  color: var(--cbms-muted);
+}
+.adm-sos-card__actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+/* KP hearing timeline */
+.adm-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 18px;
+  border-left: 2px solid var(--cbms-ice);
+}
+.adm-timeline li {
+  position: relative;
+  padding: 0 0 16px 12px;
+}
+.adm-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -25px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cbms-navy);
+  border: 2px solid #fff;
+}
+.adm-timeline__when {
+  font-weight: 600;
+  color: var(--cbms-navy);
+  font-size: 13px;
+}
+.adm-timeline__what {
+  font-size: 12.5px;
+  color: var(--cbms-muted);
+  margin-top: 2px;
+}
+
+/* rendered certificate */
+.adm-doc {
+  background: #fff;
+  border: 1px solid var(--cbms-line);
+  border-radius: var(--cbms-radius);
+  padding: 38px 44px;
+  font-family: Georgia, "Times New Roman", serif;
+  line-height: 1.75;
+  color: #1b2430;
+  max-width: 820px;
+}
+.adm-doc__hdr {
+  text-align: center;
+  border-bottom: 2px solid var(--cbms-navy);
+  padding-bottom: 14px;
+  margin-bottom: 22px;
+}
+.adm-doc__brgy {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cbms-muted);
+}
+.adm-doc__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--cbms-navy);
+  margin-top: 6px;
+}
+.adm-doc__body {
+  white-space: pre-wrap;
+  font-size: 15px;
+}
+.adm-doc__foot {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--cbms-line);
+  font-family: var(--cbms-font);
+  font-size: 12px;
+  color: var(--cbms-muted);
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+.adm-verify {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--cbms-navy);
+}
+
+/* login extras */
+.adm-quickchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.adm-quickchip {
+  border: 1px solid var(--cbms-line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--cbms-navy);
+}
+.adm-quickchip:hover {
+  background: var(--cbms-card);
+}
+.adm-quickchip--active {
+  background: var(--cbms-navy);
+  color: #fff;
+  border-color: var(--cbms-navy);
+}
+.adm-secret {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 13px;
+  word-break: break-all;
+  background: #f6f8fc;
+  border: 1px solid var(--cbms-line);
+  border-radius: 8px;
+  padding: 9px 11px;
+}
+
+.adm-hint {
+  display: inline-flex;
+}
+
+.adm-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 16px;
+}
+
+.adm-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 8px;
+  font-size: 13px;
+}
+.adm-checks label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.adm-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.adm-kpi-note {
+  font-size: 11.5px;
+  color: var(--cbms-muted);
+  margin-top: 6px;
+}
+
+@media (max-width: 860px) {
+  .adm-navtoggle {
+    display: inline-flex;
+  }
+}
+
+@media print {
+  .cbms-sidebar,
+  .cbms-topbar,
+  .cbms-mock-banner,
+  .cbms-page-head,
+  .adm-noprint {
+    display: none !important;
+  }
+  .cbms-content {
+    padding: 0;
+  }
+  .adm-doc {
+    border: none;
+    box-shadow: none;
+    max-width: none;
+  }
+}
+
+
+/* SOS board — additions used by the dispatch page */
+.adm-sos-card--urgent { border-left-color: var(--cbms-red); background: #fffafa; }
+.adm-sos-card__icon { font-size: 26px; line-height: 1; flex-shrink: 0; }
+.adm-sos-card__note { margin: 10px 0 0; font-size: 13.5px; font-style: italic; color: var(--cbms-ink); }
