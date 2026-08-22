@@ -26,7 +26,19 @@ import { useConsole } from "../../../components/Shell";
 import { DISASTER_STATUSES } from "../../../lib/labels";
 import type { DisasterEvent, EvacuationCenter, Hazard, Paged } from "../../../lib/types";
 
-type TabKey = "events" | "centers" | "hazards";
+type TabKey = "events" | "centers" | "hazards" | "resources";
+
+interface DrrmResource {
+  id: string;
+  barangayId: string;
+  name: string;
+  type: string;
+  quantity: number;
+  status: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const HAZARD_TYPES = ["flood", "landslide", "fire", "earthquake", "storm_surge"] as const;
 const RISK_LEVELS = ["low", "medium", "high"] as const;
@@ -63,6 +75,53 @@ export default function DisasterPage() {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [ok, setOk] = React.useState<string | null>(null);
+
+  // ----------------------------------------------------------------- DRRM Resources
+  const resources = useApi<DrrmResource[]>(
+    tab === "resources" ? "/drrm-resources" : null,
+  );
+  const [showResourceForm, setShowResourceForm] = React.useState(false);
+  const [resourceForm, setResourceForm] = React.useState({
+    name: "",
+    type: "vehicle",
+    quantity: "1",
+    status: "operational",
+    notes: ""
+  });
+
+  async function createResource(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setOk(null);
+    try {
+      const created = await post<DrrmResource>("/drrm-resources", {
+        name: resourceForm.name.trim(),
+        type: resourceForm.type,
+        quantity: Number(resourceForm.quantity) || 0,
+        status: resourceForm.status,
+        notes: resourceForm.notes.trim()
+      });
+      setOk(`“${created.name}” added to DRRM resources.`);
+      setResourceForm({ name: "", type: "vehicle", quantity: "1", status: "operational", notes: "" });
+      setShowResourceForm(false);
+      resources.reload();
+    } catch (err) {
+      setError((err as ApiError)?.message ?? "Failed to save resource.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function toggleResourceStatus(id: string, currentStatus: string) {
+    const next = currentStatus === "operational" ? "maintenance" : "operational";
+    try {
+      await patch(`/drrm-resources/${id}`, { status: next });
+      resources.reload();
+    } catch {
+      alert("Failed to update status");
+    }
+  }
 
   // ----------------------------------------------------------------- events
   const [status, setStatus] = React.useState("all");
@@ -237,6 +296,7 @@ export default function DisasterPage() {
           { value: "events", label: "Events" },
           { value: "centers", label: "Evacuation centres" },
           { value: "hazards", label: "Hazard map" },
+          { value: "resources", label: "DRRM Resources" },
         ]}
         value={tab}
         onChange={(v) => {
@@ -718,6 +778,138 @@ export default function DisasterPage() {
               total={hazards.data?.total ?? 0}
               onPage={setHazardPage}
             />
+          </Panel>
+        </>
+      )}
+
+      {tab === "resources" && (
+        <>
+          <StatGrid>
+            <StatCard
+              label="Total Equipment"
+              value={num(resources.data?.length)}
+              hint="In active BDRRMC inventory"
+              icon="🚒"
+            />
+            <StatCard
+              label="Operational"
+              value={num(resources.data?.filter(x => x.status === "operational").length)}
+              hint="Ready for deployment"
+              icon="✅"
+              tone="green"
+            />
+            <StatCard
+              label="Under Maintenance"
+              value={num(resources.data?.filter(x => x.status === "maintenance").length)}
+              hint="Out of service"
+              icon="🛠"
+              tone="gold"
+            />
+          </StatGrid>
+
+          {showResourceForm && mayEncode && (
+            <Panel title="Add DRRM Resource">
+              <form onSubmit={createResource}>
+                <div className="adm-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                  <Field label="Resource Name">
+                    <input
+                      className="cbms-input"
+                      value={resourceForm.name}
+                      onChange={e => setResourceForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder="Rescue Boat A"
+                      required
+                    />
+                  </Field>
+                  <Field label="Type">
+                    <select
+                      className="cbms-select"
+                      value={resourceForm.type}
+                      onChange={e => setResourceForm(f => ({ ...f, type: e.target.value }))}
+                    >
+                      <option value="vehicle">Vehicle (Ambulance/Truck/Boat)</option>
+                      <option value="tool">Rescue Tool / Generator</option>
+                      <option value="medical">Medical Kit / Medicine Supply</option>
+                      <option value="food">Relief Food Pack</option>
+                    </select>
+                  </Field>
+                  <Field label="Quantity">
+                    <input
+                      className="cbms-input"
+                      type="number"
+                      value={resourceForm.quantity}
+                      onChange={e => setResourceForm(f => ({ ...f, quantity: e.target.value }))}
+                      required
+                    />
+                  </Field>
+                  <Field label="Status">
+                    <select
+                      className="cbms-select"
+                      value={resourceForm.status}
+                      onChange={e => setResourceForm(f => ({ ...f, status: e.target.value }))}
+                    >
+                      <option value="operational">Operational</option>
+                      <option value="maintenance">Under Maintenance</option>
+                      <option value="depleted">Depleted</option>
+                    </select>
+                  </Field>
+                  <div style={{ gridColumn: "span 2" }}>
+                    <Field label="Notes">
+                      <textarea
+                        className="cbms-textarea"
+                        value={resourceForm.notes}
+                        onChange={e => setResourceForm(f => ({ ...f, notes: e.target.value }))}
+                        placeholder="Additional details..."
+                      />
+                    </Field>
+                  </div>
+                </div>
+                <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
+                  <Button type="submit" disabled={busy}>Add Resource</Button>
+                  <button type="button" onClick={() => setShowResourceForm(false)} className="cbms-btn">Cancel</button>
+                </div>
+              </form>
+            </Panel>
+          )}
+
+          <Panel title="Rescue Resources Ledger">
+            <Toolbar>
+              <div className="cbms-toolbar__spacer" />
+              {mayEncode && !showResourceForm && (
+                <button
+                  type="button"
+                  onClick={() => setShowResourceForm(true)}
+                  className="cbms-btn cbms-btn--primary"
+                >
+                  + Add Resource
+                </button>
+              )}
+            </Toolbar>
+            <Async loading={resources.loading} error={resources.error}>
+              <DataTable
+                columns={[
+                  { key: "name", header: "Resource Name", render: r => <div className="cbms-table__primary">{r.name}</div> },
+                  { key: "type", header: "Type", render: r => titleize(r.type) },
+                  { key: "quantity", header: "Quantity", render: r => num(r.quantity) },
+                  { key: "status", header: "Status", render: r => <StatusChip status={r.status} /> },
+                  { key: "updatedAt", header: "Last Updated", render: r => date(r.updatedAt) },
+                  {
+                    key: "actions",
+                    header: "Actions",
+                    render: r => (
+                      <button
+                        type="button"
+                        onClick={() => toggleResourceStatus(r.id, r.status)}
+                        className="cbms-btn cbms-btn--sm"
+                      >
+                        🔧 Toggle Service
+                      </button>
+                    )
+                  }
+                ]}
+                rows={resources.data || []}
+                empty="No rescue resources listed yet."
+              />
+            </Async>
           </Panel>
         </>
       )}

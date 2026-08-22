@@ -205,7 +205,7 @@ export default function PropertiesPage() {
   return (
     <>
       <PageHead
-        title="Properties"
+        title="Barangay Assets"
         subtitle="Inventory of barangay real and personal property. Every asset carries a named custodian — the accountability record required by Local Government Code §375."
         breadcrumb="Assets & DRRM"
         parity="BAMS"

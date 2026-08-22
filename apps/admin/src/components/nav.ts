@@ -38,12 +38,11 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         href: "/certificates",
-        label: "Certificates",
+        label: "Document Requests",
         icon: "📄",
         perm: "issuance:view",
         badge: "certificatesForApproval",
       },
-      { href: "/lgu-requests", label: "LGU requests", icon: "🏛️", perm: "issuance:view" },
       { href: "/appointments", label: "Appointments", icon: "📅", perm: "appointments:view" },
       {
         href: "/concerns",
@@ -80,9 +79,8 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Assets & DRRM",
     items: [
-      { href: "/properties", label: "Properties", icon: "🏢", perm: "property:view" },
-      { href: "/drrm-resources", label: "DRRM Resources", icon: "🚒", perm: "disaster:view" },
-      { href: "/disaster", label: "Disaster", icon: "🌀", perm: "disaster:view" },
+      { href: "/properties", label: "Barangay Assets", icon: "🏢", perm: "property:view" },
+      { href: "/disaster", label: "Disaster & DRRM", icon: "🌀", perm: "disaster:view" },
     ],
   },
   {

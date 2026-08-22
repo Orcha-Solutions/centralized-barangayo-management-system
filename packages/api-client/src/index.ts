@@ -371,11 +371,25 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
   }
 
   if (cleanPath === "/reports/quarterly" && method === "GET") {
+    const brgyId = currentUser.barangayId || "barangka";
+    const totalInhabitants = store.Inhabitant?.filter(x => x.barangayId === brgyId).length || 2225;
+    const certsIssued = store.CertificateRequest?.filter(x => x.barangayId === brgyId && x.status === "signed").length || 150;
+    const kpCases = store.KpCase?.filter(x => x.barangayId === brgyId).length || 12;
+    const concerns = store.Concern?.filter(x => x.barangayId === brgyId).length || 18;
+    const disbursements = store.WalletTransaction?.filter(x => x.type === "disbursement").length || 45;
+
     return {
-      quarter: "Q3 2026",
-      inhabitantsSeeded: store.Inhabitant?.length || 2225,
-      certificatesIssued: store.CertificateRequest?.filter(x => x.status === "signed").length || 150,
-      disbursedTotalCentavos: 125000000
+      period: "Q3 2026",
+      barangaysCovered: 1,
+      registeredInhabitants: totalInhabitants,
+      certificatesIssued: certsIssued,
+      kpCasesFiled: kpCases,
+      concernsReceived: concerns,
+      disbursementCount: disbursements,
+      disbursementTotalCentavos: "125000000",
+      csmResponses: store.Feedback?.length || 8,
+      csmAverage: 4.5,
+      note: "Figures represent consolidated barangay operations."
     };
   }
 
@@ -399,10 +413,254 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
     return { message: "Mock data export generated successfully." };
   }
 
+  // New Mock GET Endpoints
+  if (cleanPath === "/civil-registry" && method === "GET") {
+    let list = store.CivilRegistryRecord || [];
+    if (currentUser.barangayId) {
+      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    }
+    return list;
+  }
+
+  if (cleanPath === "/lgu-requests" && method === "GET") {
+    let list = store.LguDocRequest || [];
+    if (currentUser.barangayId) {
+      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    }
+    return list;
+  }
+
+  if (cleanPath === "/rpt" && method === "GET") {
+    let list = store.RptProperty || [];
+    if (currentUser.barangayId) {
+      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    }
+    return list;
+  }
+
+  if (cleanPath === "/rpt/dues" && method === "GET") {
+    return store.RptTaxDue || [];
+  }
+
+  if (cleanPath === "/drrm-resources" && method === "GET") {
+    let list = store.DrrmResource || [];
+    if (currentUser.barangayId) {
+      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    }
+    return list;
+  }
+
+  // Mutations / PATCH requests
+  if (method === "PATCH") {
+    const body = opts.body ? JSON.parse(opts.body as string) : {};
+    
+    // Properties PATCH
+    const propMatch = cleanPath.match(/\/properties\/([^\/]+)/);
+    if (propMatch) {
+      const id = propMatch[1];
+      const p = store.Property?.find(x => x.id === id);
+      if (p) {
+        Object.assign(p, body);
+        p.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return p || {};
+    }
+
+    // LGU Requests PATCH
+    const lguMatch = cleanPath.match(/\/lgu-requests\/([^\/]+)/);
+    if (lguMatch) {
+      const id = lguMatch[1];
+      const r = store.LguDocRequest?.find(x => x.id === id);
+      if (r) {
+        Object.assign(r, body);
+        r.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return r || {};
+    }
+
+    // DRRM Resources PATCH
+    const drrMatch = cleanPath.match(/\/drrm-resources\/([^\/]+)/);
+    if (drrMatch) {
+      const id = drrMatch[1];
+      const res = store.DrrmResource?.find(x => x.id === id);
+      if (res) {
+        Object.assign(res, body);
+        res.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return res || {};
+    }
+
+    // RPT Property PATCH
+    const rptMatch = cleanPath.match(/\/rpt\/([^\/]+)/);
+    if (rptMatch) {
+      const id = rptMatch[1];
+      const r = store.RptProperty?.find(x => x.id === id);
+      if (r) {
+        Object.assign(r, body);
+        r.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return r || {};
+    }
+  }
+
   // 11. Mutations / POST requests
   if (method === "POST") {
     const body = opts.body ? JSON.parse(opts.body as string) : {};
-    
+
+    // Properties POST
+    if (cleanPath === "/properties") {
+      const newProp = {
+        id: "prop-" + Math.random().toString(36).substring(2, 9),
+        name: body.name,
+        type: body.type,
+        status: body.status,
+        category: body.category,
+        capacity: Number(body.capacity) || 0,
+        custodian: body.custodian,
+        addressLine: body.addressLine,
+        description: body.description,
+        source: "CBMS",
+        barangayId: currentUser.barangayId || "barangka",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!store.Property) store.Property = [];
+      store.Property.push(newProp);
+      saveStore(store);
+      return newProp;
+    }
+
+    // Civil Registry POST
+    if (cleanPath === "/civil-registry") {
+      const newRec = {
+        id: "civ-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || "barangka",
+        recordType: body.recordType,
+        registryNo: body.registryNo,
+        registeredAt: body.registeredAt || new Date().toISOString(),
+        inhabitantId: body.inhabitantId,
+        childName: body.childName,
+        fatherName: body.fatherName,
+        motherName: body.motherName,
+        dateOfBirth: body.dateOfBirth,
+        placeOfBirth: body.placeOfBirth,
+        groomName: body.groomName,
+        brideName: body.brideName,
+        dateOfMarriage: body.dateOfMarriage,
+        placeOfMarriage: body.placeOfMarriage,
+        deceasedName: body.deceasedName,
+        dateOfDeath: body.dateOfDeath,
+        causeOfDeath: body.causeOfDeath,
+        placeOfDeath: body.placeOfDeath,
+        remarks: body.remarks,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!store.CivilRegistryRecord) store.CivilRegistryRecord = [];
+      store.CivilRegistryRecord.push(newRec);
+
+      // If record is death, mark inhabitant as inactive
+      if (body.recordType === "death" && body.inhabitantId) {
+        const inh = store.Inhabitant?.find(i => i.id === body.inhabitantId);
+        if (inh) {
+          inh.isActive = false;
+        }
+      }
+      
+      saveStore(store);
+      return newRec;
+    }
+
+    // LGU Requests POST
+    if (cleanPath === "/lgu-requests") {
+      const newReq = {
+        id: "lgu-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || "barangka",
+        inhabitantId: body.inhabitantId || currentUser.inhabitantId || "res1-inhabitant",
+        docType: body.docType,
+        purpose: body.purpose,
+        status: body.status || "pending",
+        referenceNo: body.referenceNo || ("REF-" + Math.random().toString(36).substring(2, 9).toUpperCase()),
+        fee: Number(body.fee) || 0,
+        paidAt: body.paidAt,
+        orNumber: body.orNumber,
+        remarks: body.remarks,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!store.LguDocRequest) store.LguDocRequest = [];
+      store.LguDocRequest.push(newReq);
+      saveStore(store);
+      return newReq;
+    }
+
+    // RPT Property POST
+    if (cleanPath === "/rpt") {
+      const newProp = {
+        id: "rpt-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || "barangka",
+        taxDeclarationNo: body.taxDeclarationNo,
+        ownerInhabitantId: body.ownerInhabitantId,
+        ownerName: body.ownerName,
+        propertyType: body.propertyType,
+        assessedValue: Number(body.assessedValue) || 0,
+        marketValue: Number(body.marketValue) || 0,
+        addressLine: body.addressLine,
+        purok: body.purok,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!store.RptProperty) store.RptProperty = [];
+      store.RptProperty.push(newProp);
+
+      // Create dummy tax due
+      const newDue = {
+        id: "due-" + Math.random().toString(36).substring(2, 9),
+        rptPropertyId: newProp.id,
+        taxYear: new Date().getFullYear(),
+        basicTaxAmount: Math.round(newProp.assessedValue * 0.01),
+        sefTaxAmount: Math.round(newProp.assessedValue * 0.005),
+        penaltyAmount: 0,
+        totalAmount: Math.round(newProp.assessedValue * 0.015),
+        paymentStatus: "unpaid",
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!store.RptTaxDue) store.RptTaxDue = [];
+      store.RptTaxDue.push(newDue);
+
+      saveStore(store);
+      return newProp;
+    }
+
+    // DRRM Resources POST
+    if (cleanPath === "/drrm-resources") {
+      const newRes = {
+        id: "drr-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || "barangka",
+        name: body.name,
+        type: body.type,
+        quantity: Number(body.quantity) || 0,
+        status: body.status || "operational",
+        notes: body.notes,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!store.DrrmResource) store.DrrmResource = [];
+      store.DrrmResource.push(newRes);
+      saveStore(store);
+      return newRes;
+    }
+
     if (cleanPath === "/certificates") {
       const newReq = {
         id: "cert-" + Math.random().toString(36).substring(2, 9),
