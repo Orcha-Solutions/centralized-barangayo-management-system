@@ -1,0 +1,35 @@
+{
+  "name": "CBMS Barangay Admin",
+  "short_name": "CBMS Admin",
+  "description": "Centralized Barangay Management System - Official Administrative Portal",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1b2430",
+  "theme_color": "#0A2463",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["government", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Inhabitants", "short_name": "Inhabitants", "url": "/inhabitants" },
+    { "name": "Households", "short_name": "Households", "url": "/households" },
+    { "name": "Issuances", "short_name": "Issuances", "url": "/issuances" },
+    { "name": "Blotter", "short_name": "Blotter", "url": "/blotter" }
+  ]
+}

@@ -28,10 +28,15 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+import { PwaRegister } from "../components/PwaRegister";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   );
 }

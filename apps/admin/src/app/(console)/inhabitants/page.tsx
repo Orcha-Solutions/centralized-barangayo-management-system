@@ -216,7 +216,7 @@ export default function InhabitantsPage() {
           label="PWD"
           value={num(inhabitants.filter((i) => i.isPwd).length)}
           icon="♿"
-          tone="blue"
+          tone="navy"
         />
         <StatCard
           label="4Ps beneficiaries"
