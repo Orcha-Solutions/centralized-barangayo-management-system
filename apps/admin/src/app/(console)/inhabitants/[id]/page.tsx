@@ -19,9 +19,12 @@ import {
   titleize,
 } from "@cbms/ui";
 import { Async, EmptyNote, Progress, SectorChips, SourceChip } from "../../../../components/common";
+import { useConsole } from "../../../../components/Shell";
 import type { Household, InhabitantDetail } from "../../../../lib/types";
 
 export default function InhabitantDetailPage() {
+  const { can } = useConsole();
+  const mayEncode = can("inhabitants:encode") || can("inhabitants:edit");
   const params = useParams();
   const router = useRouter();
   const id = String((params as Record<string, string | string[]>)?.id ?? "");
@@ -41,9 +44,20 @@ export default function InhabitantDetailPage() {
         breadcrumb="Residents / Inhabitants"
         parity="BIPS"
         actions={
-          <button type="button" className="cbms-btn" onClick={() => router.push("/inhabitants")}>
-            ← Back to list
-          </button>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button type="button" className="cbms-btn" onClick={() => router.push("/inhabitants")}>
+              ← Back to list
+            </button>
+            {mayEncode && (
+              <button 
+                type="button" 
+                className="cbms-btn cbms-btn--primary" 
+                onClick={() => router.push(`/inhabitants/${id}/edit`)}
+              >
+                ✏️ Edit profile
+              </button>
+            )}
+          </div>
         }
       />
 

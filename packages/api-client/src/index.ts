@@ -450,10 +450,111 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
     return list;
   }
 
+  // Consolidated Inhabitant transactions timeline GET endpoint
+  const timelineMatch = cleanPath.match(/\/inhabitants\/([^\/]+)\/transactions/);
+  if (timelineMatch && method === "GET") {
+    const inhId = timelineMatch[1];
+    
+    // 1. Get wallet transactions
+    const wallet = store.Wallet?.find(w => w.inhabitantId === inhId);
+    const wTxs = wallet 
+      ? (store.WalletTransaction || []).filter(tx => tx.walletId === wallet.id)
+      : [];
+    
+    // 2. Get certificate requests
+    const certs = (store.CertificateRequest || []).filter(c => c.inhabitantId === inhId);
+
+    // 3. Get LGU doc requests
+    const lgus = (store.LguDocRequest || []).filter(l => l.inhabitantId === inhId);
+
+    // Consolidate into a single timeline with fallback dummy transactions
+    const timeline = [
+      ...wTxs.map(t => ({
+        id: t.id,
+        type: "wallet",
+        description: t.type === "cash_out" ? "E-Wallet Cash Out" : "E-Wallet Disbursement",
+        amount: Number(t.amountCentavos) || 0,
+        status: t.status,
+        date: t.createdAt
+      })),
+      ...certs.map(c => ({
+        id: c.id,
+        type: "document",
+        description: `Barangay Clearance Request: ${c.purpose || "General Purpose"}`,
+        amount: (Number(c.fee) || 0) * 100, // to centavos
+        status: c.status,
+        date: c.createdAt
+      })),
+      ...lgus.map(l => ({
+        id: l.id,
+        type: "lgu_permit",
+        description: `LGU Endorsement: ${l.docType ? l.docType.replace(/_/g, " ") : "Endorsement"}`,
+        amount: (Number(l.fee) || 0) * 100, // to centavos
+        status: l.status,
+        date: l.createdAt
+      })),
+      // Dummy resident transactions in the barangay
+      {
+        id: `m-bid-${inhId}`,
+        type: "document",
+        description: "Application for Barangay ID Card",
+        amount: 5000,
+        status: "released",
+        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: `m-ced-${inhId}`,
+        type: "document",
+        description: "Community Tax Certificate (Cedula) Issuance",
+        amount: 8550,
+        status: "signed",
+        date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: `m-reg-${inhId}`,
+        type: "document",
+        description: "Census Registry Intake / Resident Profiling",
+        amount: 0,
+        status: "completed",
+        date: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ];
+
+    // Sort by date descending
+    timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return timeline;
+  }
+
+  // Mutations / PATCH requests
+  if (method === "DELETE") {
+    const inhMatch = cleanPath.match(/\/inhabitants\/([^\/]+)/);
+    if (inhMatch) {
+      const id = inhMatch[1];
+      if (store.Inhabitant) {
+        store.Inhabitant = store.Inhabitant.filter(x => x.id !== id);
+        saveStore(store);
+      }
+      return { success: true };
+    }
+  }
+
   // Mutations / PATCH requests
   if (method === "PATCH") {
     const body = opts.body ? JSON.parse(opts.body as string) : {};
     
+    // Inhabitants PATCH
+    const inhMatch = cleanPath.match(/\/inhabitants\/([^\/]+)/);
+    if (inhMatch) {
+      const id = inhMatch[1];
+      const inh = store.Inhabitant?.find(x => x.id === id);
+      if (inh) {
+        Object.assign(inh, body);
+        inh.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return inh || {};
+    }
+
     // Properties PATCH
     const propMatch = cleanPath.match(/\/properties\/([^\/]+)/);
     if (propMatch) {
@@ -510,6 +611,37 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
   // 11. Mutations / POST requests
   if (method === "POST") {
     const body = opts.body ? JSON.parse(opts.body as string) : {};
+
+    // Inhabitants POST
+    if (cleanPath === "/inhabitants") {
+      const newInh = {
+        id: "inh-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || "barangka",
+        firstName: body.firstName,
+        middleName: body.middleName || "",
+        lastName: body.lastName,
+        suffix: body.suffix || "",
+        sex: body.sex || "male",
+        birthDate: body.birthDate || "1990-01-01",
+        civilStatus: body.civilStatus || "single",
+        citizenship: body.citizenship || "Filipino",
+        philsysNo: body.philsysNo || "",
+        contactPhone: body.contactPhone || "",
+        contactEmail: body.contactEmail || "",
+        isSenior: body.isSenior || false,
+        isPwd: body.isPwd || false,
+        isSoloParent: body.isSoloParent || false,
+        is4Ps: body.is4Ps || false,
+        isDeceased: body.isDeceased || false,
+        source: "CBMS",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!store.Inhabitant) store.Inhabitant = [];
+      store.Inhabitant.push(newInh);
+      saveStore(store);
+      return newInh;
+    }
 
     // Properties POST
     if (cleanPath === "/properties") {
