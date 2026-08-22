@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useInhabitantStore } from "../../../store/inhabitantStore";
+import { useHouseholdStore } from "../../../store/householdStore";
 import {
   Alert,
   Button,
@@ -36,9 +37,12 @@ export default function InhabitantsPage() {
     error: storeError,
     fetchInhabitants,
     addInhabitant,
-    updateInhabitant,
-    deleteInhabitant,
   } = useInhabitantStore();
+
+  const {
+    households,
+    fetchHouseholds,
+  } = useHouseholdStore();
 
   const [q, setQ] = React.useState("");
   const [search, setSearch] = React.useState("");
@@ -49,9 +53,13 @@ export default function InhabitantsPage() {
 
   // Drawer and Form State
   const [openDrawer, setOpenDrawer] = React.useState(false);
-  const [editingId, setEditingId] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
+
+  // Household Search Selector State for Drawer
+  const [householdSearch, setHouseholdSearch] = React.useState("");
+  const [isSearchingHousehold, setIsSearchingHousehold] = React.useState(false);
+
   const [form, setForm] = React.useState({
     firstName: "",
     middleName: "",
@@ -64,13 +72,16 @@ export default function InhabitantsPage() {
     philsysNo: "",
     contactPhone: "",
     contactEmail: "",
+    occupation: "",
+    educationLevel: "",
+    householdId: "",
+    relationToHead: "Head",
     isSenior: false,
     isPwd: false,
     isSoloParent: false,
     is4Ps: false,
     isDeceased: false,
   });
-
 
   // Dropdown Action State
   const [showActionsDropdown, setShowActionsDropdown] = React.useState(false);
@@ -80,6 +91,7 @@ export default function InhabitantsPage() {
 
   React.useEffect(() => {
     fetchInhabitants();
+    fetchHouseholds();
   }, []);
 
   // Compute list of unique puroks from inhabitants
@@ -99,64 +111,64 @@ export default function InhabitantsPage() {
       const matchesSearch =
         !search ||
         cName.includes(search.toLowerCase()) ||
-        (item.philsysNo && item.philsysNo.toLowerCase().includes(search.toLowerCase()));
-      const matchesPurok = purok === "all" || item.household?.purok === purok;
-      const matchesSector =
-        sector === "all" ||
-        (sector === "senior" && item.isSenior) ||
-        (sector === "pwd" && item.isPwd) ||
-        (sector === "solo_parent" && item.isSoloParent) ||
-        (sector === "4ps" && item.is4Ps) ||
-        (sector === "deceased" && item.isDeceased);
+        (item.philsysNo && item.philsysNo.includes(search)) ||
+        (item.household?.householdNo && item.household.householdNo.toLowerCase().includes(search.toLowerCase())) ||
+        (item.household?.addressLine && item.household.addressLine.toLowerCase().includes(search.toLowerCase()));
+
+      const matchesPurok =
+        purok === "all" || item.household?.purok === purok;
+
+      let matchesSector = true;
+      if (sector === "senior") matchesSector = !!item.isSenior;
+      else if (sector === "pwd") matchesSector = !!item.isPwd;
+      else if (sector === "solo_parent") matchesSector = !!item.isSoloParent;
+      else if (sector === "4ps") matchesSector = !!item.is4Ps;
+      else if (sector === "deceased") matchesSector = !!item.isDeceased;
+
       return matchesSearch && matchesPurok && matchesSector;
     });
   }, [inhabitants, search, purok, sector]);
 
-  // Pagination
+  // Client-side pagination
   const paginated = React.useMemo(() => {
     const start = (page - 1) * pageSize;
     return filtered.slice(start, start + pageSize);
   }, [filtered, page]);
 
-  // Dynamic statistics calculations
-  const stats = React.useMemo(() => {
-    const total = inhabitants.length;
-    const householdIds = new Set(inhabitants.map((x) => x.householdId).filter(Boolean));
-    const seniors = inhabitants.filter((x) => x.isSenior || (x.birthDate && (age(x.birthDate) ?? 0) >= 60)).length;
-    const pwd = inhabitants.filter((x) => x.isPwd).length;
-    const fourPs = inhabitants.filter((x) => x.is4Ps).length;
-    const voters = inhabitants.filter((x) => x.isVoter).length;
-    return { total, households: householdIds.size, seniors, pwd, fourPs, voters };
-  }, [inhabitants]);
+  // Filtered households for the drawer search picker
+  const matchedHouseholds = React.useMemo(() => {
+    if (!householdSearch.trim()) return households.slice(0, 15);
+    const query = householdSearch.toLowerCase();
+    return households.filter((h) => {
+      const no = h.householdNo?.toLowerCase() || "";
+      const addr = h.addressLine?.toLowerCase() || "";
+      const p = h.purok?.toLowerCase() || "";
+      const st = h.street?.toLowerCase() || "";
+      return no.includes(query) || addr.includes(query) || p.includes(query) || st.includes(query);
+    }).slice(0, 15);
+  }, [households, householdSearch]);
 
-  function applySearch(e: React.FormEvent) {
-    e.preventDefault();
-    setPage(1);
-    setSearch(q.trim());
-  }
-
-  async function exportRbi() {
-    setExporting(true);
-    setExportError(null);
-    try {
-      await downloadFromApi("/inhabitants/export/rbi", "rbi-export.csv");
-    } catch (err) {
-      setExportError((err as Error).message);
-    } finally {
-      setExporting(false);
-    }
-  }
+  const selectedHousehold = React.useMemo(() => {
+    if (!form.householdId) return null;
+    return households.find((h) => h.id === form.householdId);
+  }, [households, form.householdId]);
 
   async function submitForm(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setActionError(null);
+
     try {
-      if (editingId) {
-        await updateInhabitant(editingId, form);
-      } else {
-        await addInhabitant(form);
-      }
+      await addInhabitant({
+        ...form,
+        firstName: form.firstName.trim(),
+        middleName: form.middleName.trim(),
+        lastName: form.lastName.trim(),
+        suffix: form.suffix.trim(),
+        householdId: form.householdId || null,
+        relationToHead: form.householdId ? form.relationToHead : null,
+      });
+
       setOpenDrawer(false);
     } catch (err: any) {
       setActionError(err.message || "Failed to save inhabitant.");
@@ -165,39 +177,74 @@ export default function InhabitantsPage() {
     }
   }
 
+  async function exportCsv() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      await downloadFromApi(
+        `/inhabitants/export?format=csv&search=${encodeURIComponent(search)}&purok=${encodeURIComponent(purok)}&sector=${encodeURIComponent(sector)}`,
+        `inhabitants_${new Date().toISOString().slice(0, 10)}.csv`
+      );
+    } catch (err: any) {
+      setExportError(err?.message || "Export failed. Please check network.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <>
       <PageHead
         title="Inhabitants"
-        subtitle="Record of Barangay Inhabitants (RBI). Manage registry listings, sectoral classifications, and local census."
+        subtitle="Citizen master list, civil registration records, and sectoral classification."
         breadcrumb="Residents"
         parity="BIPS"
       />
 
-      {exportError && <Alert tone="danger">{exportError}</Alert>}
       {storeError && <Alert tone="danger">{storeError}</Alert>}
+      {exportError && <Alert tone="danger">{exportError}</Alert>}
 
       <StatGrid>
-        <StatCard label="Total inhabitants" value={num(stats.total)} icon="👥" />
-        <StatCard label="Households" value={num(stats.households)} icon="🏠" />
-        <StatCard label="Senior citizens" value={num(stats.seniors)} icon="🧓" tone="gold" />
-        <StatCard label="PWD" value={num(stats.pwd)} icon="♿" tone="green" />
-        <StatCard label="4Ps beneficiaries" value={num(stats.fourPs)} icon="🤝" />
-        <StatCard label="Registered voters" value={num(stats.voters)} icon="🗳️" />
+        <StatCard label="Total inhabitants" value={num(inhabitants.length)} icon="👥" />
+        <StatCard
+          label="Senior citizens"
+          value={num(inhabitants.filter((i) => i.isSenior).length)}
+          icon="🧓"
+          tone="green"
+        />
+        <StatCard
+          label="PWD"
+          value={num(inhabitants.filter((i) => i.isPwd).length)}
+          icon="♿"
+          tone="blue"
+        />
+        <StatCard
+          label="4Ps beneficiaries"
+          value={num(inhabitants.filter((i) => i.is4Ps).length)}
+          icon="🤝"
+          tone="gold"
+        />
       </StatGrid>
 
       <Panel padded={false}>
         <Toolbar>
-          <form onSubmit={applySearch} style={{ display: "flex", gap: 8 }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setPage(1);
+              setSearch(q.trim());
+            }}
+            style={{ display: "flex", gap: 8 }}
+          >
             <input
               className="cbms-input cbms-input--search"
-              placeholder="Search name or PhilSys number…"
+              placeholder="Search name, PCN, or household…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
             <Button type="submit">Search</Button>
           </form>
+
           <select
             className="cbms-select"
             value={purok}
@@ -213,6 +260,7 @@ export default function InhabitantsPage() {
               </option>
             ))}
           </select>
+
           <select
             className="cbms-select"
             value={sector}
@@ -228,8 +276,9 @@ export default function InhabitantsPage() {
               </option>
             ))}
           </select>
+
           <div className="cbms-toolbar__spacer" />
-          <span className="adm-muted" style={{ marginRight: "1rem" }}>{num(filtered.length)} record(s)</span>
+          <span className="adm-muted" style={{ marginRight: "1rem" }}>{num(filtered.length)} resident(s)</span>
 
           <div style={{ position: "relative" }}>
             <button
@@ -252,7 +301,6 @@ export default function InhabitantsPage() {
             </button>
             {showActionsDropdown && (
               <>
-                {/* Clickaway overlay */}
                 <div 
                   style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 40 }} 
                   onClick={() => setShowActionsDropdown(false)}
@@ -289,13 +337,18 @@ export default function InhabitantsPage() {
                           philsysNo: "",
                           contactPhone: "",
                           contactEmail: "",
+                          occupation: "",
+                          educationLevel: "",
+                          householdId: "",
+                          relationToHead: "Head",
                           isSenior: false,
                           isPwd: false,
                           isSoloParent: false,
                           is4Ps: false,
                           isDeceased: false,
                         });
-                        setEditingId(null);
+                        setHouseholdSearch("");
+                        setIsSearchingHousehold(false);
                         setActionError(null);
                         setOpenDrawer(true);
                         setShowActionsDropdown(false);
@@ -321,7 +374,7 @@ export default function InhabitantsPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      exportRbi();
+                      exportCsv();
                       setShowActionsDropdown(false);
                     }}
                     disabled={exporting}
@@ -341,7 +394,7 @@ export default function InhabitantsPage() {
                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                   >
-                    {exporting ? "⏳ Exporting…" : "⬇ Export RBI (CSV)"}
+                    {exporting ? "⏳ Exporting…" : "⬇ Export (CSV)"}
                   </button>
                 </div>
               </>
@@ -353,7 +406,7 @@ export default function InhabitantsPage() {
           columns={[
             {
               key: "name",
-              header: "Name",
+              header: "Citizen",
               render: (r) => (
                 <>
                   <div className="cbms-table__primary">{fullName(r)}</div>
@@ -364,18 +417,13 @@ export default function InhabitantsPage() {
               ),
             },
             {
-              key: "age",
-              header: "Age / Sex",
-              render: (r) => `${age(r.birthDate) ?? "—"} · ${r.sex === "male" ? "M" : "F"}`,
-            },
-            {
-              key: "purok",
-              header: "Purok",
-              render: (r) => r.household?.purok ?? "—",
+              key: "sexAge",
+              header: "Sex / Age",
+              render: (r) => `${r.sex === "male" ? "M" : "F"} · ${age(r.birthDate) ?? "—"} y/o`,
             },
             {
               key: "household",
-              header: "Household",
+              header: "Household / Address",
               render: (r) =>
                 r.household ? (
                   <>
@@ -388,7 +436,6 @@ export default function InhabitantsPage() {
             },
             { key: "sectors", header: "Sectoral", render: (r) => <SectorChips row={r} /> },
             { key: "source", header: "Source", render: (r) => <SourceChip source={r.source} /> },
-
           ]}
           rows={paginated}
           empty={loading ? "Loading inhabitants..." : "No inhabitants match this filter."}
@@ -422,7 +469,7 @@ export default function InhabitantsPage() {
           <div
             style={{
               width: "100%",
-              maxWidth: "500px",
+              maxWidth: "520px",
               backgroundColor: "var(--color-bg-card, #ffffff)",
               height: "100%",
               boxShadow: "-4px 0 20px rgba(0,0,0,0.15)",
@@ -433,16 +480,21 @@ export default function InhabitantsPage() {
           >
             <div
               style={{
-                padding: "1.5rem",
+                padding: "1.25rem 1.5rem",
                 borderBottom: "1px solid var(--color-border, #e2e8f0)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "bold", color: "var(--color-text, #1b2430)" }}>
-                {editingId ? "✏️ Edit Inhabitant Profile" : "👤 Register New Inhabitant"}
-              </h3>
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.2rem", fontWeight: "bold", color: "var(--color-text, #1b2430)" }}>
+                  👤 Register New Inhabitant
+                </h3>
+                <span style={{ fontSize: "0.75rem", color: "var(--cbms-muted, #64748b)" }}>
+                  Citizen Profiling & Household Linking
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => setOpenDrawer(false)}
@@ -462,6 +514,7 @@ export default function InhabitantsPage() {
               {actionError && <Alert tone="danger">{actionError}</Alert>}
 
               <form onSubmit={submitForm} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                {/* 1. Identity */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                   <Field label="First Name">
                     <input
@@ -490,7 +543,7 @@ export default function InhabitantsPage() {
                     <input
                       className="cbms-input"
                       value={form.suffix}
-                      placeholder="Jr./III"
+                      placeholder="Jr. / III"
                       onChange={(e) => setForm((prev) => ({ ...prev, suffix: e.target.value }))}
                     />
                   </Field>
@@ -539,6 +592,202 @@ export default function InhabitantsPage() {
                       required
                     />
                   </Field>
+                </div>
+
+                {/* 2. Searchable Household Selection */}
+                <div style={{ border: "1px solid var(--color-border, #e2e8f0)", padding: "1rem", borderRadius: "0.375rem" }}>
+                  <h4 style={{ margin: "0 0 0.5rem 0", fontSize: "0.85rem", fontWeight: "bold" }}>
+                    🏠 Household Folder Assignment
+                  </h4>
+
+                  <Field label="Select Household" hint="Search by household no., street, or address">
+                    {form.householdId && !isSearchingHousehold ? (
+                      <div
+                        style={{
+                          border: "1px solid var(--color-border, #e2e8f0)",
+                          borderRadius: "0.375rem",
+                          padding: "0.75rem",
+                          backgroundColor: "var(--color-bg-hover, #f8fafc)",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--color-text, #1b2430)" }}>
+                            🏠 {selectedHousehold?.householdNo || "Household " + form.householdId}
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--cbms-muted, #64748b)" }}>
+                            {selectedHousehold?.addressLine || "No address recorded"} · {selectedHousehold?.purok || "—"}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <button
+                            type="button"
+                            className="cbms-btn"
+                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                            onClick={() => {
+                              setIsSearchingHousehold(true);
+                              setHouseholdSearch("");
+                            }}
+                          >
+                            🔍 Change
+                          </button>
+                          <button
+                            type="button"
+                            className="cbms-btn"
+                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", color: "var(--cbms-red, #ce1126)" }}
+                            onClick={() => {
+                              setForm((prev) => ({ ...prev, householdId: "", relationToHead: "" }));
+                              setIsSearchingHousehold(false);
+                            }}
+                          >
+                            ✕ Clear
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ position: "relative" }}>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <input
+                            className="cbms-input"
+                            placeholder="🔍 Type to search household no., street, address…"
+                            value={householdSearch}
+                            onChange={(e) => {
+                              setHouseholdSearch(e.target.value);
+                              setIsSearchingHousehold(true);
+                            }}
+                            onFocus={() => setIsSearchingHousehold(true)}
+                          />
+                          {form.householdId && (
+                            <button
+                              type="button"
+                              className="cbms-btn"
+                              style={{ padding: "0.5rem 0.75rem", fontSize: "0.8rem" }}
+                              onClick={() => setIsSearchingHousehold(false)}
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+
+                        {isSearchingHousehold && (
+                          <>
+                            <div
+                              style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1100 }}
+                              onClick={() => setIsSearchingHousehold(false)}
+                            />
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: "105%",
+                                left: 0,
+                                right: 0,
+                                backgroundColor: "var(--color-bg-card, #ffffff)",
+                                border: "1px solid var(--color-border, #e2e8f0)",
+                                borderRadius: "0.375rem",
+                                boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
+                                maxHeight: "200px",
+                                overflowY: "auto",
+                                zIndex: 1200,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  padding: "0.5rem 0.75rem",
+                                  borderBottom: "1px solid var(--color-border, #e2e8f0)",
+                                  fontSize: "0.75rem",
+                                  color: "var(--cbms-muted, #64748b)",
+                                  cursor: "pointer",
+                                }}
+                                onClick={() => {
+                                  setForm((prev) => ({ ...prev, householdId: "", relationToHead: "" }));
+                                  setIsSearchingHousehold(false);
+                                  setHouseholdSearch("");
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)")}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                              >
+                                — 🚫 Unassigned / Not in a Household —
+                              </div>
+                              {matchedHouseholds.length === 0 ? (
+                                <div style={{ padding: "0.75rem", fontSize: "0.8rem", color: "var(--cbms-muted, #64748b)" }}>
+                                  No households match "{householdSearch}"
+                                </div>
+                              ) : (
+                                matchedHouseholds.map((h) => (
+                                  <div
+                                    key={h.id}
+                                    style={{
+                                      padding: "0.6rem 0.75rem",
+                                      borderBottom: "1px solid var(--color-border, #f1f5f9)",
+                                      cursor: "pointer",
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "center",
+                                    }}
+                                    onClick={() => {
+                                      setForm((prev) => ({
+                                        ...prev,
+                                        householdId: h.id,
+                                        relationToHead: prev.relationToHead || "Head",
+                                      }));
+                                      setIsSearchingHousehold(false);
+                                      setHouseholdSearch("");
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                                  >
+                                    <div>
+                                      <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--color-text, #1b2430)" }}>
+                                        🏠 {h.householdNo}
+                                      </div>
+                                      <div style={{ fontSize: "0.75rem", color: "var(--cbms-muted, #64748b)" }}>
+                                        {h.addressLine || "No address line"}
+                                      </div>
+                                    </div>
+                                    <span style={{ fontSize: "0.75rem", color: "var(--cbms-muted, #64748b)", background: "var(--color-bg-hover, #f1f5f9)", padding: "0.2rem 0.4rem", borderRadius: "0.25rem" }}>
+                                      {h.purok || "Purok —"}
+                                    </span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </Field>
+
+                  {form.householdId && (
+                    <div style={{ marginTop: "0.75rem" }}>
+                      <Field label="Relation to Head of Household">
+                        <select
+                          className="cbms-select"
+                          value={form.relationToHead}
+                          onChange={(e) => setForm((prev) => ({ ...prev, relationToHead: e.target.value }))}
+                        >
+                          <option value="Head">Head of Household</option>
+                          <option value="Spouse">Spouse</option>
+                          <option value="Son">Son</option>
+                          <option value="Daughter">Daughter</option>
+                          <option value="Father">Father</option>
+                          <option value="Mother">Mother</option>
+                          <option value="Brother">Brother</option>
+                          <option value="Sister">Sister</option>
+                          <option value="Grandfather">Grandfather</option>
+                          <option value="Grandmother">Grandmother</option>
+                          <option value="Grandson">Grandson</option>
+                          <option value="Granddaughter">Granddaughter</option>
+                          <option value="Son-in-Law">Son-in-Law</option>
+                          <option value="Daughter-in-Law">Daughter-in-Law</option>
+                          <option value="Relative">Other Relative</option>
+                          <option value="Househelper / Domestic">Househelper / Domestic Worker</option>
+                          <option value="Boarder / Non-Relative">Boarder / Non-Relative</option>
+                        </select>
+                      </Field>
+                    </div>
+                  )}
                 </div>
 
                 <Field label="PhilSys Card Number (PCN)">
@@ -644,8 +893,6 @@ export default function InhabitantsPage() {
           </div>
         </div>
       )}
-
-
     </>
   );
 }

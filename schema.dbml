@@ -242,17 +242,35 @@ Table Household {
   householdNo String
   purok String?
   sitio String?
+  houseNo String?
+  blockNo String?
+  lotNo String?
+  street String?
+  subdivision String?
+  buildingName String?
   addressLine String
   latitude Float?
   longitude Float?
+  squareMeters Float?
+  hasGarage Boolean [default: `false`]
   dwellingType String?
+  roofMaterial String?
+  wallMaterial String?
   tenureStatus String?
+  landTenure String?
   waterSource String?
   toiletFacility String?
   electricitySource String?
+  cookingFuel String?
+  wasteDisposal String?
+  internetAccess String?
   monthlyIncomeBand String?
+  primaryIncomeSource String?
+  hazardZoneRisk String?
   is4Ps Boolean [default: `false`]
+  isIndigent Boolean [default: `false`]
   headId String? [unique]
+  remarks String?
   source RecordSource [default: `CBMS`]
   bimsRef String?
   createdAt DateTime [default: `now()`]

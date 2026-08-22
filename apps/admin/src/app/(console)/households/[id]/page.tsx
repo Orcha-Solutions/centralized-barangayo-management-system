@@ -84,9 +84,20 @@ export default function HouseholdDetailPage() {
         breadcrumb="Residents / Households"
         parity="BIPS"
         actions={
-          <button type="button" className="cbms-btn" onClick={() => router.push("/households")}>
-            ← Back to list
-          </button>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button type="button" className="cbms-btn" onClick={() => router.push("/households")}>
+              ← Back to list
+            </button>
+            {mayEncode && (
+              <button 
+                type="button" 
+                className="cbms-btn cbms-btn--primary" 
+                onClick={() => router.push(`/households/${id}/edit`)}
+              >
+                ✏️ Edit household
+              </button>
+            )}
+          </div>
         }
       />
 
