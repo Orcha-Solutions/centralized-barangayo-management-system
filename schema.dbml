@@ -9,6 +9,14 @@ enum RecordSource {
   IMPORT
 }
 
+Table Tenant {
+  id String [pk, default: `cuid()`]
+  name String
+  subdomain String [unique]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
 Table Region {
   id String [pk, default: `cuid()`]
   psgcCode String [unique]
@@ -39,6 +47,7 @@ enum BarangayStatus {
 
 Table Barangay {
   id String [pk, default: `cuid()`]
+  tenantId String
   psgcCode String [unique]
   name String
   cityId String
@@ -107,7 +116,10 @@ Table RolePermission {
 
 Table User {
   id String [pk, default: `cuid()`]
-  email String? [unique]
+  name String
+  email String [unique]
+  emailVerified Boolean [default: `false`]
+  image String?
   phone String? [unique]
   passwordHash String?
   fullName String
@@ -132,11 +144,37 @@ Table Session {
   id String [pk, default: `cuid()`]
   userId String
   token String [unique]
-  ip String?
+  expiresAt DateTime
+  ipAddress String?
   userAgent String?
   mfaPassed Boolean [default: `false`]
-  expiresAt DateTime
   createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table Account {
+  id String [pk, default: `cuid()`]
+  userId String
+  accountId String
+  providerId String
+  accessToken String?
+  refreshToken String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope String?
+  idToken String?
+  password String?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table Verification {
+  id String [pk, default: `cuid()`]
+  identifier String
+  value String
+  expiresAt DateTime
+  createdAt DateTime? [default: `now()`]
+  updatedAt DateTime?
 }
 
 Table AuditLog {
@@ -1315,6 +1353,133 @@ Table PbVote {
   createdAt DateTime [default: `now()`]
 }
 
+enum LguDocType {
+  business_permit
+  building_permit
+  zoning_clearance
+  rpt_clearance
+  sanitary_permit
+}
+
+enum LguDocStatus {
+  pending
+  under_review
+  approved
+  rejected
+  released
+}
+
+enum CivilRegistryType {
+  birth
+  marriage
+  death
+}
+
+enum RptPropertyType {
+  residential
+  commercial
+  industrial
+  agricultural
+  special
+}
+
+enum RptPaymentStatus {
+  unpaid
+  partially_paid
+  fully_paid
+  exempt
+}
+
+Table DrrmResource {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  name String
+  type String
+  quantity Int [default: `0`]
+  status String [default: `"operational"`]
+  notes String?
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table LguDocRequest {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  inhabitantId String
+  docType LguDocType
+  purpose String
+  status LguDocStatus [default: `pending`]
+  referenceNo String [unique]
+  fee Decimal [default: `0.0`]
+  paidAt DateTime?
+  orNumber String?
+  remarks String?
+  approvedAt DateTime?
+  releasedAt DateTime?
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table CivilRegistryRecord {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  recordType CivilRegistryType
+  registryNo String [unique]
+  registeredAt DateTime
+  inhabitantId String?
+  childName String?
+  fatherName String?
+  motherName String?
+  dateOfBirth DateTime?
+  placeOfBirth String?
+  groomName String?
+  brideName String?
+  dateOfMarriage DateTime?
+  placeOfMarriage String?
+  deceasedName String?
+  dateOfDeath DateTime?
+  causeOfDeath String?
+  placeOfDeath String?
+  remarks String?
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table RptProperty {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  taxDeclarationNo String [unique]
+  ownerInhabitantId String?
+  ownerName String
+  propertyType RptPropertyType
+  assessedValue Decimal
+  marketValue Decimal
+  addressLine String
+  purok String?
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table RptTaxDue {
+  id String [pk, default: `cuid()`]
+  rptPropertyId String
+  taxYear Int
+  basicTaxAmount Decimal
+  sefTaxAmount Decimal
+  penaltyAmount Decimal [default: `0.0`]
+  totalAmount Decimal
+  paymentStatus RptPaymentStatus [default: `unpaid`]
+  paidAt DateTime?
+  orNumber String?
+  isActive Boolean [default: `true`]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
 Table Assembly {
   id String [pk, default: `cuid()`]
   barangayId String
@@ -1440,3 +1605,13 @@ Ref: PbVote.cycleId > PbCycle.id
 Ref: PbVote.optionId > PbOption.id
 Ref: PbVote.inhabitantId > Inhabitant.id
 Ref: Assembly.barangayId > Barangay.id
+Ref: Barangay.tenantId > Tenant.id
+Ref: Account.userId > User.id
+Ref: DrrmResource.barangayId > Barangay.id
+Ref: LguDocRequest.barangayId > Barangay.id
+Ref: LguDocRequest.inhabitantId > Inhabitant.id
+Ref: CivilRegistryRecord.barangayId > Barangay.id
+Ref: CivilRegistryRecord.inhabitantId > Inhabitant.id
+Ref: RptProperty.barangayId > Barangay.id
+Ref: RptProperty.ownerInhabitantId > Inhabitant.id
+Ref: RptTaxDue.rptPropertyId > RptProperty.id
