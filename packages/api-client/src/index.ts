@@ -232,6 +232,96 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
     };
   }
 
+  // Households GET
+  if (cleanPath === "/households" && method === "GET") {
+    let list = store.Household || [];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filtered = list.filter(x => x.barangayId === currentUser.barangayId);
+      if (filtered.length > 0) list = filtered;
+    }
+    return list.map(h => {
+      const members = (store.Inhabitant || []).filter(i => i.householdId === h.id);
+      return {
+        ...h,
+        members,
+        _count: { members: members.length },
+        consents: h.consents || []
+      };
+    });
+  }
+
+  // Household Details GET
+  const hhDetailMatch = cleanPath.match(/\/households\/([^\/]+)$/);
+  if (hhDetailMatch && method === "GET") {
+    const id = hhDetailMatch[1];
+    const h = store.Household?.find(x => x.id === id);
+    if (!h) return null;
+    const members = (store.Inhabitant || []).filter(i => i.householdId === h.id);
+    return {
+      ...h,
+      members,
+      _count: { members: members.length },
+      consents: h.consents || []
+    };
+  }
+
+  // Household Timeline / Transactions GET
+  const hhTimelineMatch = cleanPath.match(/\/households\/([^\/]+)\/transactions/);
+  if (hhTimelineMatch && method === "GET") {
+    const hhId = hhTimelineMatch[1];
+    const h = store.Household?.find(x => x.id === hhId);
+    const members = (store.Inhabitant || []).filter(i => i.householdId === hhId);
+    const memberIds = members.map(m => m.id);
+
+    const certs = (store.CertificateRequest || []).filter(c => memberIds.includes(c.inhabitantId));
+    
+    const timeline = [
+      ...certs.map(c => ({
+        id: c.id,
+        type: "document",
+        description: `Barangay Clearance (${c.purpose || "General Purpose"}) - ${members.find(m => m.id === c.inhabitantId)?.firstName || "Member"}`,
+        amount: (Number(c.fee) || 0) * 100,
+        status: c.status,
+        date: c.createdAt
+      })),
+      {
+        id: `m-ayuda-${hhId}`,
+        type: "aid",
+        description: "Emergency Ayuda / Social Amelioration Cash Assistance Disbursement",
+        amount: 500000,
+        status: "completed",
+        date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: `m-relief-${hhId}`,
+        type: "relief",
+        description: "Disaster Relief Operations Food Pack Distribution (Typhoon Recovery)",
+        amount: 0,
+        status: "released",
+        date: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: `m-cert-${hhId}`,
+        type: "document",
+        description: "Barangay Certificate of Residency & Co-habitation",
+        amount: 5000,
+        status: "signed",
+        date: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: `m-hh-reg-${hhId}`,
+        type: "registry",
+        description: "RBI Household Registration & Profiling Intake",
+        amount: 0,
+        status: "completed",
+        date: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ];
+
+    timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return timeline;
+  }
+
   // 5. Certificates
   if (cleanPath === "/certificates" && method === "GET") {
     let list = store.CertificateRequest || [];
@@ -536,6 +626,21 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       }
       return { success: true };
     }
+
+    const hhMatch = cleanPath.match(/\/households\/([^\/]+)/);
+    if (hhMatch) {
+      const id = hhMatch[1];
+      if (store.Household) {
+        store.Household = store.Household.filter(x => x.id !== id);
+      }
+      if (store.Inhabitant) {
+        store.Inhabitant.forEach(i => {
+          if (i.householdId === id) i.householdId = null;
+        });
+      }
+      saveStore(store);
+      return { success: true };
+    }
   }
 
   // Mutations / PATCH requests
@@ -606,11 +711,71 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       }
       return r || {};
     }
+
+    // Household PATCH
+    const hhMatch = cleanPath.match(/\/households\/([^\/]+)/);
+    if (hhMatch) {
+      const id = hhMatch[1];
+      const h = store.Household?.find(x => x.id === id);
+      if (h) {
+        Object.assign(h, body);
+        h.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return h || {};
+    }
   }
 
   // 11. Mutations / POST requests
   if (method === "POST") {
     const body = opts.body ? JSON.parse(opts.body as string) : {};
+
+    // Household POST
+    if (cleanPath === "/households") {
+      const newHh = {
+        id: "hh-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || "barangka",
+        householdNo: body.householdNo || `HH-2026-${Math.floor(Math.random() * 9000 + 1000)}`,
+        houseNo: body.houseNo || "",
+        blockNo: body.blockNo || "",
+        lotNo: body.lotNo || "",
+        street: body.street || "",
+        subdivision: body.subdivision || "",
+        buildingName: body.buildingName || "",
+        purok: body.purok || "Purok 1",
+        sitio: body.sitio || "",
+        addressLine: body.addressLine || "",
+        latitude: body.latitude ? Number(body.latitude) : null,
+        longitude: body.longitude ? Number(body.longitude) : null,
+        squareMeters: body.squareMeters ? Number(body.squareMeters) : null,
+        hasGarage: !!body.hasGarage,
+        hazardZoneRisk: body.hazardZoneRisk || "low_risk",
+        dwellingType: body.dwellingType || "single_house",
+        roofMaterial: body.roofMaterial || "galvanized_iron",
+        wallMaterial: body.wallMaterial || "concrete_brick",
+        tenureStatus: body.tenureStatus || "owner",
+        landTenure: body.landTenure || "owned",
+        waterSource: body.waterSource || "piped",
+        toiletFacility: body.toiletFacility || "flush_exclusive",
+        electricitySource: body.electricitySource || "grid",
+        cookingFuel: body.cookingFuel || "lpg",
+        wasteDisposal: body.wasteDisposal || "barangay_truck",
+        internetAccess: body.internetAccess || "fiber_broadband",
+        monthlyIncomeBand: body.monthlyIncomeBand || "10k_to_20k",
+        primaryIncomeSource: body.primaryIncomeSource || "employment",
+        is4Ps: body.is4Ps || false,
+        isIndigent: body.isIndigent || false,
+        remarks: body.remarks || "",
+        source: "CBMS",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        consents: []
+      };
+      if (!store.Household) store.Household = [];
+      store.Household.push(newHh);
+      saveStore(store);
+      return newHh;
+    }
 
     // Inhabitants POST
     if (cleanPath === "/inhabitants") {
@@ -628,6 +793,10 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
         philsysNo: body.philsysNo || "",
         contactPhone: body.contactPhone || "",
         contactEmail: body.contactEmail || "",
+        householdId: body.householdId || null,
+        relationToHead: body.relationToHead || null,
+        occupation: body.occupation || "",
+        educationLevel: body.educationLevel || "",
         isSenior: body.isSenior || false,
         isPwd: body.isPwd || false,
         isSoloParent: body.isSoloParent || false,
