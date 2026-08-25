@@ -7,6 +7,11 @@ enum RecordSource {
   CBMS
   BIMS
   IMPORT
+  MESSENGER
+  KIOSK
+  DESK
+  ONLINE
+  PWA
 }
 
 Table Tenant {
@@ -35,7 +40,7 @@ Table City {
   id String [pk, default: `cuid()`]
   psgcCode String [unique]
   name String
-  isCity Boolean [default: `true`]
+  isCity Boolean [default: true]
   provinceId String
 }
 
@@ -51,18 +56,18 @@ Table Barangay {
   psgcCode String [unique]
   name String
   cityId String
-  status BarangayStatus [default: `pending`]
-  mode TenantMode [default: `companion`]
-  logoUrl String?
-  brandPrimary String? [default: `"#0A2463"`]
-  brandAccent String? [default: `"#FDB913"`]
-  addressLine String?
-  contactPhone String?
-  contactEmail String?
-  hotline String?
-  puroks String[] [default: `[]`]
-  approvedAt DateTime?
-  approvedById String?
+  status BarangayStatus [default: 'pending']
+  mode TenantMode [default: 'companion']
+  logoUrl String
+  brandPrimary String [default: '#0A2463']
+  brandAccent String [default: '#FDB913']
+  addressLine String
+  contactPhone String
+  contactEmail String
+  hotline String
+  puroks String[] [default: '[]']
+  approvedAt DateTime
+  approvedById String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -97,9 +102,9 @@ Table Role {
   id String [pk, default: `cuid()`]
   key RoleKey [unique]
   name String
-  description String?
+  description String
   scope ScopeLevel
-  isStaff Boolean [default: `true`]
+  isStaff Boolean [default: true]
 }
 
 Table Permission {
@@ -118,19 +123,19 @@ Table User {
   id String [pk, default: `cuid()`]
   name String
   email String [unique]
-  emailVerified Boolean [default: `false`]
-  image String?
-  phone String? [unique]
-  passwordHash String?
+  emailVerified Boolean [default: false]
+  image String
+  phone String [unique]
+  passwordHash String
   fullName String
-  avatarUrl String?
-  isActive Boolean [default: `true`]
-  mfaEnabled Boolean [default: `false`]
-  mfaSecret String?
-  barangayId String?
-  cityId String?
-  inhabitantId String? [unique]
-  lastLoginAt DateTime?
+  avatarUrl String
+  isActive Boolean [default: true]
+  mfaEnabled Boolean [default: false]
+  mfaSecret String
+  barangayId String
+  cityId String
+  inhabitantId String [unique]
+  lastLoginAt DateTime
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -145,9 +150,9 @@ Table Session {
   userId String
   token String [unique]
   expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  mfaPassed Boolean [default: `false`]
+  ipAddress String
+  userAgent String
+  mfaPassed Boolean [default: false]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -157,13 +162,13 @@ Table Account {
   userId String
   accountId String
   providerId String
-  accessToken String?
-  refreshToken String?
-  accessTokenExpiresAt DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope String?
-  idToken String?
-  password String?
+  accessToken String
+  refreshToken String
+  accessTokenExpiresAt DateTime
+  refreshTokenExpiresAt DateTime
+  scope String
+  idToken String
+  password String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -173,24 +178,24 @@ Table Verification {
   identifier String
   value String
   expiresAt DateTime
-  createdAt DateTime? [default: `now()`]
-  updatedAt DateTime?
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
 }
 
 Table AuditLog {
   id String [pk, default: `cuid()`]
-  barangayId String?
-  actorId String?
-  actorRole String?
+  barangayId String
+  actorId String
+  actorRole String
   action String
   entity String
-  entityId String?
-  beforeHash String?
-  afterHash String?
-  diff Json?
-  ip String?
-  userAgent String?
-  isAiAction Boolean [default: `false`]
+  entityId String
+  beforeHash String
+  afterHash String
+  diff Json
+  ip String
+  userAgent String
+  isAiAction Boolean [default: false]
   createdAt DateTime [default: `now()`]
 }
 
@@ -211,15 +216,15 @@ enum ConsentStatus {
 Table ConsentRecord {
   id String [pk, default: `cuid()`]
   barangayId String
-  householdId String?
-  inhabitantId String?
+  householdId String
+  inhabitantId String
   purpose ConsentPurpose
-  status ConsentStatus [default: `granted`]
+  status ConsentStatus [default: 'granted']
   grantedBy String
   grantedAt DateTime [default: `now()`]
-  withdrawnAt DateTime?
-  evidenceUrl String?
-  notes String?
+  withdrawnAt DateTime
+  evidenceUrl String
+  notes String
   createdAt DateTime [default: `now()`]
 }
 
@@ -240,39 +245,39 @@ Table Household {
   id String [pk, default: `cuid()`]
   barangayId String
   householdNo String
-  purok String?
-  sitio String?
-  houseNo String?
-  blockNo String?
-  lotNo String?
-  street String?
-  subdivision String?
-  buildingName String?
+  purok String
+  sitio String
+  houseNo String
+  blockNo String
+  lotNo String
+  street String
+  subdivision String
+  buildingName String
   addressLine String
-  latitude Float?
-  longitude Float?
-  squareMeters Float?
-  hasGarage Boolean [default: `false`]
-  dwellingType String?
-  roofMaterial String?
-  wallMaterial String?
-  tenureStatus String?
-  landTenure String?
-  waterSource String?
-  toiletFacility String?
-  electricitySource String?
-  cookingFuel String?
-  wasteDisposal String?
-  internetAccess String?
-  monthlyIncomeBand String?
-  primaryIncomeSource String?
-  hazardZoneRisk String?
-  is4Ps Boolean [default: `false`]
-  isIndigent Boolean [default: `false`]
-  headId String? [unique]
-  remarks String?
-  source RecordSource [default: `CBMS`]
-  bimsRef String?
+  latitude Float
+  longitude Float
+  squareMeters Float
+  hasGarage Boolean [default: false]
+  dwellingType String
+  roofMaterial String
+  wallMaterial String
+  tenureStatus String
+  landTenure String
+  waterSource String
+  toiletFacility String
+  electricitySource String
+  cookingFuel String
+  wasteDisposal String
+  internetAccess String
+  monthlyIncomeBand String
+  primaryIncomeSource String
+  hazardZoneRisk String
+  is4Ps Boolean [default: false]
+  isIndigent Boolean [default: false]
+  headId String [unique]
+  remarks String
+  source RecordSource [default: 'CBMS']
+  bimsRef String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -280,42 +285,42 @@ Table Household {
 Table Inhabitant {
   id String [pk, default: `cuid()`]
   barangayId String
-  householdId String?
-  relationToHead String?
+  householdId String
+  relationToHead String
   firstName String
-  middleName String?
+  middleName String
   lastName String
-  suffix String?
+  suffix String
   sex Sex
   birthDate DateTime
-  birthPlace String?
-  civilStatus CivilStatus [default: `single`]
-  citizenship String [default: `"Filipino"`]
-  philsysNo String?
-  contactPhone String?
-  contactEmail String?
-  occupation String?
-  educationLevel String?
-  religion String?
-  bloodType String?
-  monthlyIncome Decimal?
-  isSenior Boolean [default: `false`]
-  isPwd Boolean [default: `false`]
-  pwdType String?
-  isSoloParent Boolean [default: `false`]
-  is4Ps Boolean [default: `false`]
-  isIndigenous Boolean [default: `false`]
-  isPregnant Boolean [default: `false`]
-  isBedridden Boolean [default: `false`]
-  isOfw Boolean [default: `false`]
-  isVoter Boolean [default: `false`]
-  isDeceased Boolean [default: `false`]
-  deceasedDate DateTime?
-  residencyStart DateTime?
-  isResident Boolean [default: `true`]
-  source RecordSource [default: `CBMS`]
-  bimsRef String?
-  photoUrl String?
+  birthPlace String
+  civilStatus CivilStatus [default: 'single']
+  citizenship String [default: 'Filipino']
+  philsysNo String
+  contactPhone String
+  contactEmail String
+  occupation String
+  educationLevel String
+  religion String
+  bloodType String
+  monthlyIncome Decimal
+  isSenior Boolean [default: false]
+  isPwd Boolean [default: false]
+  pwdType String
+  isSoloParent Boolean [default: false]
+  is4Ps Boolean [default: false]
+  isIndigenous Boolean [default: false]
+  isPregnant Boolean [default: false]
+  isBedridden Boolean [default: false]
+  isOfw Boolean [default: false]
+  isVoter Boolean [default: false]
+  isDeceased Boolean [default: false]
+  deceasedDate DateTime
+  residencyStart DateTime
+  isResident Boolean [default: true]
+  source RecordSource [default: 'CBMS']
+  bimsRef String
+  photoUrl String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -325,9 +330,9 @@ Table ResidencyHistory {
   inhabitantId String
   event String
   effectiveAt DateTime
-  fromAddress String?
-  toAddress String?
-  remarks String?
+  fromAddress String
+  toAddress String
+  remarks String
   createdAt DateTime [default: `now()`]
 }
 
@@ -354,14 +359,14 @@ Table CertificateType {
   barangayId String
   code String
   name String
-  description String?
-  fee Decimal [default: `0`]
-  validityDays Int [default: `180`]
-  isActive Boolean [default: `true`]
-  requiresApproval Boolean [default: `true`]
-  requirements String[] [default: `[]`]
-  exemptNote String?
-  templateBody String?
+  description String
+  fee Decimal [default: 0]
+  validityDays Int [default: 180]
+  isActive Boolean [default: true]
+  requiresApproval Boolean [default: true]
+  requirements String[] [default: '[]']
+  exemptNote String
+  templateBody String
 }
 
 Table CertificateRequest {
@@ -371,24 +376,24 @@ Table CertificateRequest {
   inhabitantId String
   referenceNo String [unique]
   purpose String
-  status RequestStatus [default: `submitted`]
-  fee Decimal [default: `0`]
-  paymentMethod PaymentMethod?
-  paidAt DateTime?
-  orNumber String?
-  approvedById String?
-  approvedAt DateTime?
-  rejectedReason String?
-  issuedAt DateTime?
-  expiresAt DateTime?
-  verifyCode String? [unique]
-  pdfUrl String?
+  status RequestStatus [default: 'submitted']
+  fee Decimal [default: 0]
+  paymentMethod PaymentMethod
+  paidAt DateTime
+  orNumber String
+  approvedById String
+  approvedAt DateTime
+  rejectedReason String
+  issuedAt DateTime
+  expiresAt DateTime
+  verifyCode String [unique]
+  pdfUrl String
   submittedAt DateTime [default: `now()`]
-  releasedAt DateTime?
-  processingMs Int?
-  source RecordSource [default: `CBMS`]
-  bimsRef String?
-  aiDraft String?
+  releasedAt DateTime
+  processingMs Int
+  source RecordSource [default: 'CBMS']
+  bimsRef String
+  aiDraft String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -409,14 +414,19 @@ Table BlotterEntry {
   id String [pk, default: `cuid()`]
   barangayId String
   entryNo String
-  category BlotterCategory [default: `other`]
+  category BlotterCategory [default: 'other']
   incidentAt DateTime
   location String
   narrative String
   reportedBy String
-  respondentName String?
-  isConfidential Boolean [default: `false`]
-  recordedById String?
+  complainantPhone String
+  complainantInhabitantId String
+  respondentName String
+  isConfidential Boolean [default: false]
+  status String [default: 'active'] // active, resolved, endorsed, dismissed
+  source RecordSource [default: 'CBMS']
+  evidenceUrls String[] [default: '[]']
+  recordedById String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -436,21 +446,21 @@ Table KpCase {
   id String [pk, default: `cuid()`]
   barangayId String
   caseNo String
-  blotterId String? [unique]
+  blotterId String [unique]
   subject String
   description String
-  stage KpStage [default: `filed`]
-  isConfidential Boolean [default: `false`]
+  stage KpStage [default: 'filed']
+  isConfidential Boolean [default: false]
   filedAt DateTime [default: `now()`]
-  mediationDueAt DateTime?
-  conciliationDueAt DateTime?
-  extendedDueAt DateTime?
-  closedAt DateTime?
-  settlementTerms String?
-  cfaReason String?
-  pangkatMembers String[] [default: `[]`]
-  source RecordSource [default: `CBMS`]
-  bimsRef String?
+  mediationDueAt DateTime
+  conciliationDueAt DateTime
+  extendedDueAt DateTime
+  closedAt DateTime
+  settlementTerms String
+  cfaReason String
+  pangkatMembers String[] [default: '[]']
+  source RecordSource [default: 'CBMS']
+  bimsRef String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -465,10 +475,10 @@ Table KpParty {
   id String [pk, default: `cuid()`]
   caseId String
   role PartyRole
-  inhabitantId String?
-  nameOverride String?
-  address String?
-  contact String?
+  inhabitantId String
+  nameOverride String
+  address String
+  contact String
 }
 
 Table KpHearing {
@@ -476,9 +486,9 @@ Table KpHearing {
   caseId String
   scheduledAt DateTime
   stage KpStage
-  attended Boolean?
-  minutes String?
-  outcome String?
+  attended Boolean
+  minutes String
+  outcome String
   createdAt DateTime [default: `now()`]
 }
 
@@ -486,7 +496,7 @@ Table KpDocument {
   id String [pk, default: `cuid()`]
   caseId String
   kind String
-  pdfUrl String?
+  pdfUrl String
   issuedAt DateTime [default: `now()`]
 }
 
@@ -506,20 +516,20 @@ Table Property {
   id String [pk, default: `cuid()`]
   barangayId String
   name String
-  type PropertyType [default: `infrastructure`]
-  status PropertyStatus [default: `operational`]
+  type PropertyType [default: 'infrastructure']
+  status PropertyStatus [default: 'operational']
   category String
-  capacity Int [default: `0`]
-  acquiredAt DateTime?
-  acquisitionCost Decimal?
-  custodian String?
-  description String?
-  latitude Float?
-  longitude Float?
-  addressLine String?
-  isEvacuationCenter Boolean [default: `false`]
-  source RecordSource [default: `CBMS`]
-  bimsRef String?
+  capacity Int [default: 0]
+  acquiredAt DateTime
+  acquisitionCost Decimal
+  custodian String
+  description String
+  latitude Float
+  longitude Float
+  addressLine String
+  isEvacuationCenter Boolean [default: false]
+  source RecordSource [default: 'CBMS']
+  bimsRef String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -529,8 +539,8 @@ Table MaintenanceRecord {
   propertyId String
   performedAt DateTime
   kind String
-  cost Decimal?
-  remarks String?
+  cost Decimal
+  remarks String
   createdAt DateTime [default: `now()`]
 }
 
@@ -538,10 +548,10 @@ Table Material {
   id String [pk, default: `cuid()`]
   barangayId String
   name String
-  unit String [default: `"pc"`]
-  quantity Int [default: `0`]
-  reorderLevel Int [default: `0`]
-  location String?
+  unit String [default: 'pc']
+  quantity Int [default: 0]
+  reorderLevel Int [default: 0]
+  location String
   updatedAt DateTime
   createdAt DateTime [default: `now()`]
 }
@@ -552,20 +562,20 @@ Table Hazard {
   purok String
   hazardType String
   riskLevel String
-  notes String?
+  notes String
   createdAt DateTime [default: `now()`]
 }
 
 Table EvacuationCenter {
   id String [pk, default: `cuid()`]
   barangayId String
-  propertyId String? [unique]
+  propertyId String [unique]
   name String
   capacity Int
-  addressLine String?
-  latitude Float?
-  longitude Float?
-  isOpen Boolean [default: `false`]
+  addressLine String
+  latitude Float
+  longitude Float
+  isOpen Boolean [default: false]
   createdAt DateTime [default: `now()`]
 }
 
@@ -581,10 +591,10 @@ Table DisasterEvent {
   barangayId String
   name String
   hazardType String
-  status DisasterEventStatus [default: `monitoring`]
+  status DisasterEventStatus [default: 'monitoring']
   declaredAt DateTime [default: `now()`]
-  closedAt DateTime?
-  summary String?
+  closedAt DateTime
+  summary String
   createdAt DateTime [default: `now()`]
 }
 
@@ -593,9 +603,9 @@ Table EvacuationRecord {
   eventId String
   centerId String
   householdId String
-  headcount Int [default: `1`]
+  headcount Int [default: 1]
   checkInAt DateTime [default: `now()`]
-  checkOutAt DateTime?
+  checkOutAt DateTime
 }
 
 Table ReliefDistribution {
@@ -603,11 +613,11 @@ Table ReliefDistribution {
   eventId String
   householdId String
   goods String
-  quantity Int [default: `1`]
-  cashAmount Decimal?
+  quantity Int [default: 1]
+  cashAmount Decimal
   releasedAt DateTime [default: `now()`]
-  releasedBy String?
-  receivedBy String?
+  releasedBy String
+  receivedBy String
 }
 
 Table GadPlan {
@@ -616,7 +626,7 @@ Table GadPlan {
   year Int
   totalBudget Decimal
   gadBudget Decimal
-  status String [default: `"draft"`]
+  status String [default: 'draft']
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -626,13 +636,13 @@ Table GadActivity {
   planId String
   title String
   attribution String
-  genderIssue String?
+  genderIssue String
   budget Decimal
-  actualSpend Decimal?
-  targetOutput String?
-  actualOutput String?
-  quarter Int?
-  status String [default: `"planned"`]
+  actualSpend Decimal
+  targetOutput String
+  actualOutput String
+  quarter Int
+  status String [default: 'planned']
 }
 
 enum LegislationKind {
@@ -656,15 +666,15 @@ Table Legislation {
   number String
   series Int
   title String
-  body String?
-  status LegislationStatus [default: `draft`]
-  sponsors String[] [default: `[]`]
-  firstReadingAt DateTime?
-  secondReadingAt DateTime?
-  enactedAt DateTime?
-  fileUrl String?
-  isPublished Boolean [default: `false`]
-  amendsId String?
+  body String
+  status LegislationStatus [default: 'draft']
+  sponsors String[] [default: '[]']
+  firstReadingAt DateTime
+  secondReadingAt DateTime
+  enactedAt DateTime
+  fileUrl String
+  isPublished Boolean [default: false]
+  amendsId String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -673,10 +683,10 @@ Table DevelopmentPlan {
   id String [pk, default: `cuid()`]
   barangayId String
   title String
-  vision String?
+  vision String
   startYear Int
   endYear Int
-  status String [default: `"active"`]
+  status String [default: 'active']
   createdAt DateTime [default: `now()`]
 }
 
@@ -692,14 +702,14 @@ Table DevProject {
   id String [pk, default: `cuid()`]
   planId String
   title String
-  description String?
+  description String
   sector String
   budget Decimal
-  fundingSource String?
-  status ProjectStatus [default: `proposed`]
+  fundingSource String
+  status ProjectStatus [default: 'proposed']
   targetYear Int
-  progressPct Int [default: `0`]
-  alignmentTags String[] [default: `[]`]
+  progressPct Int [default: 0]
+  alignmentTags String[] [default: '[]']
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -709,39 +719,39 @@ Table Institution {
   barangayId String
   code String
   name String
-  description String?
-  accreditedAt DateTime?
-  isActive Boolean [default: `true`]
+  description String
+  accreditedAt DateTime
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
 }
 
 Table InstitutionMember {
   id String [pk, default: `cuid()`]
   institutionId String
-  inhabitantId String?
-  nameOverride String?
+  inhabitantId String
+  nameOverride String
   position String
-  termStart DateTime?
-  termEnd DateTime?
+  termStart DateTime
+  termEnd DateTime
 }
 
 Table InstitutionMinutes {
   id String [pk, default: `cuid()`]
   institutionId String
   meetingAt DateTime
-  agenda String?
-  minutes String?
-  fileUrl String?
+  agenda String
+  minutes String
+  fileUrl String
 }
 
 Table Budget {
   id String [pk, default: `cuid()`]
   barangayId String
   year Int
-  ordinanceId String?
+  ordinanceId String
   totalAmount Decimal
-  skFundAmount Decimal [default: `0`]
-  status String [default: `"draft"`]
+  skFundAmount Decimal [default: 0]
+  status String [default: 'draft']
   createdAt DateTime [default: `now()`]
 }
 
@@ -752,8 +762,8 @@ Table BudgetLine {
   accountCode String
   description String
   amount Decimal
-  obligated Decimal [default: `0`]
-  disbursed Decimal [default: `0`]
+  obligated Decimal [default: 0]
+  disbursed Decimal [default: 0]
 }
 
 enum LedgerDirection {
@@ -773,17 +783,17 @@ Table LedgerEntry {
   id String [pk, default: `cuid()`]
   barangayId String
   postedAt DateTime [default: `now()`]
-  fund FundType [default: `general`]
+  fund FundType [default: 'general']
   accountCode String
   description String
   direction LedgerDirection
   amount Decimal
-  orNumber String?
-  dvNumber String?
-  refType String?
-  refId String?
-  transactionId String?
-  createdById String?
+  orNumber String
+  dvNumber String
+  refType String
+  refId String
+  transactionId String
+  createdById String
   createdAt DateTime [default: `now()`]
 }
 
@@ -795,9 +805,9 @@ Table OfficialReceipt {
   amount Decimal
   particulars String
   issuedAt DateTime [default: `now()`]
-  issuedById String?
-  refType String?
-  refId String?
+  issuedById String
+  refType String
+  refId String
 }
 
 Table SitePage {
@@ -806,8 +816,8 @@ Table SitePage {
   slug String
   title String
   body String
-  isPublished Boolean [default: `true`]
-  sortOrder Int [default: `0`]
+  isPublished Boolean [default: true]
+  sortOrder Int [default: 0]
   updatedAt DateTime
 }
 
@@ -816,26 +826,26 @@ Table SitePost {
   barangayId String
   slug String
   title String
-  excerpt String?
+  excerpt String
   body String
-  coverUrl String?
-  publishedAt DateTime?
-  isPublished Boolean [default: `false`]
+  coverUrl String
+  publishedAt DateTime
+  isPublished Boolean [default: false]
   createdAt DateTime [default: `now()`]
 }
 
 Table ReportRun {
   id String [pk, default: `cuid()`]
-  barangayId String?
-  cityId String?
+  barangayId String
+  cityId String
   key String
-  period String?
-  format String [default: `"csv"`]
-  params Json?
-  status String [default: `"completed"`]
-  fileUrl String?
-  rowCount Int?
-  generatedById String?
+  period String
+  format String [default: 'csv']
+  params Json
+  status String [default: 'completed']
+  fileUrl String
+  rowCount Int
+  generatedById String
   createdAt DateTime [default: `now()`]
 }
 
@@ -849,15 +859,15 @@ enum TicketStatus {
 
 Table Ticket {
   id String [pk, default: `cuid()`]
-  barangayId String?
+  barangayId String
   subject String
   body String
-  category String [default: `"technical"`]
-  status TicketStatus [default: `open`]
-  priority String [default: `"normal"`]
-  raisedById String?
-  assignedToId String?
-  resolvedAt DateTime?
+  category String [default: 'technical']
+  status TicketStatus [default: 'open']
+  priority String [default: 'normal']
+  raisedById String
+  assignedToId String
+  resolvedAt DateTime
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -865,30 +875,30 @@ Table Ticket {
 Table TicketResponse {
   id String [pk, default: `cuid()`]
   ticketId String
-  authorId String?
+  authorId String
   body String
-  isInternal Boolean [default: `false`]
+  isInternal Boolean [default: false]
   createdAt DateTime [default: `now()`]
 }
 
 Table FileObject {
   id String [pk, default: `cuid()`]
-  barangayId String?
+  barangayId String
   key String [unique]
   filename String
   mimeType String
   sizeBytes Int
-  scanStatus String [default: `"pending"`]
-  uploadedById String?
+  scanStatus String [default: 'pending']
+  uploadedById String
   createdAt DateTime [default: `now()`]
 }
 
 Table FeatureFlag {
   id String [pk, default: `cuid()`]
   key String [unique]
-  enabled Boolean [default: `false`]
-  scope String [default: `"global"`]
-  notes String?
+  enabled Boolean [default: false]
+  scope String [default: 'global']
+  notes String
   updatedAt DateTime
 }
 
@@ -896,13 +906,13 @@ Table BimsSyncRun {
   id String [pk, default: `cuid()`]
   barangayId String
   dataset String
-  direction String [default: `"pull"`]
-  status String [default: `"success"`]
-  pulled Int [default: `0`]
-  conflicts Int [default: `0`]
-  message String?
+  direction String [default: 'pull']
+  status String [default: 'success']
+  pulled Int [default: 0]
+  conflicts Int [default: 0]
+  message String
   startedAt DateTime [default: `now()`]
-  finishedAt DateTime?
+  finishedAt DateTime
 }
 
 enum WalletOwnerType {
@@ -928,11 +938,11 @@ Table Wallet {
   id String [pk, default: `cuid()`]
   barangayId String
   ownerType WalletOwnerType
-  inhabitantId String? [unique]
+  inhabitantId String [unique]
   emiAccountRef String [unique]
-  kycTier KycTier [default: `tier1`]
-  status WalletStatus [default: `active`]
-  balanceCentavos BigInt [default: `0`]
+  kycTier KycTier [default: 'tier1']
+  status WalletStatus [default: 'active']
+  balanceCentavos BigInt [default: 0]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -960,21 +970,21 @@ Table WalletTransaction {
   id String [pk, default: `cuid()`]
   barangayId String
   type TxnType
-  status TxnStatus [default: `pending`]
-  fromWalletId String?
-  toWalletId String?
+  status TxnStatus [default: 'pending']
+  fromWalletId String
+  toWalletId String
   amountCentavos BigInt
-  feeCentavos BigInt [default: `0`]
-  currency String [default: `"PHP"`]
+  feeCentavos BigInt [default: 0]
+  currency String [default: 'PHP']
   reference String [unique]
-  description String?
-  emiTxnRef String?
-  batchItemId String? [unique]
-  certificateRequestId String?
-  billPaymentId String? [unique]
-  agentId String?
-  merchantId String?
-  completedAt DateTime?
+  description String
+  emiTxnRef String
+  batchItemId String [unique]
+  certificateRequestId String
+  billPaymentId String [unique]
+  agentId String
+  merchantId String
+  completedAt DateTime
   createdAt DateTime [default: `now()`]
 }
 
@@ -1000,16 +1010,16 @@ Table DisbursementBatch {
   batchNo String
   kind BatchKind
   title String
-  fund FundType [default: `general`]
-  status BatchStatus [default: `draft`]
-  preparedById String?
-  approvedById String?
-  approvedAt DateTime?
-  executedAt DateTime?
-  totalCentavos BigInt [default: `0`]
-  itemCount Int [default: `0`]
-  sourceNote String?
-  disasterEventId String?
+  fund FundType [default: 'general']
+  status BatchStatus [default: 'draft']
+  preparedById String
+  approvedById String
+  approvedAt DateTime
+  executedAt DateTime
+  totalCentavos BigInt [default: 0]
+  itemCount Int [default: 0]
+  sourceNote String
+  disasterEventId String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -1025,13 +1035,13 @@ enum BatchItemStatus {
 Table DisbursementBatchItem {
   id String [pk, default: `cuid()`]
   batchId String
-  inhabitantId String?
-  walletId String?
+  inhabitantId String
+  walletId String
   payeeName String
   amountCentavos BigInt
-  status BatchItemStatus [default: `pending`]
-  remarks String?
-  paidAt DateTime?
+  status BatchItemStatus [default: 'pending']
+  remarks String
+  paidAt DateTime
 }
 
 Table Merchant {
@@ -1040,11 +1050,11 @@ Table Merchant {
   walletId String [unique]
   businessName String
   ownerName String
-  category String [default: `"sari_sari"`]
-  addressLine String?
+  category String [default: 'sari_sari']
+  addressLine String
   qrCode String [unique]
-  mdrBps Int [default: `0`]
-  isActive Boolean [default: `true`]
+  mdrBps Int [default: 0]
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
 }
 
@@ -1054,11 +1064,11 @@ Table Agent {
   walletId String [unique]
   outletName String
   ownerName String
-  addressLine String?
-  commissionBps Int [default: `50`]
-  cashOnHandCentavos BigInt [default: `0`]
-  floatAlertThreshold BigInt [default: `500000`]
-  isActive Boolean [default: `true`]
+  addressLine String
+  commissionBps Int [default: 50]
+  cashOnHandCentavos BigInt [default: 0]
+  floatAlertThreshold BigInt [default: 500000]
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
 }
 
@@ -1068,7 +1078,7 @@ Table AgentFloatLog {
   kind String
   amountCentavos BigInt
   balanceAfterCentavos BigInt
-  note String?
+  note String
   createdAt DateTime [default: `now()`]
 }
 
@@ -1077,8 +1087,8 @@ Table Biller {
   code String [unique]
   name String
   category String
-  commissionCentavos BigInt [default: `300`]
-  isActive Boolean [default: `true`]
+  commissionCentavos BigInt [default: 300]
+  isActive Boolean [default: true]
 }
 
 Table BillPayment {
@@ -1088,36 +1098,36 @@ Table BillPayment {
   walletId String
   accountNo String
   amountCentavos BigInt
-  convenienceFeeCentavos BigInt [default: `500`]
-  status TxnStatus [default: `pending`]
-  paidAt DateTime?
+  convenienceFeeCentavos BigInt [default: 500]
+  status TxnStatus [default: 'pending']
+  paidAt DateTime
   createdAt DateTime [default: `now()`]
 }
 
 Table Dispute {
   id String [pk, default: `cuid()`]
   transactionId String [unique]
-  raisedById String?
+  raisedById String
   reason String
-  status String [default: `"open"`]
-  resolution String?
-  resolvedAt DateTime?
+  status String [default: 'open']
+  resolution String
+  resolvedAt DateTime
   createdAt DateTime [default: `now()`]
 }
 
 Table AiInteraction {
   id String [pk, default: `cuid()`]
-  barangayId String?
-  userId String?
+  barangayId String
+  userId String
   surface String
   prompt String
   response String
-  citations Json?
-  model String?
-  tokensIn Int?
-  tokensOut Int?
-  latencyMs Int?
-  escalatedTicketId String?
+  citations Json
+  model String
+  tokensIn Int
+  tokensOut Int
+  latencyMs Int
+  escalatedTicketId String
   createdAt DateTime [default: `now()`]
 }
 
@@ -1133,11 +1143,11 @@ Table AiWorkflowRun {
   id String [pk, default: `cuid()`]
   barangayId String
   workflow String
-  refType String?
-  refId String?
-  status AiRunStatus [default: `running`]
+  refType String
+  refId String
+  status AiRunStatus [default: 'running']
   startedAt DateTime [default: `now()`]
-  finishedAt DateTime?
+  finishedAt DateTime
 }
 
 Table AiWorkflowStep {
@@ -1145,11 +1155,11 @@ Table AiWorkflowStep {
   runId String
   seq Int
   name String
-  input Json?
-  output Json?
-  status String [default: `"completed"`]
-  isHumanGate Boolean [default: `false`]
-  decidedById String?
+  input Json
+  output Json
+  status String [default: 'completed']
+  isHumanGate Boolean [default: false]
+  decidedById String
   createdAt DateTime [default: `now()`]
 }
 
@@ -1164,21 +1174,23 @@ enum ConcernStatus {
 Table Concern {
   id String [pk, default: `cuid()`]
   barangayId String
-  inhabitantId String?
+  inhabitantId String
   referenceNo String [unique]
   category String
   description String
-  photoUrl String?
-  resolutionPhotoUrl String?
-  latitude Float?
-  longitude Float?
-  purok String?
-  status ConcernStatus [default: `submitted`]
-  slaDueAt DateTime?
-  acknowledgedAt DateTime?
-  resolvedAt DateTime?
-  assignedToId String?
-  resolutionNote String?
+  photoUrl String
+  resolutionPhotoUrl String
+  latitude Float
+  longitude Float
+  purok String
+  status ConcernStatus [default: 'submitted']
+  source RecordSource [default: 'CBMS']
+  messengerThreadId String
+  slaDueAt DateTime
+  acknowledgedAt DateTime
+  resolvedAt DateTime
+  assignedToId String
+  resolutionNote String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -1195,17 +1207,17 @@ enum SosStatus {
 Table SosAlert {
   id String [pk, default: `cuid()`]
   barangayId String
-  inhabitantId String?
+  inhabitantId String
   kind String
-  latitude Float?
-  longitude Float?
-  note String?
-  status SosStatus [default: `active`]
-  isTest Boolean [default: `false`]
-  acknowledgedAt DateTime?
-  respondedById String?
-  resolvedAt DateTime?
-  responseNote String?
+  latitude Float
+  longitude Float
+  note String
+  status SosStatus [default: 'active']
+  isTest Boolean [default: false]
+  acknowledgedAt DateTime
+  respondedById String
+  resolvedAt DateTime
+  responseNote String
   createdAt DateTime [default: `now()`]
 }
 
@@ -1214,23 +1226,23 @@ Table Announcement {
   barangayId String
   title String
   body String
-  category String [default: `"general"`]
-  severity String [default: `"info"`]
-  channels String[] [default: `["in_app"]`]
-  publishedAt DateTime?
-  isPublished Boolean [default: `false`]
-  disasterEventId String?
-  authorId String?
+  category String [default: 'general']
+  severity String [default: 'info']
+  channels String[] [default: '["in_app"]']
+  publishedAt DateTime
+  isPublished Boolean [default: false]
+  disasterEventId String
+  authorId String
   createdAt DateTime [default: `now()`]
 }
 
 Table AnnouncementReply {
   id String [pk, default: `cuid()`]
   announcementId String
-  inhabitantId String?
+  inhabitantId String
   body String
-  isModerated Boolean [default: `false`]
-  isHidden Boolean [default: `false`]
+  isModerated Boolean [default: false]
+  isHidden Boolean [default: false]
   createdAt DateTime [default: `now()`]
 }
 
@@ -1246,29 +1258,29 @@ enum AppointmentStatus {
 Table Appointment {
   id String [pk, default: `cuid()`]
   barangayId String
-  inhabitantId String?
+  inhabitantId String
   service String
   scheduledAt DateTime
-  queueNumber String?
-  status AppointmentStatus [default: `booked`]
-  checkedInAt DateTime?
-  servedAt DateTime?
-  completedAt DateTime?
-  notes String?
+  queueNumber String
+  status AppointmentStatus [default: 'booked']
+  checkedInAt DateTime
+  servedAt DateTime
+  completedAt DateTime
+  notes String
   createdAt DateTime [default: `now()`]
 }
 
 Table Feedback {
   id String [pk, default: `cuid()`]
   barangayId String
-  inhabitantId String?
+  inhabitantId String
   rating Int
-  comment String?
+  comment String
   service String
-  certificateRequestId String?
-  concernId String?
-  isGrievance Boolean [default: `false`]
-  escalatedAt DateTime?
+  certificateRequestId String
+  concernId String
+  isGrievance Boolean [default: false]
+  escalatedAt DateTime
   createdAt DateTime [default: `now()`]
 }
 
@@ -1278,9 +1290,9 @@ Table DigitalId {
   idNumber String [unique]
   qrCode String [unique]
   issuedAt DateTime [default: `now()`]
-  expiresAt DateTime?
-  isRevoked Boolean [default: `false`]
-  photoUrl String?
+  expiresAt DateTime
+  isRevoked Boolean [default: false]
+  photoUrl String
 }
 
 Table HealthCampaign {
@@ -1288,22 +1300,22 @@ Table HealthCampaign {
   barangayId String
   name String
   kind String
-  cohortFilter Json?
+  cohortFilter Json
   startsAt DateTime
-  endsAt DateTime?
-  isActive Boolean [default: `true`]
+  endsAt DateTime
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
 }
 
 Table HealthRecord {
   id String [pk, default: `cuid()`]
-  campaignId String?
+  campaignId String
   inhabitantId String
   kind String
-  notes String?
+  notes String
   recordedAt DateTime [default: `now()`]
-  recordedById String?
-  followUpAt DateTime?
+  recordedById String
+  followUpAt DateTime
 }
 
 Table JobPost {
@@ -1311,13 +1323,13 @@ Table JobPost {
   barangayId String
   title String
   employer String
-  kind String [default: `"job"`]
+  kind String [default: 'job']
   description String
-  location String?
-  salaryRange String?
-  contact String?
-  closesAt DateTime?
-  isActive Boolean [default: `true`]
+  location String
+  salaryRange String
+  contact String
+  closesAt DateTime
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
 }
 
@@ -1325,8 +1337,8 @@ Table JobApplication {
   id String [pk, default: `cuid()`]
   jobPostId String
   inhabitantId String
-  status String [default: `"submitted"`]
-  note String?
+  status String [default: 'submitted']
+  note String
   createdAt DateTime [default: `now()`]
 }
 
@@ -1335,10 +1347,10 @@ Table BenefitApplication {
   barangayId String
   inhabitantId String
   program String
-  status String [default: `"submitted"`]
-  documents String[] [default: `[]`]
-  reviewedById String?
-  reviewNote String?
+  status String [default: 'submitted']
+  documents String[] [default: '[]']
+  reviewedById String
+  reviewNote String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -1350,17 +1362,17 @@ Table PbCycle {
   year Int
   opensAt DateTime
   closesAt DateTime
-  status String [default: `"open"`]
+  status String [default: 'open']
   createdAt DateTime [default: `now()`]
 }
 
 Table PbOption {
   id String [pk, default: `cuid()`]
   cycleId String
-  projectId String?
+  projectId String
   label String
-  detail String?
-  voteCount Int [default: `0`]
+  detail String
+  voteCount Int [default: 0]
 }
 
 Table PbVote {
@@ -1413,10 +1425,10 @@ Table DrrmResource {
   barangayId String
   name String
   type String
-  quantity Int [default: `0`]
-  status String [default: `"operational"`]
-  notes String?
-  isActive Boolean [default: `true`]
+  quantity Int [default: 0]
+  status String [default: 'operational']
+  notes String
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -1427,15 +1439,18 @@ Table LguDocRequest {
   inhabitantId String
   docType LguDocType
   purpose String
-  status LguDocStatus [default: `pending`]
+  status LguDocStatus [default: 'pending']
   referenceNo String [unique]
-  fee Decimal [default: `0.0`]
-  paidAt DateTime?
-  orNumber String?
-  remarks String?
-  approvedAt DateTime?
-  releasedAt DateTime?
-  isActive Boolean [default: `true`]
+  fee Decimal [default: 0.0]
+  paidAt DateTime
+  orNumber String
+  remarks String
+  attachmentName String
+  attachmentUrl String
+  source RecordSource [default: 'CBMS']
+  approvedAt DateTime
+  releasedAt DateTime
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -1446,22 +1461,22 @@ Table CivilRegistryRecord {
   recordType CivilRegistryType
   registryNo String [unique]
   registeredAt DateTime
-  inhabitantId String?
-  childName String?
-  fatherName String?
-  motherName String?
-  dateOfBirth DateTime?
-  placeOfBirth String?
-  groomName String?
-  brideName String?
-  dateOfMarriage DateTime?
-  placeOfMarriage String?
-  deceasedName String?
-  dateOfDeath DateTime?
-  causeOfDeath String?
-  placeOfDeath String?
-  remarks String?
-  isActive Boolean [default: `true`]
+  inhabitantId String
+  childName String
+  fatherName String
+  motherName String
+  dateOfBirth DateTime
+  placeOfBirth String
+  groomName String
+  brideName String
+  dateOfMarriage DateTime
+  placeOfMarriage String
+  deceasedName String
+  dateOfDeath DateTime
+  causeOfDeath String
+  placeOfDeath String
+  remarks String
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -1470,14 +1485,14 @@ Table RptProperty {
   id String [pk, default: `cuid()`]
   barangayId String
   taxDeclarationNo String [unique]
-  ownerInhabitantId String?
+  ownerInhabitantId String
   ownerName String
   propertyType RptPropertyType
   assessedValue Decimal
   marketValue Decimal
   addressLine String
-  purok String?
-  isActive Boolean [default: `true`]
+  purok String
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -1488,12 +1503,12 @@ Table RptTaxDue {
   taxYear Int
   basicTaxAmount Decimal
   sefTaxAmount Decimal
-  penaltyAmount Decimal [default: `0.0`]
+  penaltyAmount Decimal [default: 0.0]
   totalAmount Decimal
-  paymentStatus RptPaymentStatus [default: `unpaid`]
-  paidAt DateTime?
-  orNumber String?
-  isActive Boolean [default: `true`]
+  paymentStatus RptPaymentStatus [default: 'unpaid']
+  paidAt DateTime
+  orNumber String
+  isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -1503,10 +1518,88 @@ Table Assembly {
   barangayId String
   title String
   scheduledAt DateTime
-  agenda String?
-  minutes String?
-  isPublished Boolean [default: `false`]
+  agenda String
+  minutes String
+  isPublished Boolean [default: false]
   createdAt DateTime [default: `now()`]
+}
+
+// ============================================================================
+// Omnichannel Messaging & Meta Messenger Integration
+// ============================================================================
+
+enum ChannelType {
+  messenger
+  sms
+  web_chat
+  kiosk
+  whatsapp
+  email
+}
+
+enum ConversationStatus {
+  bot_active
+  desk_assigned
+  resolved
+  closed
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageSenderType {
+  inhabitant
+  bot
+  desk_officer
+  system
+}
+
+Table ConversationThread {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  inhabitantId String
+  channel ChannelType [default: 'messenger']
+  externalSenderId String // e.g. Facebook PSID (Page-Scoped ID) or Phone Number
+  senderName String
+  senderPhone String
+  status ConversationStatus [default: 'bot_active']
+  assignedOfficerId String
+  lastMessageAt DateTime [default: `now()`]
+  lastIntent String
+  contextData Json // Session state for guided intake wizards (blotter, clearance)
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table ChatMessage {
+  id String [pk, default: `cuid()`]
+  threadId String
+  direction MessageDirection
+  senderType MessageSenderType
+  senderUserId String
+  content String
+  mediaUrls String[] [default: '[]']
+  rawPayload Json
+  isRead Boolean [default: false]
+  sentAt DateTime [default: `now()`]
+}
+
+Table MessengerPageConfig {
+  id String [pk, default: `cuid()`]
+  barangayId String [unique]
+  pageId String [unique]
+  pageName String
+  pageAccessToken String // Encrypted
+  verifyToken String
+  appSecret String // Encrypted
+  greetingMessage String
+  isBotEnabled Boolean [default: true]
+  autoOfficeHours Json
+  isActive Boolean [default: true]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
 }
 
 
@@ -1633,3 +1726,9 @@ Ref: CivilRegistryRecord.inhabitantId > Inhabitant.id
 Ref: RptProperty.barangayId > Barangay.id
 Ref: RptProperty.ownerInhabitantId > Inhabitant.id
 Ref: RptTaxDue.rptPropertyId > RptProperty.id
+Ref: BlotterEntry.complainantInhabitantId > Inhabitant.id
+Ref: ConversationThread.barangayId > Barangay.id
+Ref: ConversationThread.inhabitantId > Inhabitant.id
+Ref: ConversationThread.assignedOfficerId > User.id
+Ref: ChatMessage.threadId > ConversationThread.id
+Ref: MessengerPageConfig.barangayId > Barangay.id
