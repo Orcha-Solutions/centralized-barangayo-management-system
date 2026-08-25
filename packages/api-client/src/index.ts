@@ -7,7 +7,7 @@ export const API_URL = "http://localhost:4000";
 
 const TOKEN_KEY = "cbms.token";
 const USER_KEY = "cbms.user";
-const STORE_KEY = "cbms.store";
+const STORE_KEY = "cbms.store_v3";
 
 export interface SessionUser {
   id: string;
@@ -56,22 +56,92 @@ export function clearSession() {
   window.localStorage.removeItem(USER_KEY);
 }
 
+import {
+  STATIC_BARANGAY_ID,
+  STATIC_CERTIFICATE_TYPES,
+  STATIC_CERTIFICATE_REQUESTS,
+  STATIC_LGU_REQUESTS,
+  STATIC_BLOTTER_ENTRIES,
+  STATIC_KP_CASES,
+  STATIC_SOS_ALERTS,
+} from "./staticData";
+
+export * from "./staticData";
+
 // ---- Client-side database store ----
+let _inMemoryStore: Record<string, any[]> | null = null;
+
 function getStore(): Record<string, any[]> {
-  if (typeof window === "undefined") return {};
-  let raw = window.localStorage.getItem(STORE_KEY);
-  if (!raw) {
-    // Copy the templates from seedData to avoid mutating them
-    const initialStore = JSON.parse(JSON.stringify(seedData));
-    window.localStorage.setItem(STORE_KEY, JSON.stringify(initialStore));
-    return initialStore;
+  if (typeof window === "undefined") return seedData as unknown as Record<string, any[]>;
+  if (!_inMemoryStore) {
+    // Free up old bloated localStorage keys if present
+    try {
+      window.localStorage.removeItem("cbms.store");
+      window.localStorage.removeItem("cbms.store_v2");
+      window.localStorage.removeItem("cbms.store_v3");
+    } catch {}
+
+    // Clone seed data once in memory
+    const initializedStore: Record<string, any[]> = JSON.parse(JSON.stringify(seedData));
+
+    // Load any lightweight user mutations from localStorage
+    try {
+      const delta = window.localStorage.getItem("cbms.mutations");
+      if (delta) {
+        const parsed = JSON.parse(delta);
+        for (const [k, v] of Object.entries(parsed)) {
+          if (Array.isArray(v)) initializedStore[k] = v;
+        }
+      }
+    } catch {}
+
+    // Attach strongly-typed static datasets (always available at the top)
+    initializedStore.LguDocRequest = [
+      ...STATIC_LGU_REQUESTS,
+      ...(initializedStore.LguDocRequest || []).filter(x => !STATIC_LGU_REQUESTS.some(s => s.id === x.id))
+    ];
+    initializedStore.CertificateType = [
+      ...STATIC_CERTIFICATE_TYPES,
+      ...(initializedStore.CertificateType || []).filter(x => !STATIC_CERTIFICATE_TYPES.some(s => s.id === x.id))
+    ];
+    initializedStore.CertificateRequest = [
+      ...STATIC_CERTIFICATE_REQUESTS,
+      ...(initializedStore.CertificateRequest || []).filter(x => !STATIC_CERTIFICATE_REQUESTS.some(s => s.id === x.id))
+    ];
+    initializedStore.BlotterEntry = [
+      ...STATIC_BLOTTER_ENTRIES,
+      ...(initializedStore.BlotterEntry || []).filter(x => !STATIC_BLOTTER_ENTRIES.some(s => s.id === x.id))
+    ];
+    initializedStore.KpCase = [
+      ...STATIC_KP_CASES,
+      ...(initializedStore.KpCase || []).filter(x => !STATIC_KP_CASES.some(s => s.id === x.id))
+    ];
+    initializedStore.SosAlert = [
+      ...STATIC_SOS_ALERTS,
+      ...(initializedStore.SosAlert || []).filter(x => !STATIC_SOS_ALERTS.some(s => s.id === x.id))
+    ];
+
+    _inMemoryStore = initializedStore;
   }
-  return JSON.parse(raw);
+  return _inMemoryStore;
 }
 
 function saveStore(store: Record<string, any[]>) {
+  _inMemoryStore = store;
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  try {
+    const delta: Record<string, any[]> = {
+      CertificateRequest: store.CertificateRequest,
+      LguDocRequest: store.LguDocRequest,
+      BlotterEntry: store.BlotterEntry,
+      KpCase: store.KpCase,
+      SosAlert: store.SosAlert,
+      Household: store.Household,
+      Concern: store.Concern,
+      Appointment: store.Appointment
+    };
+    window.localStorage.setItem("cbms.mutations", JSON.stringify(delta));
+  } catch {}
 }
 
 const ROLE_PERMISSIONS_MOCK: Record<string, string[]> = {
@@ -325,45 +395,102 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
   // 5. Certificates
   if (cleanPath === "/certificates" && method === "GET") {
     let list = store.CertificateRequest || [];
-    if (currentUser.barangayId) {
-      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filtered = list.filter(x => x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filtered.length > 0) list = filtered;
     }
     // Resolve relation fields
-    return list.map(c => ({
+    const resolved = list.map(c => ({
       ...c,
-      inhabitant: store.Inhabitant?.find(i => i.id === c.inhabitantId),
-      type: store.CertificateType?.find(t => t.id === c.typeId)
+      inhabitant: c.inhabitant || store.Inhabitant?.find(i => i.id === c.inhabitantId) || { firstName: "Juan", lastName: "Dela Cruz", philsysNo: "1234-5678-9012" },
+      type: c.type || store.CertificateType?.find(t => t.id === c.typeId) || { name: "Barangay Clearance", code: "BC-01", fee: c.fee || 50 }
     }));
+    return {
+      items: resolved,
+      total: resolved.length,
+      page: 1,
+      pageSize: 50
+    };
   }
 
   if (cleanPath === "/certificates/stats" && method === "GET") {
-    const list = (store.CertificateRequest || []).filter(x => !currentUser.barangayId || x.barangayId === currentUser.barangayId);
+    let list = store.CertificateRequest || [];
+    if (!list || list.length === 0) {
+      list = [...STATIC_CERTIFICATE_REQUESTS];
+    }
     return {
-      pending: list.filter(x => x.status === "pending").length,
-      approved: list.filter(x => x.status === "approved" || x.status === "signed" || x.status === "ready").length,
-      rejected: list.filter(x => x.status === "rejected").length
+      total: list.length,
+      pendingApproval: list.filter(x => x.status === "for_approval" || x.status === "pending" || x.status === "submitted").length,
+      released: list.filter(x => x.status === "released" || x.status === "signed" || x.status === "ready" || x.status === "approved").length,
+      awaitingPayment: list.filter(x => x.status === "awaiting_payment").length,
+      medianProcessingHours: 2.5,
+      ra11032Compliant: true
     };
   }
 
   if (cleanPath === "/certificate-types" && method === "GET") {
-    return store.CertificateType || [];
+    return store.CertificateType || STATIC_CERTIFICATE_TYPES;
   }
 
   // 6. Katarungang Pambarangay (KP) & Blotter
   if (cleanPath === "/kp/cases" && method === "GET") {
     let list = store.KpCase || [];
-    if (currentUser.barangayId) {
-      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filtered = list.filter(x => x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filtered.length > 0) list = filtered;
     }
-    return list;
+    return {
+      items: list,
+      total: list.length,
+      page: 1,
+      pageSize: 50
+    };
+  }
+
+  if (cleanPath === "/kp/deadlines" && method === "GET") {
+    const list = store.KpCase || STATIC_KP_CASES;
+    const atRisk = list
+      .filter(x => x.stage !== "closed" && x.stage !== "settled")
+      .map(c => ({
+        caseId: c.id,
+        caseNumber: c.caseNo || c.caseNumber || c.id,
+        subject: c.subject,
+        stage: c.stage,
+        daysRemaining: c.deadline?.daysRemaining ?? 5,
+        deadline: c.deadline?.target || new Date(Date.now() + 86400000 * 5).toISOString(),
+        breached: c.deadline?.isPast ?? false
+      }));
+    return {
+      items: atRisk,
+      total: atRisk.length,
+      breached: atRisk.filter(x => x.breached).length
+    };
   }
 
   if (cleanPath === "/blotter" && method === "GET") {
     let list = store.BlotterEntry || [];
-    if (currentUser.barangayId) {
-      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filtered = list.filter(x => x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filtered.length > 0) list = filtered;
     }
-    return list;
+    return {
+      items: list,
+      total: list.length,
+      page: 1,
+      pageSize: 50
+    };
+  }
+
+  if (cleanPath === "/sos" && method === "GET") {
+    let list = store.SosAlert || [];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filtered = list.filter(x => x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filtered.length > 0) list = filtered;
+    }
+    return {
+      items: list,
+      total: list.length
+    };
   }
 
   // 7. Properties & Concerns
@@ -393,10 +520,30 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
 
   if (cleanPath === "/wallet/scorecard" && method === "GET") {
     const list = store.WalletTransaction || [];
+    const registered = (store.Wallet || []).length || 854;
+    const adults = (store.Inhabitant || []).filter(x => (x.age ?? 25) >= 18).length || 1020;
+    const regRate = Math.min(100, Math.round((registered / adults) * 100)) || 84;
+    const active = Math.round(registered * 0.62) || 530;
+    const activeRate = Math.min(100, Math.round((active / registered) * 100)) || 62;
+
     return {
-      balanceCentavos: 50000000n,
+      registeredWallets: registered,
+      adultPopulation: adults,
+      registrationRate: regRate,
+      active30d: active,
+      activeRate: activeRate,
+      merchantsAccepting: (store.Merchant || []).length || 12,
+      cashInOutPoints: (store.Agent || []).length || 4,
+      cashOutOnlyRatio: 42,
+      balanceCentavos: "50000000",
       totalTransactions: list.length,
-      totalDisbursements: list.filter(x => x.type === "disbursement").length
+      totalDisbursements: list.filter(x => x.type === "disbursement").length,
+      targets: {
+        registrationRate: "80–90%",
+        activeRate: "50–65%",
+        merchantsAccepting: "8–15",
+        note: "Targeting 80%+ digital disbursement adoption across active households."
+      }
     };
   }
 
@@ -514,10 +661,90 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
 
   if (cleanPath === "/lgu-requests" && method === "GET") {
     let list = store.LguDocRequest || [];
-    if (currentUser.barangayId) {
-      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filtered = list.filter(x => x.barangayId === currentUser.barangayId);
+      if (filtered.length > 0) list = filtered;
     }
-    return list;
+    return list.map(req => {
+      const inh = store.Inhabitant?.find(i => i.id === req.inhabitantId);
+      return {
+        ...req,
+        inhabitant: inh || null
+      };
+    });
+  }
+
+  // LGU Request Detail GET
+  const lguDetailMatch = cleanPath.match(/\/lgu-requests\/([^\/]+)$/);
+  if (lguDetailMatch && method === "GET") {
+    const id = lguDetailMatch[1];
+    const r = store.LguDocRequest?.find(x => x.id === id);
+    if (!r) return null;
+    const inh = store.Inhabitant?.find(i => i.id === r.inhabitantId);
+    return {
+      ...r,
+      inhabitant: inh || null
+    };
+  }
+
+  // LGU Request Timeline GET
+  const lguTimelineMatch = cleanPath.match(/\/lgu-requests\/([^\/]+)\/timeline$/);
+  if (lguTimelineMatch && method === "GET") {
+    const id = lguTimelineMatch[1];
+    const r = store.LguDocRequest?.find(x => x.id === id);
+    if (!r) return [];
+    const events: any[] = [
+      {
+        id: "evt-1",
+        action: "Endorsement Application Filed",
+        description: `Initial application for ${r.docType?.replace(/_/g, " ") || "permit"} recorded.`,
+        status: "pending",
+        date: r.createdAt || new Date().toISOString(),
+        actor: "Desk Officer / Citizen Portal"
+      }
+    ];
+    if (r.orNumber || r.paidAt) {
+      events.push({
+        id: "evt-2",
+        action: "Assessed Endorsement Fee Collected",
+        description: `Official Receipt ${r.orNumber || "OR-VERIFIED"} issued for ₱${r.fee || 0}.`,
+        status: "paid",
+        date: r.paidAt || r.createdAt || new Date().toISOString(),
+        actor: "Barangay Treasurer"
+      });
+    }
+    if (r.status === "approved" || r.status === "released") {
+      events.push({
+        id: "evt-3",
+        action: "Endorsement Clearance Approved",
+        description: "Documentary verification complete. Endorsed by Punong Barangay to City LGU.",
+        status: "approved",
+        date: r.approvedAt || r.updatedAt || new Date().toISOString(),
+        actor: "Punong Barangay"
+      });
+    }
+    if (r.status === "released") {
+      events.push({
+        id: "evt-4",
+        action: "Clearance Transmitted & Released",
+        description: "Official signed clearance and QR verification released to citizen.",
+        status: "released",
+        date: r.releasedAt || r.updatedAt || new Date().toISOString(),
+        actor: "Issuance & Records Officer"
+      });
+    }
+    if (r.status === "rejected") {
+      events.push({
+        id: "evt-5",
+        action: "Application Rejected / Returned",
+        description: r.remarks || "Lacking statutory documents or inspection non-compliance.",
+        status: "rejected",
+        date: r.updatedAt || new Date().toISOString(),
+        actor: "Barangay Secretary"
+      });
+    }
+    events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return events;
   }
 
   if (cleanPath === "/rpt" && method === "GET") {
@@ -639,6 +866,16 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
         });
       }
       saveStore(store);
+      return { success: true };
+    }
+
+    const lguMatch = cleanPath.match(/\/lgu-requests\/([^\/]+)/);
+    if (lguMatch) {
+      const id = lguMatch[1];
+      if (store.LguDocRequest) {
+        store.LguDocRequest = store.LguDocRequest.filter(x => x.id !== id);
+        saveStore(store);
+      }
       return { success: true };
     }
   }
@@ -883,14 +1120,18 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
         id: "lgu-" + Math.random().toString(36).substring(2, 9),
         barangayId: currentUser.barangayId || "barangka",
         inhabitantId: body.inhabitantId || currentUser.inhabitantId || "res1-inhabitant",
-        docType: body.docType,
-        purpose: body.purpose,
+        docType: body.docType || "business_permit",
+        purpose: body.purpose || "",
         status: body.status || "pending",
-        referenceNo: body.referenceNo || ("REF-" + Math.random().toString(36).substring(2, 9).toUpperCase()),
+        referenceNo: body.referenceNo || (`LGU-2026-${Math.floor(Math.random() * 90000 + 10000)}`),
         fee: Number(body.fee) || 0,
-        paidAt: body.paidAt,
-        orNumber: body.orNumber,
-        remarks: body.remarks,
+        paidAt: body.paidAt || null,
+        orNumber: body.orNumber || "",
+        remarks: body.remarks || "",
+        attachmentName: body.attachmentName || "",
+        attachmentUrl: body.attachmentUrl || "",
+        approvedAt: body.status === "approved" ? new Date().toISOString() : null,
+        releasedAt: body.status === "released" ? new Date().toISOString() : null,
         isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -1046,6 +1287,60 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       store.WalletTransaction.push(newTx);
       saveStore(store);
       return newTx;
+    }
+
+    if (cleanPath === "/blotter") {
+      const newBlotter = {
+        id: "blt-" + Math.random().toString(36).substring(2, 9),
+        incidentNo: "BLT-2026-" + Math.floor(100 + Math.random() * 900),
+        category: body.category || "dispute",
+        incidentAt: body.incidentAt || new Date().toISOString(),
+        location: body.location || "Barangay Barangka",
+        narrative: body.narrative || "",
+        reportedBy: body.reportedBy || "Citizen",
+        respondentName: body.respondentName || "",
+        status: "active",
+        barangayId: currentUser.barangayId || "van6rdk",
+        createdAt: new Date().toISOString()
+      };
+      if (!store.BlotterEntry) store.BlotterEntry = [];
+      store.BlotterEntry.unshift(newBlotter);
+      saveStore(store);
+      return newBlotter;
+    }
+
+    if (cleanPath === "/kp/cases") {
+      const newCase = {
+        id: "kp-" + Math.random().toString(36).substring(2, 9),
+        caseNumber: "KP-2026-" + Math.floor(100 + Math.random() * 900),
+        subject: body.subject || "Community Dispute",
+        description: body.description || "",
+        complainant: currentUser.fullName || "Citizen",
+        respondentName: body.respondentName || "",
+        stage: "filed",
+        filedAt: new Date().toISOString(),
+        deadlineAt: new Date(Date.now() + 86400000 * 14).toISOString(),
+        isConfidential: !!body.isConfidential,
+        barangayId: currentUser.barangayId || "van6rdk",
+        createdAt: new Date().toISOString()
+      };
+      if (!store.KpCase) store.KpCase = [];
+      store.KpCase.unshift(newCase);
+      saveStore(store);
+      return newCase;
+    }
+
+    const sosRespondMatch = cleanPath.match(/\/sos\/([^\/]+)\/respond/);
+    if (sosRespondMatch) {
+      const id = sosRespondMatch[1];
+      const alert = (store.SosAlert || []).find(a => a.id === id);
+      if (alert) {
+        alert.status = body.status || "dispatched";
+        alert.responseNote = body.responseNote || null;
+        alert.respondedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return alert || {};
     }
 
     // Approve / Reject certificate requests

@@ -1,0 +1,599 @@
+// Static TypeScript Mock Dataset for CBMS Client API Simulation
+
+export interface StaticCertificateType {
+  id: string;
+  barangayId: string;
+  code: string;
+  name: string;
+  description: string;
+  fee: number;
+  validityDays: number;
+  requirements: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaticCertificateRequest {
+  id: string;
+  barangayId: string;
+  inhabitantId: string;
+  typeId: string;
+  referenceNo: string;
+  purpose: string;
+  status: string;
+  fee: number;
+  paymentMethod?: string | null;
+  paidAt?: string | null;
+  orNumber?: string | null;
+  verifyCode?: string | null;
+  source: string;
+  type?: { name: string; code: string; fee: number };
+  inhabitant?: { firstName: string; lastName: string; philsysNo?: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaticLguDocRequest {
+  id: string;
+  barangayId: string;
+  inhabitantId: string;
+  docType: string;
+  purpose: string;
+  status: string;
+  referenceNo: string;
+  fee: number;
+  paidAt?: string | null;
+  orNumber?: string | null;
+  remarks?: string | null;
+  attachmentName?: string | null;
+  attachmentUrl?: string | null;
+  approvedAt?: string | null;
+  releasedAt?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaticBlotterEntry {
+  id: string;
+  entryNo: string;
+  incidentNo?: string;
+  barangayId: string;
+  category: string;
+  incidentAt: string;
+  location: string;
+  narrative: string;
+  reportedBy: string;
+  respondentName?: string | null;
+  isConfidential: boolean;
+  status: string;
+  createdAt: string;
+  kpCase?: { id: string; caseNo: string; stage: string } | null;
+}
+
+export interface StaticKpCase {
+  id: string;
+  caseNo: string;
+  caseNumber?: string;
+  barangayId: string;
+  subject: string;
+  description?: string;
+  stage: string;
+  isConfidential: boolean;
+  filedAt: string;
+  closedAt?: string | null;
+  settlementTerms?: string | null;
+  cfaReason?: string | null;
+  deadline: { target: string; isPast: boolean; daysRemaining: number };
+  parties?: Array<{ id: string; role: "COMPLAINANT" | "RESPONDENT"; inhabitant?: { firstName: string; lastName: string } | null; name?: string }>;
+  _count?: { hearings: number };
+  createdAt: string;
+}
+
+export interface StaticSosAlert {
+  id: string;
+  kind: string;
+  status: string;
+  location?: string;
+  note?: string | null;
+  details?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  isTest: boolean;
+  barangayId: string;
+  responseNote?: string | null;
+  acknowledgedAt?: string | null;
+  resolvedAt?: string | null;
+  inhabitant?: { firstName: string; lastName: string; contactPhone?: string | null } | null;
+  createdAt: string;
+}
+
+export const STATIC_BARANGAY_ID = "van6rdk";
+
+export const STATIC_CERTIFICATE_TYPES: StaticCertificateType[] = [
+  {
+    id: "ct-clearance",
+    barangayId: STATIC_BARANGAY_ID,
+    code: "BC-01",
+    name: "Barangay Clearance",
+    description: "General multipurpose barangay clearance for employment, postal ID, and background check.",
+    fee: 50,
+    validityDays: 180,
+    requirements: ["Valid Government ID", "Proof of Residency / Purok Endorsement"],
+    isActive: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "ct-indigency",
+    barangayId: STATIC_BARANGAY_ID,
+    code: "CI-02",
+    name: "Certificate of Indigency",
+    description: "Official certification for indigent residents to avail DSWD medical, burial, and educational financial assistance.",
+    fee: 0,
+    validityDays: 90,
+    requirements: ["DSWD / 4Ps ID or Case Worker Assessment"],
+    isActive: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "ct-residency",
+    barangayId: STATIC_BARANGAY_ID,
+    code: "CR-03",
+    name: "Certificate of Residency",
+    description: "Proof of domicile for bank account opening, school enrollment, and court requirements.",
+    fee: 50,
+    validityDays: 180,
+    requirements: ["Utility Bill or Lease Contract", "Voter Registration Record"],
+    isActive: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "ct-jobseeker",
+    barangayId: STATIC_BARANGAY_ID,
+    code: "FJ-04",
+    name: "First-Time Jobseeker Certificate (RA 11261)",
+    description: "Waives all government certification and clearance fees for first-time Filipino job applicants.",
+    fee: 0,
+    validityDays: 365,
+    requirements: ["Oath of Undertaking", "Barangay Verification Form"],
+    isActive: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "ct-business",
+    barangayId: STATIC_BARANGAY_ID,
+    code: "BB-05",
+    name: "Barangay Business Clearance",
+    description: "Prerequisite clearance for commercial establishments, sari-sari stores, and local enterprises.",
+    fee: 500,
+    validityDays: 365,
+    requirements: ["DTI / SEC Registration", "Locational / Contract of Lease"],
+    isActive: true,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+];
+
+export const STATIC_CERTIFICATE_REQUESTS: StaticCertificateRequest[] = [
+  {
+    id: "cert-001",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "uh8hppo",
+    typeId: "ct-clearance",
+    referenceNo: "BC-2026-00101",
+    purpose: "Pre-employment requirement for BPO Company in Pasig City",
+    status: "for_approval",
+    fee: 50,
+    paymentMethod: "CASH",
+    paidAt: "2026-08-24T08:00:00.000Z",
+    orNumber: "OR-2026-9901",
+    verifyCode: "BCMS-9901-VERIFIED",
+    source: "DESK",
+    type: { name: "Barangay Clearance", code: "BC-01", fee: 50 },
+    inhabitant: { firstName: "Juan", lastName: "Dela Cruz", philsysNo: "1234-5678-9012" },
+    createdAt: "2026-08-24T06:00:00.000Z",
+    updatedAt: "2026-08-24T08:00:00.000Z",
+  },
+  {
+    id: "cert-002",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "xk3tyib",
+    typeId: "ct-indigency",
+    referenceNo: "CI-2026-00102",
+    purpose: "Medical Assistance Application at Amang Rodriguez Memorial Medical Center",
+    status: "released",
+    fee: 0,
+    paymentMethod: "EXEMPT",
+    paidAt: null,
+    orNumber: "EXEMPT-RA11032",
+    verifyCode: "BCMS-IND-2026",
+    source: "ONLINE",
+    type: { name: "Certificate of Indigency", code: "CI-02", fee: 0 },
+    inhabitant: { firstName: "Maria", lastName: "Santos", philsysNo: "8899-1122-3344" },
+    createdAt: "2026-08-23T09:30:00.000Z",
+    updatedAt: "2026-08-23T14:00:00.000Z",
+  },
+  {
+    id: "cert-003",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "uh8hppo",
+    typeId: "ct-residency",
+    referenceNo: "CR-2026-00103",
+    purpose: "Proof of Address for LandBank ATM Savings Account Opening",
+    status: "released",
+    fee: 50,
+    paymentMethod: "GCASH",
+    paidAt: "2026-08-22T10:15:00.000Z",
+    orNumber: "OR-2026-8812",
+    verifyCode: "BCMS-RES-8812",
+    source: "KIOSK",
+    type: { name: "Certificate of Residency", code: "CR-03", fee: 50 },
+    inhabitant: { firstName: "Ricardo", lastName: "Lim", philsysNo: "5544-3322-1100" },
+    createdAt: "2026-08-22T08:00:00.000Z",
+    updatedAt: "2026-08-22T11:00:00.000Z",
+  },
+  {
+    id: "cert-004",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "xk3tyib",
+    typeId: "ct-jobseeker",
+    referenceNo: "FJ-2026-00104",
+    purpose: "First-Time Jobseeker Certification for SSS and Pag-IBIG registration",
+    status: "for_approval",
+    fee: 0,
+    paymentMethod: "EXEMPT",
+    paidAt: null,
+    orNumber: "EXEMPT-RA11261",
+    verifyCode: "BCMS-FTJ-11261",
+    source: "DESK",
+    type: { name: "First-Time Jobseeker Certificate", code: "FJ-04", fee: 0 },
+    inhabitant: { firstName: "Angela", lastName: "Reyes", philsysNo: "7766-5544-3322" },
+    createdAt: "2026-08-24T02:00:00.000Z",
+    updatedAt: "2026-08-24T02:00:00.000Z",
+  },
+  {
+    id: "cert-005",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "uh8hppo",
+    typeId: "ct-business",
+    referenceNo: "BB-2026-00105",
+    purpose: "Barangay Business Clearance for Sari-sari Store & Rice Retail",
+    status: "awaiting_payment",
+    fee: 500,
+    paymentMethod: null,
+    paidAt: null,
+    orNumber: null,
+    source: "DESK",
+    type: { name: "Barangay Business Clearance", code: "BB-05", fee: 500 },
+    inhabitant: { firstName: "Eduardo", lastName: "Gonzales", philsysNo: "9988-7766-5544" },
+    createdAt: "2026-08-23T15:00:00.000Z",
+    updatedAt: "2026-08-23T15:00:00.000Z",
+  },
+];
+
+export const STATIC_LGU_REQUESTS: StaticLguDocRequest[] = [
+  {
+    id: "lgu-001",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "uh8hppo",
+    docType: "business_permit",
+    purpose: "New Application for Sari-sari Store & E-Load Business Endorsement FY 2026",
+    status: "pending",
+    referenceNo: "LGU-2026-08142",
+    fee: 1500,
+    paidAt: null,
+    orNumber: null,
+    remarks: "Submitted initial DTI registration certificate and Barangay Clearance endorsement.",
+    attachmentName: "DTI_Certificate_2026.pdf",
+    attachmentUrl: null,
+    approvedAt: null,
+    releasedAt: null,
+    isActive: true,
+    createdAt: "2026-08-22T08:00:00.000Z",
+    updatedAt: "2026-08-22T08:00:00.000Z",
+  },
+  {
+    id: "lgu-002",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "xk3tyib",
+    docType: "building_permit",
+    purpose: "Locational Clearance & 2-Storey Residential House Renovation Endorsement",
+    status: "under_review",
+    referenceNo: "LGU-2026-09210",
+    fee: 2500,
+    paidAt: "2026-08-23T04:00:00.000Z",
+    orNumber: "OR-2026-44910",
+    remarks: "Architectural blueprint and lot title validated by Barangay Works Inspector.",
+    attachmentName: "Renovation_Blueprints_Signed.pdf",
+    attachmentUrl: null,
+    approvedAt: null,
+    releasedAt: null,
+    isActive: true,
+    createdAt: "2026-08-21T07:00:00.000Z",
+    updatedAt: "2026-08-23T04:00:00.000Z",
+  },
+  {
+    id: "lgu-003",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "uh8hppo",
+    docType: "zoning_clearance",
+    purpose: "Commercial Land Use & Zoning Certification for Auto Repair Shop",
+    status: "approved",
+    referenceNo: "LGU-2026-07431",
+    fee: 1000,
+    paidAt: "2026-08-20T03:00:00.000Z",
+    orNumber: "OR-2026-38192",
+    remarks: "Endorsed by Punong Barangay. Forwarded to Marikina City Planning & Development Office.",
+    attachmentName: "Zoning_Vicinity_Map.pdf",
+    attachmentUrl: null,
+    approvedAt: "2026-08-23T09:00:00.000Z",
+    releasedAt: null,
+    isActive: true,
+    createdAt: "2026-08-19T06:00:00.000Z",
+    updatedAt: "2026-08-23T09:00:00.000Z",
+  },
+  {
+    id: "lgu-004",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "xk3tyib",
+    docType: "sanitary_permit",
+    purpose: "Annual Health & Sanitation Inspection Clearance for Food Canteen / Eatery",
+    status: "released",
+    referenceNo: "LGU-2026-06104",
+    fee: 800,
+    paidAt: "2026-08-16T02:00:00.000Z",
+    orNumber: "OR-2026-29104",
+    remarks: "Water bacteriological test passed and food handler health cards verified.",
+    attachmentName: "Water_Test_Lab_Results.pdf",
+    attachmentUrl: null,
+    approvedAt: "2026-08-17T03:00:00.000Z",
+    releasedAt: "2026-08-18T05:00:00.000Z",
+    isActive: true,
+    createdAt: "2026-08-15T01:00:00.000Z",
+    updatedAt: "2026-08-18T05:00:00.000Z",
+  },
+  {
+    id: "lgu-005",
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitantId: "uh8hppo",
+    docType: "rpt_clearance",
+    purpose: "Real Property Tax Assessor Clearance & Assessment Endorsement for Transfer of Ownership",
+    status: "rejected",
+    referenceNo: "LGU-2026-05299",
+    fee: 500,
+    paidAt: null,
+    orNumber: null,
+    remarks: "Returned to applicant: Unpaid previous year tax declaration dues pending at City Treasurer.",
+    attachmentName: "Tax_Declaration_Copy.pdf",
+    attachmentUrl: null,
+    approvedAt: null,
+    releasedAt: null,
+    isActive: true,
+    createdAt: "2026-08-12T04:00:00.000Z",
+    updatedAt: "2026-08-14T02:00:00.000Z",
+  },
+];
+
+export const STATIC_BLOTTER_ENTRIES: StaticBlotterEntry[] = [
+  {
+    id: "blotter-001",
+    entryNo: "BLT-2026-001",
+    incidentNo: "BLT-2026-001",
+    barangayId: STATIC_BARANGAY_ID,
+    category: "dispute",
+    incidentAt: "2026-08-22T14:30:00.000Z",
+    location: "Purok 3 Bonifacio St, Barangka",
+    narrative: "Boundary and concrete fence extension altercation between neighboring properties.",
+    reportedBy: "Juan Dela Cruz",
+    respondentName: "Pedro Penduko",
+    isConfidential: false,
+    status: "active",
+    createdAt: "2026-08-22T15:00:00.000Z",
+    kpCase: { id: "kp-001", caseNo: "KP-2026-001", stage: "mediation" },
+  },
+  {
+    id: "blotter-002",
+    entryNo: "BLT-2026-002",
+    incidentNo: "BLT-2026-002",
+    barangayId: STATIC_BARANGAY_ID,
+    category: "noise",
+    incidentAt: "2026-08-23T22:45:00.000Z",
+    location: "Purok 1 Rizal Ave, Barangka",
+    narrative: "Loud videoke and public disturbance operating past 10:00 PM curfew hours.",
+    reportedBy: "Carmen Santos",
+    respondentName: "Alex Bautista",
+    isConfidential: false,
+    status: "resolved",
+    createdAt: "2026-08-23T23:00:00.000Z",
+    kpCase: null,
+  },
+  {
+    id: "blotter-003",
+    entryNo: "BLT-2026-003",
+    incidentNo: "BLT-2026-003",
+    barangayId: STATIC_BARANGAY_ID,
+    category: "theft",
+    incidentAt: "2026-08-21T11:15:00.000Z",
+    location: "Purok 4 Mabini St",
+    narrative: "Missing mountain bicycle parked outside commercial establishment. CCTV requested.",
+    reportedBy: "Mark Lopez",
+    respondentName: "Unidentified Suspect",
+    isConfidential: false,
+    status: "active",
+    createdAt: "2026-08-21T12:00:00.000Z",
+    kpCase: null,
+  },
+  {
+    id: "blotter-004",
+    entryNo: "BLT-2026-004",
+    incidentNo: "BLT-2026-004",
+    barangayId: STATIC_BARANGAY_ID,
+    category: "vawc",
+    incidentAt: "2026-08-20T19:00:00.000Z",
+    location: "Purok 2 M.L. Quezon St",
+    narrative: "Domestic verbal argument referred to Barangay VAWC Desk for protective assessment.",
+    reportedBy: "Confidential Resident",
+    respondentName: "Confidential",
+    isConfidential: true,
+    status: "endorsed",
+    createdAt: "2026-08-20T20:00:00.000Z",
+    kpCase: null,
+  },
+  {
+    id: "blotter-005",
+    entryNo: "BLT-2026-005",
+    incidentNo: "BLT-2026-005",
+    barangayId: STATIC_BARANGAY_ID,
+    category: "property",
+    incidentAt: "2026-08-19T08:30:00.000Z",
+    location: "Purok 5 Del Pilar St",
+    narrative: "Blocked canal culvert causing stagnant drainage spillover into adjacent residential lot.",
+    reportedBy: "Elena Ramos",
+    respondentName: "Mario Gomez",
+    isConfidential: false,
+    status: "active",
+    createdAt: "2026-08-19T09:00:00.000Z",
+    kpCase: { id: "kp-002", caseNo: "KP-2026-002", stage: "conciliation" },
+  },
+];
+
+export const STATIC_KP_CASES: StaticKpCase[] = [
+  {
+    id: "kp-001",
+    caseNo: "KP-2026-001",
+    caseNumber: "KP-2026-001",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Unsettled Commercial Rental Debt",
+    description: "Unpaid stall rental arrears of ₱15,000 for 3 consecutive months.",
+    stage: "mediation",
+    filedAt: "2026-08-21T10:00:00.000Z",
+    isConfidential: false,
+    deadline: { target: "2026-09-05T10:00:00.000Z", isPast: false, daysRemaining: 12 },
+    parties: [
+      { id: "p1", role: "COMPLAINANT", name: "Juan Dela Cruz", inhabitant: { firstName: "Juan", lastName: "Dela Cruz" } },
+      { id: "p2", role: "RESPONDENT", name: "Pedro Penduko", inhabitant: { firstName: "Pedro", lastName: "Penduko" } },
+    ],
+    _count: { hearings: 2 },
+    createdAt: "2026-08-21T10:00:00.000Z",
+  },
+  {
+    id: "kp-002",
+    caseNo: "KP-2026-002",
+    caseNumber: "KP-2026-002",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Right-of-Way & Pathway Obstruction",
+    description: "Construction materials blocking shared pathway to interior residential units.",
+    stage: "conciliation",
+    filedAt: "2026-08-16T14:00:00.000Z",
+    isConfidential: false,
+    deadline: { target: "2026-08-31T14:00:00.000Z", isPast: false, daysRemaining: 7 },
+    parties: [
+      { id: "p3", role: "COMPLAINANT", name: "Ricardo Lim", inhabitant: { firstName: "Ricardo", lastName: "Lim" } },
+      { id: "p4", role: "RESPONDENT", name: "Alberto Reyes", inhabitant: { firstName: "Alberto", lastName: "Reyes" } },
+    ],
+    _count: { hearings: 1 },
+    createdAt: "2026-08-16T14:00:00.000Z",
+  },
+  {
+    id: "kp-003",
+    caseNo: "KP-2026-003",
+    caseNumber: "KP-2026-003",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Minor Physical Altercation Settlement",
+    description: "Scuffle following a basketball dispute; parties agreed to amicable settlement.",
+    stage: "settled",
+    filedAt: "2026-08-09T16:00:00.000Z",
+    closedAt: "2026-08-23T16:00:00.000Z",
+    settlementTerms: "Parties signed amicable agreement; respondent paid medical reimbursement.",
+    isConfidential: false,
+    deadline: { target: "2026-08-23T16:00:00.000Z", isPast: true, daysRemaining: 0 },
+    parties: [
+      { id: "p5", role: "COMPLAINANT", name: "Gary Cruz", inhabitant: { firstName: "Gary", lastName: "Cruz" } },
+      { id: "p6", role: "RESPONDENT", name: "Dennis Santos", inhabitant: { firstName: "Dennis", lastName: "Santos" } },
+    ],
+    _count: { hearings: 3 },
+    createdAt: "2026-08-09T16:00:00.000Z",
+  },
+  {
+    id: "kp-004",
+    caseNo: "KP-2026-004",
+    caseNumber: "KP-2026-004",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Animal Nuisance & Uncontrolled Barking",
+    description: "Continuous disturbance and lack of sanitation in backyard animal pen.",
+    stage: "filed",
+    filedAt: "2026-08-23T11:00:00.000Z",
+    isConfidential: false,
+    deadline: { target: "2026-09-06T11:00:00.000Z", isPast: false, daysRemaining: 14 },
+    parties: [
+      { id: "p7", role: "COMPLAINANT", name: "Teresa Rivera", inhabitant: { firstName: "Teresa", lastName: "Rivera" } },
+      { id: "p8", role: "RESPONDENT", name: "Manuel Tan", inhabitant: { firstName: "Manuel", lastName: "Tan" } },
+    ],
+    _count: { hearings: 0 },
+    createdAt: "2026-08-23T11:00:00.000Z",
+  },
+];
+
+export const STATIC_SOS_ALERTS: StaticSosAlert[] = [
+  {
+    id: "sos-001",
+    kind: "medical",
+    status: "active",
+    location: "Block 4 Lot 12 Purok 3 (Near Barangka Chapel)",
+    note: "Senior citizen experiencing severe chest tightness and shortness of breath. Tanod and BHW responding.",
+    details: "Senior citizen experiencing severe chest tightness and shortness of breath. Tanod and BHW responding.",
+    latitude: 14.6341,
+    longitude: 121.0967,
+    isTest: false,
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitant: { firstName: "Maria", lastName: "Santos", contactPhone: "09171234567" },
+    createdAt: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
+  },
+  {
+    id: "sos-002",
+    kind: "fire",
+    status: "dispatched",
+    location: "Purok 1 Riverside Alley",
+    note: "Sparks on electric distribution line; BFP Marikina sub-station alerted.",
+    details: "Sparks on electric distribution line; BFP Marikina sub-station alerted.",
+    latitude: 14.6355,
+    longitude: 121.0981,
+    isTest: false,
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitant: { firstName: "Barangay Watchman", lastName: "Tanod", contactPhone: "09189876543" },
+    createdAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+  },
+  {
+    id: "sos-003",
+    kind: "police",
+    status: "resolved",
+    location: "Corner J.P. Rizal and Bonifacio St",
+    note: "Minor motorcycle scrape incident; Lupon officers attended and traffic resolved.",
+    details: "Minor motorcycle scrape incident; Lupon officers attended and traffic resolved.",
+    latitude: 14.6362,
+    longitude: 121.0955,
+    isTest: false,
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitant: { firstName: "Mark", lastName: "Bautista", contactPhone: "09205551234" },
+    createdAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+  },
+  {
+    id: "sos-004",
+    kind: "flood",
+    status: "resolved",
+    location: "Marikina Riverbanks Level 1 Sensor",
+    note: "Water level sensor connectivity diagnostic test drill.",
+    details: "Water level sensor connectivity diagnostic test drill.",
+    latitude: 14.633,
+    longitude: 121.094,
+    isTest: true,
+    barangayId: STATIC_BARANGAY_ID,
+    inhabitant: { firstName: "DRRM Monitoring", lastName: "Officer", contactPhone: "09990001122" },
+    createdAt: "2026-08-23T06:00:00.000Z",
+  },
+];
