@@ -62,20 +62,20 @@ export default function WalletPage() {
           value={`${s?.registrationRate ?? 0}%`}
           icon="📈"
           tone={(s?.registrationRate ?? 0) >= 80 ? "green" : "gold"}
-          hint={`Target ${s?.targets.registrationRate ?? "80–90%"}`}
+          hint={`Target ${s?.targets?.registrationRate ?? "80–90%"}`}
         />
         <StatCard
           label="Active (30 days)"
           value={`${s?.activeRate ?? 0}%`}
           icon="⚡"
           tone={(s?.activeRate ?? 0) >= 50 ? "green" : "gold"}
-          hint={`${num(s?.active30d)} wallets · target ${s?.targets.activeRate ?? "50–65%"}`}
+          hint={`${num(s?.active30d)} wallets · target ${s?.targets?.activeRate ?? "50–65%"}`}
         />
         <StatCard
           label="Merchants accepting"
           value={num(s?.merchantsAccepting)}
           icon="🏪"
-          hint={`Target ${s?.targets.merchantsAccepting ?? "8–15"} per barangay`}
+          hint={`Target ${s?.targets?.merchantsAccepting ?? "8–15"} per barangay`}
         />
         <StatCard
           label="Cash-in / out points"

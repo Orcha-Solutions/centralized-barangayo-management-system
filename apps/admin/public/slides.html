@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CBMS Document Requests & LGU Endorsements - Slide Deck</title>
+  <style>
+    :root {
+      --primary: #0a2463;
+      --secondary: #247ba0;
+      --accent: #c99700;
+      --bg: #0b1329;
+      --card: #152238;
+      --text: #ffffff;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .slide-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      position: relative;
+    }
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 1000px;
+      height: 80vh;
+      max-height: 600px;
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 1rem;
+      padding: 3rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      flex-direction: column;
+      justify-content: space-between;
+      animation: fadeIn 0.3s ease;
+    }
+    .slide.active { display: flex; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 { font-size: 2.2rem; color: #fff; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.8rem; color: var(--accent); margin-bottom: 1rem; }
+    h3 { font-size: 1.2rem; color: #60a5fa; margin-bottom: 0.5rem; }
+    p { color: var(--muted); line-height: 1.6; font-size: 1.1rem; }
+    .badge {
+      display: inline-block;
+      background: rgba(201, 151, 0, 0.2);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 0.3rem 0.8rem;
+      border-radius: 2rem;
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
+    .card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 1.2rem;
+      border-radius: 0.5rem;
+    }
+    .card h4 { color: #38bdf8; margin-bottom: 0.5rem; font-size: 1.05rem; }
+    .card ul { list-style: none; font-size: 0.95rem; color: var(--muted); line-height: 1.5; }
+    .card ul li { margin-bottom: 0.4rem; }
+    .card ul li::before { content: "• "; color: var(--accent); }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 3rem;
+      background: #080e1e;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .btn {
+      background: var(--primary);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 0.6rem 1.4rem;
+      border-radius: 0.4rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: var(--secondary); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .footer-note { font-size: 0.85rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <div class="slide-container">
+    
+    <!-- Slide 1: Cover -->
+    <div class="slide active">
+      <div>
+        <span class="badge">🇵🇭 DILG & eLGU Interoperable</span>
+        <h1 style="font-size: 2.8rem; margin-top: 1rem;">Centralized Barangay Management System</h1>
+        <h2 style="font-size: 1.8rem; color: #60a5fa; margin-top: 0.5rem;">Document Requests & LGU Endorsements Engine</h2>
+        <p style="font-size: 1.2rem; margin-top: 1.5rem; max-width: 700px;">
+          A unified, high-speed digital issuance platform bridging frontline Barangay Certifications with City & Municipal-Level Permit Workflows.
+        </p>
+      </div>
+      <div>
+        <p class="footer-note">Republic of the Philippines · Barangay Digitization Program</p>
+      </div>
+    </div>
+
+    <!-- Slide 2: Challenges -->
+    <div class="slide">
+      <div>
+        <span class="badge">The Problem</span>
+        <h2>Current Pain Points in Local Issuances</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h4>1. Disconnected Offices</h4>
+            <ul>
+              <li>Citizens visit Barangay and City Hall separately</li>
+              <li>Manual paper endorsements get misplaced</li>
+              <li>Zero cross-agency data interoperability</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>2. Slow Turnaround</h4>
+            <ul>
+              <li>2–5 days average queuing & processing</li>
+              <li>ARTA red-tape non-compliance risks</li>
+              <li>No real-time tracking for citizens</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>3. Fraud & Verification Risks</h4>
+            <ul>
+              <li>Tampered paper certificates & fake clearances</li>
+              <li>No live digital verification ledger</li>
+              <li>Lack of PhilSys identity cross-matching</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Challenge: Transforming multi-day bureaucratic friction into sub-2-hour digital delivery.</p>
+    </div>
+
+    <!-- Slide 3: Dual-Tier Architecture -->
+    <div class="slide">
+      <div>
+        <span class="badge">The Solution</span>
+        <h2>Dual-Tier Document Architecture</h2>
+        <p>Two specialized workflows under one unified administration portal:</p>
+        <div class="grid-2" style="margin-top: 1rem;">
+          <div class="card" style="border-left: 4px solid #60a5fa;">
+            <h4 style="color: #60a5fa;">📄 Tab 1: Barangay Clearances</h4>
+            <ul>
+              <li>Barangay Clearance for Employment & Postal ID</li>
+              <li>Certificate of Indigency (DSWD / Medical)</li>
+              <li>Certificate of Residency (Bank / Court Proof)</li>
+              <li>First-Time Jobseeker (RA 11261 Fee Exemption)</li>
+              <li>Barangay Business Clearance</li>
+            </ul>
+          </div>
+          <div class="card" style="border-left: 4px solid #c99700;">
+            <h4 style="color: #c99700;">🏛️ Tab 2: LGU Endorsements & Permits</h4>
+            <ul>
+              <li>Mayor's / Business Permit Endorsement</li>
+              <li>Building Permit & Locational Clearance</li>
+              <li>City Zoning & Land Use Endorsement</li>
+              <li>City Health & Sanitation Permit</li>
+              <li>Real Property Tax (RPT) Assessor Clearance</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">All records seamlessly integrated with resident identity database.</p>
+    </div>
+
+    <!-- Slide 4: Legal & Statutory Compliance -->
+    <div class="slide">
+      <div>
+        <span class="badge">Statutory Framework</span>
+        <h2>Philippine Legal & Regulatory Compliance</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h4>⚖️ RA 11032 (Ease of Doing Business)</h4>
+            <ul>
+              <li>Automated SLA timers tracking 3-day turnaround limits</li>
+              <li>Zero-contact online processing capabilities</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>🎓 RA 11261 (First-Time Jobseekers Act)</h4>
+            <ul>
+              <li>Automatic ₱0.00 fee waiver for first-time job applicants</li>
+              <li>One-touch Oath of Undertaking encoding</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>🆔 PhilSys (RA 11055) Integration</h4>
+            <ul>
+              <li>Instant citizen PCN identity verification</li>
+              <li>Duplicate prevention across households</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>🔒 RA 10173 (Data Privacy Act)</h4>
+            <ul>
+              <li>Masked public QR verification (initials only)</li>
+              <li>Role-based access control (PB, Secretary, Treasurer)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">100% compliant with Philippine national administrative standards.</p>
+    </div>
+
+    <!-- Slide 5: Features & UX -->
+    <div class="slide">
+      <div>
+        <span class="badge">Staff Experience</span>
+        <h2>Enterprise-Grade Administration UX</h2>
+        <div class="grid-3">
+          <div class="card">
+            <h4>⚙️ Toolbar Actions Menu</h4>
+            <p style="font-size: 0.95rem;">Single-click dropdown for creating requests, exporting CSV datasets, and viewing real-time analytics.</p>
+          </div>
+          <div class="card">
+            <h4>🔍 Live Citizen Search</h4>
+            <p style="font-size: 0.95rem;">Instant auto-complete lookup by resident name, PhilSys PCN, or purok address in slide-over drawers.</p>
+          </div>
+          <div class="card">
+            <h4>📊 Clickable Row Navigation</h4>
+            <p style="font-size: 0.95rem;">Clicking any record opens the detailed timeline, OR assessment, printable document, and audit log.</p>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Designed for high-throughput front desk efficiency.</p>
+    </div>
+
+    <!-- Slide 6: Metrics & Impact -->
+    <div class="slide">
+      <div>
+        <span class="badge">Measurable Impact</span>
+        <h2>Transforming Governance Outcomes</h2>
+        <div class="grid-2">
+          <div class="card">
+            <h4>Turnaround Time</h4>
+            <p style="font-size: 1.6rem; color: #4ade80; margin: 0.5rem 0;">From 3 Days ➔ &lt; 2 Hours</p>
+            <p style="font-size: 0.95rem;">Instant issuance for standard clearances with digital signatures.</p>
+          </div>
+          <div class="card">
+            <h4>Auditability & Revenue</h4>
+            <p style="font-size: 1.6rem; color: #4ade80; margin: 0.5rem 0;">100% Digital Ledger</p>
+            <p style="font-size: 0.95rem;">Automated OR tallying eliminates cash collection discrepancies.</p>
+          </div>
+        </div>
+      </div>
+      <p class="footer-note">Empowering barangay officials with modern, transparent digital governance.</p>
+    </div>
+
+  </div>
+
+  <!-- Footer Navigation Controls -->
+  <div class="controls">
+    <button class="btn" id="prevBtn" onclick="prevSlide()" disabled>← Previous</button>
+    <div style="text-align: center;">
+      <span id="slideCounter" style="font-weight: bold; color: #60a5fa;">Slide 1 of 6</span>
+      <div style="font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem;">Use Arrow Keys ◀ ▶ or buttons</div>
+    </div>
+    <button class="btn" id="nextBtn" onclick="nextSlide()">Next →</button>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const counter = document.getElementById('slideCounter');
+
+    function showSlide(index) {
+      slides.forEach((s, i) => s.classList.toggle('active', i === index));
+      prevBtn.disabled = index === 0;
+      nextBtn.disabled = index === slides.length - 1;
+      counter.innerText = `Slide ${index + 1} of ${slides.length}`;
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        currentSlide++;
+        showSlide(currentSlide);
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        showSlide(currentSlide);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+  </script>
+</body>
+</html>
