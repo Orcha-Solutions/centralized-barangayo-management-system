@@ -146,25 +146,170 @@ function saveStore(store: Record<string, any[]>) {
 
 const ROLE_PERMISSIONS_MOCK: Record<string, string[]> = {
   SYSTEM_ADMIN: ["*"],
-  LGU_ADMIN: ["inhabitants:view", "issuance:view", "kp:view", "property:view", "disaster:view", "gad:view", "legislation:view", "devplan:view", "institutions:view", "finance:view", "wallet:view", "concerns:view", "feedback:view", "reports:view", "reports:create", "reports:edit", "reports:delete", "admin:view", "admin:approve", "admin:configure", "ai:view"],
-  PUNONG_BARANGAY: ["inhabitants:view", "inhabitants:create", "inhabitants:edit", "issuance:view", "issuance:create", "issuance:edit", "issuance:delete", "issuance:approve", "issuance:sign", "kp:view", "kp:create", "kp:edit", "kp:delete", "vawc:view", "property:view", "property:create", "property:edit", "disaster:view", "disaster:create", "disaster:edit", "disaster:delete", "gad:view", "gad:create", "gad:edit", "gad:delete", "legislation:view", "legislation:create", "legislation:edit", "legislation:delete", "devplan:view", "devplan:create", "devplan:edit", "devplan:delete", "institutions:view", "institutions:create", "institutions:edit", "institutions:delete", "finance:view", "finance:approve", "website:view", "website:create", "website:edit", "website:delete", "reports:view", "reports:create", "reports:edit", "reports:delete", "admin:view", "admin:configure", "wallet:view", "wallet:approve", "announcements:view", "announcements:create", "announcements:edit", "announcements:delete", "concerns:view", "concerns:approve", "sos:view"],
-  BARANGAY_SECRETARY: ["inhabitants:view", "inhabitants:create", "inhabitants:edit", "issuance:view", "issuance:create", "issuance:edit", "kp:view", "blotter:view", "blotter:create", "blotter:edit"],
-  BARANGAY_TREASURER: ["wallet:view", "wallet:create", "wallet:edit", "wallet:encode", "cert:view"],
-  LUPON_SECRETARY: ["kp:view", "kp:create", "kp:edit", "kp:delete"],
-  VAW_DESK: ["blotter:view", "blotter:create", "vawc:view"],
-  BHW: ["inhabitants:view", "health:view", "health:create"],
-  TANOD: ["sos:view", "sos:respond"],
+  PUNONG_BARANGAY: ["*"],
+  LGU_ADMIN: ["inhabitants:view", "issuance:view", "kp:view", "property:view", "disaster:view", "gad:view", "legislation:view", "devplan:view", "institutions:view", "finance:view", "wallet:manage", "concerns:view", "feedback:view", "reports:view", "admin:view", "admin:approve", "admin:configure", "ai:view"],
+  BARANGAY_SECRETARY: ["inhabitants:view", "inhabitants:create", "inhabitants:edit", "issuance:view", "issuance:create", "issuance:edit", "appointments:view", "concerns:view", "legislation:view", "announcements:view", "reports:view", "kp:view", "blotter:view"],
+  BDC_OFFICER: ["devplan:view", "devplan:create", "devplan:edit", "institutions:view", "reports:view"],
+  BDRRMC_OFFICER: ["disaster:view", "disaster:create", "sos:view", "property:view"],
+  VAW_DESK_OFFICER: ["vawc:view", "kp:view", "blotter:view", "blotter:create"],
+  LUPON_SECRETARY: ["kp:view", "kp:create", "kp:edit", "blotter:view"],
+  BARANGAY_TREASURER: ["finance:view", "wallet:manage", "property:view", "issuance:view"],
+  TANOD: ["sos:view", "sos:respond", "kp:view", "blotter:view", "concerns:view"],
+  BHW: ["inhabitants:view", "health:view"],
+  SK_OFFICIAL: ["devplan:view", "institutions:view", "announcements:view"],
+  BADAC_OFFICER: ["kp:view", "blotter:view", "institutions:view"],
   DILG_VIEWER: ["reports:view"],
-  RESIDENT: ["cert:request", "wallet:view", "concern:create", "sos:create"]
+  RESIDENT: ["cert:request", "wallet:resident", "concern:create", "sos:create"]
 };
 
 function getRolePermissions(role: string): string[] {
-  return ROLE_PERMISSIONS_MOCK[role] || ["wallet:view"];
+  if (role === "PUNONG_BARANGAY" || role === "SYSTEM_ADMIN") return ["*"];
+  return ROLE_PERMISSIONS_MOCK[role] || [];
 }
 
 function mockSessionUser(email: string): SessionUser {
+  const emailClean = (email || "").toLowerCase().trim();
+  
+  // 1. BDC (Barangay Development Council)
+  if (emailClean.includes("bdc")) {
+    return {
+      id: "usr-bdc",
+      fullName: "Engr. Roberto Gomez (BDC Chair)",
+      email: "bdc@barangka.gov.ph",
+      roles: ["BDC_OFFICER"],
+      scope: "barangay",
+      permissions: getRolePermissions("BDC_OFFICER"),
+      barangayId: STATIC_BARANGAY_ID,
+      barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
+    };
+  }
+
+  // 2. VAW Desk Officer
+  if (emailClean.includes("vaw")) {
+    return {
+      id: "usr-vaw",
+      fullName: "Elena Rivera (VAW Desk Officer)",
+      email: "vawdesk@barangka.gov.ph",
+      roles: ["VAW_DESK_OFFICER"],
+      scope: "barangay",
+      permissions: getRolePermissions("VAW_DESK_OFFICER"),
+      barangayId: STATIC_BARANGAY_ID,
+      barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
+    };
+  }
+
+  // 3. Lupon Secretary
+  if (emailClean.includes("lupon")) {
+    return {
+      id: "usr-lupon",
+      fullName: "Atty. Fernando Cruz (Lupon Secretary)",
+      email: "lupon@barangka.gov.ph",
+      roles: ["LUPON_SECRETARY"],
+      scope: "barangay",
+      permissions: getRolePermissions("LUPON_SECRETARY"),
+      barangayId: STATIC_BARANGAY_ID,
+      barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
+    };
+  }
+
+  // 4. Barangay Treasurer
+  if (emailClean.includes("treasurer")) {
+    return {
+      id: "usr-treas",
+      fullName: "Teresa Morales (Barangay Treasurer)",
+      email: "treasurer@barangka.gov.ph",
+      roles: ["BARANGAY_TREASURER"],
+      scope: "barangay",
+      permissions: getRolePermissions("BARANGAY_TREASURER"),
+      barangayId: STATIC_BARANGAY_ID,
+      barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
+    };
+  }
+
+  // 5. Barangay Tanod
+  if (emailClean.includes("tanod")) {
+    return {
+      id: "usr-tanod",
+      fullName: "Executive Officer Rommel Reyes (Tanod)",
+      email: "tanod@barangka.gov.ph",
+      roles: ["TANOD"],
+      scope: "barangay",
+      permissions: getRolePermissions("TANOD"),
+      barangayId: STATIC_BARANGAY_ID,
+      barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
+    };
+  }
+
+  // 6. BDRRMC Officer
+  if (emailClean.includes("bdrrmc") || emailClean.includes("drrm")) {
+    return {
+      id: "usr-bdrrmc",
+      fullName: "Capt. Danilo Cruz (BDRRMC Chief)",
+      email: "bdrrmc@barangka.gov.ph",
+      roles: ["BDRRMC_OFFICER"],
+      scope: "barangay",
+      permissions: getRolePermissions("BDRRMC_OFFICER"),
+      barangayId: STATIC_BARANGAY_ID,
+      barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
+    };
+  }
+
+  // 7. Barangay Secretary
+  if (emailClean.includes("secretary")) {
+    return {
+      id: "usr-sec",
+      fullName: "Lourdes Bautista (Barangay Secretary)",
+      email: "secretary@barangka.gov.ph",
+      roles: ["BARANGAY_SECRETARY"],
+      scope: "barangay",
+      permissions: getRolePermissions("BARANGAY_SECRETARY"),
+      barangayId: STATIC_BARANGAY_ID,
+      barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
+    };
+  }
+
+  // 8. BHW
+  if (emailClean.includes("bhw")) {
+    return {
+      id: "usr-bhw",
+      fullName: "Corazon Del Rosario (BHW Lead)",
+      email: "bhw@barangka.gov.ph",
+      roles: ["BHW"],
+      scope: "barangay",
+      permissions: getRolePermissions("BHW"),
+      barangayId: STATIC_BARANGAY_ID,
+      barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
+    };
+  }
+
+  // 9. Punong Barangay (Super Admin)
+  if (emailClean.includes("kapitan")) {
+    return {
+      id: "usr-kap",
+      fullName: "Eduardo M. Santos (Punong Barangay)",
+      email: "kapitan@barangka.gov.ph",
+      roles: ["PUNONG_BARANGAY"],
+      scope: "barangay",
+      permissions: getRolePermissions("PUNONG_BARANGAY"),
+      barangayId: STATIC_BARANGAY_ID,
+      barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
+    };
+  }
+
+  if (emailClean.includes("lgu")) {
+    return {
+      id: "usr-lgu",
+      fullName: "Mayor Marikina Admin",
+      email: "lgu@marikina.gov.ph",
+      roles: ["LGU_ADMIN"],
+      scope: "city",
+      permissions: getRolePermissions("LGU_ADMIN"),
+      cityId: "marikina",
+    };
+  }
+
   const store = getStore();
-  const user = store.User?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+  const user = store.User?.find(u => u.email?.toLowerCase() === emailClean);
   
   if (user) {
     const userRole = store.UserRole?.find(ur => ur.userId === user.id);
@@ -186,31 +331,6 @@ function mockSessionUser(email: string): SessionUser {
     };
   }
 
-  // Fallback preset templates if user is not in database
-  const emailClean = email.toLowerCase();
-  if (emailClean.includes("kapitan")) {
-    return {
-      id: "usr-kap",
-      fullName: "Kapitan Antonio Barangka",
-      email: "kapitan@barangka.gov.ph",
-      roles: ["PUNONG_BARANGAY"],
-      scope: "barangay",
-      permissions: getRolePermissions("PUNONG_BARANGAY"),
-      barangayId: "barangka",
-      barangay: { id: "barangka", name: "Barangka" }
-    };
-  }
-  if (emailClean.includes("lgu")) {
-    return {
-      id: "usr-lgu",
-      fullName: "Mayor Marikina Admin",
-      email: "lgu@marikina.gov.ph",
-      roles: ["LGU_ADMIN"],
-      scope: "city",
-      permissions: getRolePermissions("LGU_ADMIN"),
-      cityId: "marikina",
-    };
-  }
   return {
     id: "usr-res1",
     fullName: "Resident Cardo Dalisay",
@@ -218,9 +338,9 @@ function mockSessionUser(email: string): SessionUser {
     roles: ["RESIDENT"],
     scope: "self",
     permissions: getRolePermissions("RESIDENT"),
-    barangayId: "barangka",
+    barangayId: STATIC_BARANGAY_ID,
     inhabitantId: "res1-inhabitant",
-    barangay: { id: "barangka", name: "Barangka" }
+    barangay: { id: STATIC_BARANGAY_ID, name: "Barangka" }
   };
 }
 
@@ -250,18 +370,18 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
 
   if (cleanPath === "/auth/me" && method === "GET") {
     const storedUser = getStoredUser();
-    if (!storedUser) {
+    let email = storedUser?.email || "";
+    if (!email) {
       // Fallback
       const port = window.location.port;
-      let email = "kapitan@barangka.gov.ph";
+      email = "kapitan@barangka.gov.ph";
       if (port === "4101") email = "resident1@example.ph";
       else if (port === "4102") email = "lgu@marikina.gov.ph";
       else if (port === "4103") email = "treasurer@barangka.gov.ph";
-      const u = mockSessionUser(email);
-      setSession("mock-token", u);
-      return { user: u };
     }
-    return { user: storedUser };
+    const refreshed = mockSessionUser(email);
+    setSession("mock-token", refreshed);
+    return { user: refreshed };
   }
 
   if (cleanPath === "/auth/logout" && method === "POST") {
@@ -1523,24 +1643,35 @@ export function useApi<T = any>(
 }
 
 export function useSession() {
-  const [user, setUser] = React.useState<SessionUser | null>(null);
+  const [user, setUser] = React.useState<SessionUser | null>(() => {
+    const stored = getStoredUser();
+    if (stored?.email) {
+      return mockSessionUser(stored.email);
+    }
+    return stored;
+  });
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const stored = getStoredUser();
-    if (stored) setUser(stored);
     if (!getToken()) {
       setLoading(false);
       return;
     }
     api<{ user: SessionUser }>("/auth/me")
-      .then((d) => setUser(d.user))
+      .then((d) => {
+        setUser(d.user);
+        setSession(getToken() || "mock-token", d.user);
+      })
       .catch(() => clearSession())
       .finally(() => setLoading(false));
   }, []);
 
   const can = React.useCallback(
-    (perm: string) => !!(user?.permissions?.includes(perm) || user?.permissions?.includes("*")),
+    (perm: string) => {
+      if (!user?.permissions) return false;
+      if (user.permissions.includes("*")) return true;
+      return user.permissions.includes(perm);
+    },
     [user],
   );
   const hasRole = React.useCallback(

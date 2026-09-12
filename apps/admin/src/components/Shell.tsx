@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   getToken,
+  login,
   logout,
   useApi,
   useSession,
@@ -332,6 +333,65 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     <div style={{ fontWeight: "bold", fontSize: "0.9rem", color: "var(--color-text, #1e293b)" }}>{user?.fullName}</div>
                     <div style={{ fontSize: "0.75rem", color: "var(--color-text-sub, #64748b)", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
                   </div>
+
+                  {/* Quick Role Switcher for Testing / Demonstration */}
+                  <div style={{ padding: "0.25rem 0", borderBottom: "1px solid var(--color-border, #e2e8f0)" }}>
+                    <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", padding: "0.25rem 0.5rem" }}>
+                      🎭 Switch Role Preview
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: "180px", overflowY: "auto" }}>
+                      {[
+                        { email: "bdc@barangka.gov.ph", label: "BDC Chair (Dev Council)", icon: "🧭" },
+                        { email: "vawdesk@barangka.gov.ph", label: "VAW Desk Officer", icon: "🛡️" },
+                        { email: "lupon@barangka.gov.ph", label: "Lupon Secretary", icon: "⚖️" },
+                        { email: "treasurer@barangka.gov.ph", label: "Barangay Treasurer", icon: "🏦" },
+                        { email: "tanod@barangka.gov.ph", label: "Barangay Tanod", icon: "🚨" },
+                        { email: "bdrrmc@barangka.gov.ph", label: "BDRRMC (Disaster)", icon: "🌀" },
+                        { email: "secretary@barangka.gov.ph", label: "Barangay Secretary", icon: "📝" },
+                        { email: "bhw@barangka.gov.ph", label: "BHW Lead", icon: "💉" },
+                        { email: "kapitan@barangka.gov.ph", label: "Punong Barangay (All)", icon: "🏛️" },
+                      ].map((r) => {
+                        const isCurrent = user?.email?.toLowerCase() === r.email.toLowerCase();
+                        return (
+                          <button
+                            key={r.email}
+                            type="button"
+                            onClick={async () => {
+                              setUserMenuOpen(false);
+                              await login(r.email, "Cbms#2026");
+                              window.location.href = "/";
+                            }}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              padding: "0.35rem 0.5rem",
+                              borderRadius: "0.25rem",
+                              fontSize: "0.78rem",
+                              border: "none",
+                              background: isCurrent ? "rgba(37, 99, 235, 0.1)" : "transparent",
+                              fontWeight: isCurrent ? 700 : 400,
+                              color: isCurrent ? "#2563eb" : "var(--color-text, #1e293b)",
+                              cursor: "pointer",
+                              textAlign: "left",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isCurrent) e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f1f5f9)";
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isCurrent) e.currentTarget.style.backgroundColor = "transparent";
+                            }}
+                          >
+                            <span>{r.icon}</span>
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {r.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <Link
                     href="/profile"
                     onClick={() => setUserMenuOpen(false)}

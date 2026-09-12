@@ -6,17 +6,17 @@ import { Alert, Button, Field, Spinner } from "@cbms/ui";
 
 const DEMO_PASSWORD = "Cbms#2026";
 
-const DEMO_ACCOUNTS: Array<{ email: string; label: string }> = [
-  { email: "admin@cbms.gov.ph", label: "System Admin" },
-  { email: "lgu@marikina.gov.ph", label: "LGU Admin" },
-  { email: "kapitan@barangka.gov.ph", label: "Punong Barangay" },
-  { email: "secretary@barangka.gov.ph", label: "Secretary" },
-  { email: "treasurer@barangka.gov.ph", label: "Treasurer" },
-  { email: "lupon@barangka.gov.ph", label: "Lupon Secretary" },
-  { email: "vawdesk@barangka.gov.ph", label: "VAW Desk" },
-  { email: "bhw@barangka.gov.ph", label: "BHW" },
-  { email: "tanod@barangka.gov.ph", label: "Tanod" },
-  { email: "dilg@dilg.gov.ph", label: "DILG Viewer" },
+const DEMO_ACCOUNTS: Array<{ email: string; label: string; roleTag: string; icon: string }> = [
+  { email: "kapitan@barangka.gov.ph", label: "Punong Barangay", roleTag: "Super Admin", icon: "🏛️" },
+  { email: "secretary@barangka.gov.ph", label: "Barangay Secretary", roleTag: "Records & Issuances", icon: "📝" },
+  { email: "bdc@barangka.gov.ph", label: "BDC Chair", roleTag: "Dev Plans & Institutions", icon: "🧭" },
+  { email: "vawdesk@barangka.gov.ph", label: "VAW Desk Officer", roleTag: "Confidential VAWC Intake", icon: "🛡️" },
+  { email: "lupon@barangka.gov.ph", label: "Lupon Secretary", roleTag: "KP Summons & Hearings", icon: "⚖️" },
+  { email: "treasurer@barangka.gov.ph", label: "Barangay Treasurer", roleTag: "Finance, Wallet & Assets", icon: "🏦" },
+  { email: "bdrrmc@barangka.gov.ph", label: "BDRRMC Officer", roleTag: "Disaster & Emergency", icon: "🌀" },
+  { email: "tanod@barangka.gov.ph", label: "Barangay Tanod", roleTag: "Public Safety & Blotter", icon: "🚨" },
+  { email: "bhw@barangka.gov.ph", label: "BHW Lead", roleTag: "Maternal & Child Health", icon: "💉" },
+  { email: "lgu@marikina.gov.ph", label: "LGU Admin", roleTag: "City Oversight", icon: "🏙️" },
 ];
 
 type Stage = "credentials" | "mfa" | "enroll";
@@ -99,7 +99,7 @@ export default function LoginPage() {
 
   return (
     <div className="cbms-auth">
-      <div className="cbms-auth__card">
+      <div className="cbms-auth__card" style={{ maxWidth: 480 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 6 }}>
           <div className="cbms-sidebar__logo">CB</div>
           <div>
@@ -111,22 +111,22 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-        <p style={{ fontSize: 12, color: "var(--cbms-muted)", margin: "10px 0 18px" }}>
-          A companion to the DILG-mandated LGUSS-BIMS (MC 2025-104). Staff accounts require a
-          time-based one-time password.
+        <p style={{ fontSize: 12, color: "var(--cbms-muted)", margin: "10px 0 16px" }}>
+          Compliant with DILG-mandated LGUSS-BIMS (MC 2025-104). Select your official barangay role or BBI account below.
         </p>
 
         {error && <Alert tone="danger">{error}</Alert>}
         {notice && !error && <Alert tone="info">{notice}</Alert>}
 
         <form onSubmit={submit}>
-          <Field label="Email">
+          <Field label="Email Account">
             <input
               className="cbms-input"
               type="text"
               autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </Field>
           <Field label="Password">
@@ -136,6 +136,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </Field>
 
@@ -173,12 +174,52 @@ export default function LoginPage() {
             </Field>
           )}
 
-          <Button type="submit" variant="primary" disabled={busy} style={{ width: "100%" }}>
-            {busy ? "Signing in…" : needsTotp ? "Verify & sign in" : "Sign in"}
+          <Button type="submit" variant="primary" disabled={busy} style={{ width: "100%", marginTop: 8 }}>
+            {busy ? "Signing in…" : needsTotp ? "Verify & sign in" : "Sign in to Console"}
           </Button>
         </form>
 
-
+        {/* Quick Demo Role Picker */}
+        <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--cbms-line)" }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--cbms-navy)", marginBottom: 8 }}>
+            🎭 Quick Role Selector (DILG MC 2025-104 §4.5.3):
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            {DEMO_ACCOUNTS.map((acc) => {
+              const active = email === acc.email;
+              return (
+                <button
+                  key={acc.email}
+                  type="button"
+                  onClick={() => pick(acc.email)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    border: active ? "1.5px solid #2563eb" : "1px solid var(--color-border, #e2e8f0)",
+                    background: active ? "rgba(37, 99, 235, 0.08)" : "transparent",
+                    cursor: "pointer",
+                    textAlign: "left",
+                    fontSize: "0.78rem",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <span style={{ fontSize: "1rem" }}>{acc.icon}</span>
+                  <div style={{ overflow: "hidden" }}>
+                    <div style={{ fontWeight: active ? 700 : 500, whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>
+                      {acc.label}
+                    </div>
+                    <div style={{ fontSize: "0.68rem", color: "#64748b", whiteSpace: "nowrap" }}>
+                      {acc.roleTag}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

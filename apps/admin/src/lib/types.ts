@@ -210,11 +210,21 @@ export interface Household {
   zipCode?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  squareMeters?: number | null;
+  hasGarage?: boolean;
+  monthlyIncomeBand?: string | null;
+  dwellingType?: string | null;
+  roofMaterial?: string | null;
+  wallMaterial?: string | null;
+  landTenure?: string | null;
+  hazardZoneRisk?: string | null;
   waterSource?: string | null;
   toiletFacility?: string | null;
   electricitySource?: string | null;
   cookingFuel?: string | null;
   wasteDisposal?: string | null;
+  internetAccess?: string | null;
+  primaryIncomeSource?: string | null;
   is4Ps?: boolean;
   isIndigent?: boolean;
   source?: string;
@@ -558,6 +568,7 @@ export interface DevelopmentPlan {
   startYear: number;
   endYear: number;
   status: string;
+  isLocked?: boolean;
   projects?: DevProject[];
 }
 
@@ -571,6 +582,7 @@ export interface DevProject {
   status: string;
   targetYear: number;
   progressPct: number;
+  isLocked?: boolean;
 }
 
 export interface GadActivity {
