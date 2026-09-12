@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ApiError, post, useApi } from "@cbms/api-client";
+import { ApiError, post, del, useApi } from "@cbms/api-client";
 import {
   Alert,
   Button,
@@ -54,6 +54,23 @@ export default function BatchDetailPage() {
   const otc = items.filter((i) => i.status === "otc_fallback");
   const failed = items.filter((i) => i.status === "failed");
 
+  async function handleDeleteBatch() {
+    if (!b) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to cancel and delete batch ${b.batchNo}? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await del(`/wallet/batches/${id}`);
+      router.push("/wallet/batches");
+    } catch (err) {
+      setError((err as ApiError)?.message ?? "Failed to delete batch.");
+      setBusy(false);
+    }
+  }
+
   async function approve() {
     setBusy(true);
     setError(null);
@@ -64,9 +81,10 @@ export default function BatchDetailPage() {
         failed: number;
         otcFallback: number;
         totalPaidCentavos: string;
+        dvNumber?: string;
       }>(`/wallet/batches/${id}/approve`);
       setOk(
-        `Executed: ${out.paid} paid (${peso(out.totalPaidCentavos)}), ${out.otcFallback} for over-the-counter release, ${out.failed} failed.`,
+        `Executed: ${out.paid} paid (${peso(out.totalPaidCentavos)}), ${out.otcFallback} for over-the-counter release, ${out.failed} failed. DV #${out.dvNumber || "DV-2026"} posted to General Ledger.`,
       );
       res.reload();
       reloadDashboard();
@@ -86,13 +104,33 @@ export default function BatchDetailPage() {
         breadcrumb="Finance / Disbursements"
         exclusive
         actions={
-          <button
-            type="button"
-            className="cbms-btn"
-            onClick={() => router.push("/wallet/batches")}
-          >
-            ← Back
-          </button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button
+              type="button"
+              className="cbms-btn"
+              onClick={() => router.push("/wallet/batches")}
+            >
+              ← Back
+            </button>
+            {b?.dvNumber && (
+              <button
+                type="button"
+                className="cbms-btn cbms-btn--gold"
+                onClick={() => router.push(`/finance/ledger?q=${b.dvNumber}`)}
+              >
+                🧾 View Ledger Voucher ({b.dvNumber})
+              </button>
+            )}
+            {b && b.status !== "completed" && (
+              <Button
+                variant="danger"
+                disabled={busy}
+                onClick={handleDeleteBatch}
+              >
+                🗑️ Cancel Batch
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -134,6 +172,7 @@ export default function BatchDetailPage() {
                     ["Prepared", dateTime(b.createdAt)],
                     ["Approved", b.approvedAt ? dateTime(b.approvedAt) : "—"],
                     ["Executed", b.executedAt ? dateTime(b.executedAt) : "—"],
+                    ["Disbursement Voucher", b.dvNumber ? <strong key="dv">{b.dvNumber}</strong> : "—"],
                     ["Source note", b.sourceNote ?? "—"],
                   ]}
                 />

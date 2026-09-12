@@ -121,6 +121,84 @@ export interface StaticSosAlert {
   createdAt: string;
 }
 
+export interface StaticLedgerEntry {
+  id: string;
+  barangayId: string;
+  postedAt: string;
+  fund: "general" | "sk" | "gad" | "disaster" | "trust";
+  accountCode: string;
+  description: string;
+  direction: "credit" | "debit";
+  amount: number;
+  orNumber?: string | null;
+  dvNumber?: string | null;
+  refType?: string | null;
+}
+
+export interface StaticOfficialReceipt {
+  id: string;
+  barangayId: string;
+  orNumber: string;
+  payorName: string;
+  amount: number;
+  particulars: string;
+  issuedAt: string;
+}
+
+export interface StaticBudgetLine {
+  id: string;
+  expenseClass: "PS" | "MOOE" | "CO";
+  accountCode: string;
+  description: string;
+  amount: number;
+  obligated: number;
+  disbursed: number;
+}
+
+export interface StaticBudget {
+  id: string;
+  barangayId: string;
+  year: number;
+  totalAmount: number;
+  skFundAmount: number;
+  status: string;
+  lines: StaticBudgetLine[];
+}
+
+export interface StaticRptProperty {
+  id: string;
+  barangayId: string;
+  taxDeclarationNo: string;
+  ownerInhabitantId?: string | null;
+  ownerName: string;
+  propertyType: "residential" | "commercial" | "industrial" | "agricultural" | "special";
+  assessedValue: number;
+  marketValue: number;
+  addressLine: string;
+  purok?: string;
+  lotNo?: string;
+  blockNo?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaticRptTaxDue {
+  id: string;
+  rptPropertyId: string;
+  taxYear: number;
+  basicTaxAmount: number;
+  sefTaxAmount: number;
+  penaltyAmount: number;
+  totalAmount: number;
+  paymentStatus: "unpaid" | "partially_paid" | "fully_paid" | "exempt";
+  paidAt?: string | null;
+  orNumber?: string | null;
+  discountAmount?: number;
+  isActive: boolean;
+  createdAt?: string;
+}
+
 export const STATIC_BARANGAY_ID = "van6rdk";
 
 export const STATIC_CERTIFICATE_TYPES: StaticCertificateType[] = [
@@ -800,6 +878,1238 @@ export const STATIC_SOS_ALERTS: StaticSosAlert[] = [
   },
 ];
 
+export const STATIC_LEDGER_ENTRIES: StaticLedgerEntry[] = [
+  {
+    id: "led-01",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-11T09:30:00.000Z",
+    fund: "general",
+    accountCode: "4-02-01-040",
+    description: "Clearance & Certification Fees collection (Batch OR-2026-00115 to 00118)",
+    direction: "credit",
+    amount: 1400,
+    orNumber: "OR-2026-00118",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-02",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-10T14:15:00.000Z",
+    fund: "disaster",
+    accountCode: "5-02-03-080",
+    description: "First aid & trauma kits replenishment for BDRRMC rescue team",
+    direction: "debit",
+    amount: 36000,
+    dvNumber: "DV-DRRM-2026-015",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-03",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-08T11:00:00.000Z",
+    fund: "sk",
+    accountCode: "5-02-99-010",
+    description: "High school scholarship learning materials & book assistance grants",
+    direction: "debit",
+    amount: 65000,
+    dvNumber: "DV-SK-2026-008",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-04",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-06T15:40:00.000Z",
+    fund: "gad",
+    accountCode: "5-02-03-080",
+    description: "Maternal health checkup kits & hygiene supplies for Barangay Health Clinic",
+    direction: "debit",
+    amount: 31200,
+    dvNumber: "DV-GAD-2026-010",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-05",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-05T10:20:00.000Z",
+    fund: "general",
+    accountCode: "5-02-13-060",
+    description: "Preventive maintenance, oil change & fuel replenishment for Patrol Mobile 01 & 02",
+    direction: "debit",
+    amount: 32800,
+    dvNumber: "DV-2026-09-003",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-06",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-03T16:00:00.000Z",
+    fund: "general",
+    accountCode: "4-02-01-040",
+    description: "Business clearance & inspection fees — Commercial establishments",
+    direction: "credit",
+    amount: 18700,
+    orNumber: "OR-2026-00113",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-07",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-01T08:00:00.000Z",
+    fund: "general",
+    accountCode: "4-01-01-010",
+    description: "National Tax Allotment (NTA / IRA) — Monthly Allotment Release (September 2026)",
+    direction: "credit",
+    amount: 2375000,
+    orNumber: "NTA-2026-09",
+    refType: "bank_credit"
+  },
+  {
+    id: "led-08",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-30T16:45:00.000Z",
+    fund: "general",
+    accountCode: "5-01-01-010",
+    description: "Honoraria & personnel compensation — Punong Barangay & Kagawads (August 2026)",
+    direction: "debit",
+    amount: 450000,
+    dvNumber: "DV-2026-08-041",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-09",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-30T16:45:00.000Z",
+    fund: "general",
+    accountCode: "5-01-02-990",
+    description: "Honoraria & subsistence allowances — Barangay Tanods & Security Force (24 personnel)",
+    direction: "debit",
+    amount: 192000,
+    dvNumber: "DV-2026-08-042",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-10",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-30T16:45:00.000Z",
+    fund: "general",
+    accountCode: "5-01-02-010",
+    description: "Honoraria — Appointed Barangay Officials (Secretary, Treasurer)",
+    direction: "debit",
+    amount: 100000,
+    dvNumber: "DV-2026-08-043",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-11",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-28T13:30:00.000Z",
+    fund: "general",
+    accountCode: "4-02-02-010",
+    description: "Gymnasium & Multi-Purpose Covered Court rental fees — Inter-Purok Invitational",
+    direction: "credit",
+    amount: 3500,
+    orNumber: "OR-2026-00111",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-12",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-27T10:15:00.000Z",
+    fund: "general",
+    accountCode: "5-02-04-010",
+    description: "Meralco electric utility bills for Barangay Complex & Outposts (August 2026)",
+    direction: "debit",
+    amount: 78450,
+    dvNumber: "DV-2026-08-044",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-13",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-26T14:30:00.000Z",
+    fund: "gad",
+    accountCode: "5-02-02-010",
+    description: "Livelihood skills training workshop (Baking & Pastry) for solo parents and women",
+    direction: "debit",
+    amount: 58000,
+    dvNumber: "DV-GAD-2026-008",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-14",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-25T11:00:00.000Z",
+    fund: "general",
+    accountCode: "5-02-04-010",
+    description: "Manila Water utility bills for Barangay Hall & Health Center",
+    direction: "debit",
+    amount: 14320,
+    dvNumber: "DV-2026-08-045",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-15",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-24T09:00:00.000Z",
+    fund: "trust",
+    accountCode: "1-07-04-020",
+    description: "Progress Billing #2 — Riverbank drainage desilting & flood buffer wall construction",
+    direction: "debit",
+    amount: 385000,
+    dvNumber: "DV-BDF-2026-014",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-16",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-22T15:20:00.000Z",
+    fund: "general",
+    accountCode: "4-02-01-040",
+    description: "Tricycle franchise clearance & TODA supervision fees",
+    direction: "credit",
+    amount: 4500,
+    orNumber: "OR-2026-00108",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-17",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-20T10:00:00.000Z",
+    fund: "general",
+    accountCode: "4-02-02-010",
+    description: "Barangka Wet & Dry Market stall rental collections (August 2026)",
+    direction: "credit",
+    amount: 6800,
+    orNumber: "OR-2026-00107",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-18",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-19T14:00:00.000Z",
+    fund: "disaster",
+    accountCode: "5-02-12-030",
+    description: "Procurement of 500 emergency relief food packs (canned goods, rice, hygiene packs)",
+    direction: "debit",
+    amount: 187500,
+    dvNumber: "DV-DRRM-2026-009",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-19",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-18T11:30:00.000Z",
+    fund: "sk",
+    accountCode: "5-02-99-010",
+    description: "Barangka Youth Inter-Purok Basketball & Volleyball League uniforms and kits",
+    direction: "debit",
+    amount: 92000,
+    dvNumber: "DV-SK-2026-005",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-20",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-16T16:00:00.000Z",
+    fund: "gad",
+    accountCode: "5-02-12-040",
+    description: "VAWC Crisis Desk emergency survivor assistance & temporary shelter subsidy",
+    direction: "debit",
+    amount: 42500,
+    dvNumber: "DV-GAD-2026-006",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-21",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-15T09:30:00.000Z",
+    fund: "general",
+    accountCode: "4-01-02-040",
+    description: "Real Property Tax (RPT) 50% City Barangay Share (Q2 2026 Remittance)",
+    direction: "credit",
+    amount: 842500,
+    orNumber: "RPT-2026-Q2",
+    refType: "bank_credit"
+  },
+  {
+    id: "led-22",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-14T10:45:00.000Z",
+    fund: "general",
+    accountCode: "5-02-03-010",
+    description: "Procurement of quarterly office, printing, and document supplies",
+    direction: "debit",
+    amount: 48200,
+    dvNumber: "DV-2026-08-048",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-23",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-12T13:00:00.000Z",
+    fund: "trust",
+    accountCode: "4-01-01-010",
+    description: "Local Government Support Fund (LGSF) — Financial Assistance grant from DILG",
+    direction: "credit",
+    amount: 1500000,
+    orNumber: "LGSF-2026-GR",
+    refType: "bank_credit"
+  },
+  {
+    id: "led-24",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-10T14:30:00.000Z",
+    fund: "disaster",
+    accountCode: "5-02-13-050",
+    description: "Calibration and battery replacement for Barangka early flood warning siren system",
+    direction: "debit",
+    amount: 28400,
+    dvNumber: "DV-DRRM-2026-011",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-25",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-05T11:00:00.000Z",
+    fund: "sk",
+    accountCode: "5-02-02-010",
+    description: "SK Youth Leadership Summit & anti-drug awareness camp supplies",
+    direction: "debit",
+    amount: 45000,
+    dvNumber: "DV-SK-2026-007",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-26",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-01T08:00:00.000Z",
+    fund: "general",
+    accountCode: "4-01-01-010",
+    description: "National Tax Allotment (NTA / IRA) — Monthly Allotment Release (August 2026)",
+    direction: "credit",
+    amount: 2375000,
+    orNumber: "NTA-2026-08",
+    refType: "bank_credit"
+  },
+  {
+    id: "led-27",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-01T08:30:00.000Z",
+    fund: "sk",
+    accountCode: "4-01-01-010",
+    description: "10% SK Fund mandatory statutory transfer from General Fund (August 2026)",
+    direction: "credit",
+    amount: 237500,
+    orNumber: "SK-TR-08",
+    refType: "fund_transfer"
+  },
+  {
+    id: "led-28",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-01T08:30:00.000Z",
+    fund: "disaster",
+    accountCode: "4-01-01-010",
+    description: "5% BDRRMF statutory allocation monthly transfer (August 2026)",
+    direction: "credit",
+    amount: 118750,
+    orNumber: "DRRM-TR-08",
+    refType: "fund_transfer"
+  },
+  {
+    id: "led-29",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-01T08:30:00.000Z",
+    fund: "gad",
+    accountCode: "4-01-01-010",
+    description: "5% GAD statutory allocation monthly transfer (August 2026)",
+    direction: "credit",
+    amount: 118750,
+    orNumber: "GAD-TR-08",
+    refType: "fund_transfer"
+  },
+  {
+    id: "led-30",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-07-25T14:00:00.000Z",
+    fund: "trust",
+    accountCode: "1-07-04-010",
+    description: "Solar street lighting installation along Dela Paz & A. Bonifacio (Phase 1)",
+    direction: "debit",
+    amount: 450000,
+    dvNumber: "DV-BDF-2026-012",
+    refType: "disbursement_voucher"
+  }
+];
+
+export const STATIC_OFFICIAL_RECEIPTS: StaticOfficialReceipt[] = [
+  {
+    id: "or-101",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00101",
+    payorName: "Mateo S. Gonzales",
+    amount: 150,
+    particulars: "Barangay Clearance for Employment",
+    issuedAt: "2026-08-10T09:15:00.000Z"
+  },
+  {
+    id: "or-102",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00102",
+    payorName: "Barangka River Cafe & Grill / Lea Salonga",
+    amount: 2500,
+    particulars: "Barangay Business Clearance (Annual Renewal)",
+    issuedAt: "2026-08-11T10:30:00.000Z"
+  },
+  {
+    id: "or-103",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00103",
+    payorName: "Aling Tina's Sari-Sari Store / Cristina Santos",
+    amount: 500,
+    particulars: "Barangay Business Clearance & Signboard Fee",
+    issuedAt: "2026-08-12T11:45:00.000Z"
+  },
+  {
+    id: "or-104",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00104",
+    payorName: "Ricardo De Jesus",
+    amount: 50,
+    particulars: "Certificate of Indigency (PAO Legal Endorsement)",
+    issuedAt: "2026-08-14T08:50:00.000Z"
+  },
+  {
+    id: "or-105",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00105",
+    payorName: "MegaPrime Hardware & Const. Supplies",
+    amount: 4200,
+    particulars: "Barangay Business Clearance & Heavy Truck Staging Fee",
+    issuedAt: "2026-08-15T14:10:00.000Z"
+  },
+  {
+    id: "or-106",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00106",
+    payorName: "Maria Clara B. Santos",
+    amount: 100,
+    particulars: "Certificate of Residency (PhilSys / DFA Passport)",
+    issuedAt: "2026-08-18T10:00:00.000Z"
+  },
+  {
+    id: "or-107",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00107",
+    payorName: "Barangka Wet & Dry Market Vendors Coop",
+    amount: 6800,
+    particulars: "Market Stall Rental & Environmental Maintenance Fee",
+    issuedAt: "2026-08-20T10:00:00.000Z"
+  },
+  {
+    id: "or-108",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00108",
+    payorName: "Danilo M. Cruz",
+    amount: 75,
+    particulars: "Barangay Clearance for Tricycle Franchise Renewal (TODA Zone 3)",
+    issuedAt: "2026-08-22T15:20:00.000Z"
+  },
+  {
+    id: "or-109",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00109",
+    payorName: "Golden Horizon Bakery Corp.",
+    amount: 1800,
+    particulars: "Barangay Business Clearance & Sanitary Inspection Fee",
+    issuedAt: "2026-08-25T13:40:00.000Z"
+  },
+  {
+    id: "or-110",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00110",
+    payorName: "Elena Bautista",
+    amount: 50,
+    particulars: "Certificate of Good Moral Character (Scholarship Application)",
+    issuedAt: "2026-08-26T09:20:00.000Z"
+  },
+  {
+    id: "or-111",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00111",
+    payorName: "Marikina Riverway Sports Club",
+    amount: 3500,
+    particulars: "Barangay Gymnasium Rental Fee — Inter-Purok Tournament",
+    issuedAt: "2026-08-28T13:30:00.000Z"
+  },
+  {
+    id: "or-112",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00112",
+    payorName: "Vicente Ramirez Jr.",
+    amount: 150,
+    particulars: "Barangay Clearance for Police Clearance & LTOPF",
+    issuedAt: "2026-09-01T11:15:00.000Z"
+  },
+  {
+    id: "or-113",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00113",
+    payorName: "7-Eleven Barangka Branch / PhilSeven Corp",
+    amount: 5000,
+    particulars: "Annual Barangay Business Permit & Solid Waste Assessment",
+    issuedAt: "2026-09-02T14:30:00.000Z"
+  },
+  {
+    id: "or-114",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00114",
+    payorName: "Rosalinda P. Dizon",
+    amount: 100,
+    particulars: "Certificate of Cohabitation & Residency",
+    issuedAt: "2026-09-04T10:05:00.000Z"
+  },
+  {
+    id: "or-115",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00115",
+    payorName: "Silver Star Laundry Services",
+    amount: 1200,
+    particulars: "Barangay Clearance (Commercial Laundry & Wastewater Compliance)",
+    issuedAt: "2026-09-05T15:00:00.000Z"
+  },
+  {
+    id: "or-116",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00116",
+    payorName: "Arturo Macaraeg",
+    amount: 200,
+    particulars: "Barangay Clearance for Electrical Wiring & Building Permit",
+    issuedAt: "2026-09-07T09:40:00.000Z"
+  },
+  {
+    id: "or-117",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00117",
+    payorName: "Barangka Community Multi-Purpose Coop",
+    amount: 2000,
+    particulars: "Barangay Hall Conference Room Use & Audio-Visual Equipment Fee",
+    issuedAt: "2026-09-09T16:10:00.000Z"
+  },
+  {
+    id: "or-118",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00118",
+    payorName: "Corazon Del Mundo",
+    amount: 50,
+    particulars: "Barangay Certification (First Time Jobseeker / Documentary Stamp)",
+    issuedAt: "2026-09-10T11:25:00.000Z"
+  }
+];
+
+export const STATIC_BUDGETS: StaticBudget[] = [
+  {
+    id: "bgt-2026",
+    barangayId: STATIC_BARANGAY_ID,
+    year: 2026,
+    totalAmount: 28500000,
+    skFundAmount: 2850000,
+    status: "enacted",
+    lines: [
+      {
+        id: "bl-01",
+        expenseClass: "PS",
+        accountCode: "5-01-01-010",
+        description: "Salaries & Honoraria — Punong Barangay & Sangguniang Barangay Members",
+        amount: 5400000,
+        obligated: 3600000,
+        disbursed: 3600000
+      },
+      {
+        id: "bl-02",
+        expenseClass: "PS",
+        accountCode: "5-01-02-010",
+        description: "Honoraria — Appointed Barangay Officials (Secretary, Treasurer)",
+        amount: 1200000,
+        obligated: 800000,
+        disbursed: 800000
+      },
+      {
+        id: "bl-03",
+        expenseClass: "PS",
+        accountCode: "5-01-02-990",
+        description: "Honoraria & Allowances — Barangay Tanod Security Force (24 Pax)",
+        amount: 2304000,
+        obligated: 1536000,
+        disbursed: 1536000
+      },
+      {
+        id: "bl-04",
+        expenseClass: "PS",
+        accountCode: "5-01-02-991",
+        description: "Honoraria — Barangay Health Workers (BHW) & Nutrition Scholars",
+        amount: 1080000,
+        obligated: 720000,
+        disbursed: 720000
+      },
+      {
+        id: "bl-05",
+        expenseClass: "PS",
+        accountCode: "5-01-04-030",
+        description: "Year-End Bonus & Cash Gift (Barangay Appointed & Elective Personnel)",
+        amount: 850000,
+        obligated: 0,
+        disbursed: 0
+      },
+      {
+        id: "bl-06",
+        expenseClass: "MOOE",
+        accountCode: "5-02-01-010",
+        description: "Travelling & Training Expenses — Local Seminars & DILG Workshops",
+        amount: 350000,
+        obligated: 210000,
+        disbursed: 185000
+      },
+      {
+        id: "bl-07",
+        expenseClass: "MOOE",
+        accountCode: "5-02-03-010",
+        description: "Office Supplies & Materials Expenses — Hall & Desk Operations",
+        amount: 620000,
+        obligated: 480000,
+        disbursed: 435000
+      },
+      {
+        id: "bl-08",
+        expenseClass: "MOOE",
+        accountCode: "5-02-04-010",
+        description: "Electricity & Water Utility Expenses — Barangay Hall & Health Center",
+        amount: 980000,
+        obligated: 660000,
+        disbursed: 642000
+      },
+      {
+        id: "bl-09",
+        expenseClass: "MOOE",
+        accountCode: "5-02-05-020",
+        description: "Internet & Telecommunications Expenses (Fiber & Radio Relay)",
+        amount: 240000,
+        obligated: 160000,
+        disbursed: 160000
+      },
+      {
+        id: "bl-10",
+        expenseClass: "MOOE",
+        accountCode: "5-02-13-040",
+        description: "Repairs & Maintenance — Multi-Purpose Hall & Day Care Facilities",
+        amount: 750000,
+        obligated: 520000,
+        disbursed: 485000
+      },
+      {
+        id: "bl-11",
+        expenseClass: "MOOE",
+        accountCode: "5-02-13-060",
+        description: "Repairs & Maintenance — Patrol Vehicles & Ambulance",
+        amount: 460000,
+        obligated: 340000,
+        disbursed: 315000
+      },
+      {
+        id: "bl-12",
+        expenseClass: "MOOE",
+        accountCode: "5-02-12-030",
+        description: "5% Local Disaster Risk Reduction & Management Fund (LDRRMF / BDRRMC)",
+        amount: 1425000,
+        obligated: 980000,
+        disbursed: 890000
+      },
+      {
+        id: "bl-13",
+        expenseClass: "MOOE",
+        accountCode: "5-02-12-040",
+        description: "5% Gender and Development Fund (GAD Statutory Allocation — VAW & Livelihood)",
+        amount: 1425000,
+        obligated: 875000,
+        disbursed: 810000
+      },
+      {
+        id: "bl-14",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-080",
+        description: "Barangay Peace and Order Council (BPOC) Operations",
+        amount: 500000,
+        obligated: 360000,
+        disbursed: 345000
+      },
+      {
+        id: "bl-15",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-090",
+        description: "Barangay Anti-Drug Abuse Council (BADAC) Community Rehabilitation",
+        amount: 350000,
+        obligated: 220000,
+        disbursed: 195000
+      },
+      {
+        id: "bl-16",
+        expenseClass: "CO",
+        accountCode: "1-07-04-010",
+        description: "20% Barangay Development Fund (BDF) — Solar Street Lighting Along A. Bonifacio",
+        amount: 3200000,
+        obligated: 3200000,
+        disbursed: 2400000
+      },
+      {
+        id: "bl-17",
+        expenseClass: "CO",
+        accountCode: "1-07-04-020",
+        description: "20% BDF — Riverbank Drainage Desilting & Flood Barrier Improvement",
+        amount: 2500000,
+        obligated: 2500000,
+        disbursed: 1850000
+      },
+      {
+        id: "bl-18",
+        expenseClass: "CO",
+        accountCode: "1-07-05-010",
+        description: "IT Equipment & Digital Identification Terminals for CBMS Kiosks",
+        amount: 1066000,
+        obligated: 850000,
+        disbursed: 780000
+      },
+      {
+        id: "bl-19",
+        expenseClass: "CO",
+        accountCode: "1-07-06-010",
+        description: "Disaster Rescue Equipment & High-Water Rubber Boats",
+        amount: 950000,
+        obligated: 950000,
+        disbursed: 950000
+      },
+      {
+        id: "bl-20",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-010",
+        description: "Sangguniang Kabataan (SK 10%) — Youth Development, Sports & Training Programs",
+        amount: 2850000,
+        obligated: 1900000,
+        disbursed: 1650000
+      }
+    ]
+  },
+  {
+    id: "bgt-2025",
+    barangayId: STATIC_BARANGAY_ID,
+    year: 2025,
+    totalAmount: 26000000,
+    skFundAmount: 2600000,
+    status: "enacted",
+    lines: [
+      {
+        id: "bl25-01",
+        expenseClass: "PS",
+        accountCode: "5-01-01-010",
+        description: "Salaries & Honoraria — Punong Barangay & Sangguniang Barangay Members",
+        amount: 5100000,
+        obligated: 5100000,
+        disbursed: 5100000
+      },
+      {
+        id: "bl25-02",
+        expenseClass: "PS",
+        accountCode: "5-01-02-010",
+        description: "Honoraria — Appointed Barangay Officials (Secretary, Treasurer)",
+        amount: 1100000,
+        obligated: 1100000,
+        disbursed: 1100000
+      },
+      {
+        id: "bl25-03",
+        expenseClass: "PS",
+        accountCode: "5-01-02-990",
+        description: "Honoraria & Allowances — Barangay Tanod Security Force",
+        amount: 2100000,
+        obligated: 2100000,
+        disbursed: 2100000
+      },
+      {
+        id: "bl25-04",
+        expenseClass: "PS",
+        accountCode: "5-01-02-991",
+        description: "Honoraria — Barangay Health Workers (BHW)",
+        amount: 980000,
+        obligated: 980000,
+        disbursed: 980000
+      },
+      {
+        id: "bl25-05",
+        expenseClass: "PS",
+        accountCode: "5-01-04-030",
+        description: "Year-End Bonus & Cash Gift",
+        amount: 720000,
+        obligated: 720000,
+        disbursed: 720000
+      },
+      {
+        id: "bl25-06",
+        expenseClass: "MOOE",
+        accountCode: "5-02-03-010",
+        description: "Office Supplies & Materials Expenses",
+        amount: 550000,
+        obligated: 550000,
+        disbursed: 550000
+      },
+      {
+        id: "bl25-07",
+        expenseClass: "MOOE",
+        accountCode: "5-02-04-010",
+        description: "Electricity & Water Utility Expenses",
+        amount: 880000,
+        obligated: 880000,
+        disbursed: 880000
+      },
+      {
+        id: "bl25-08",
+        expenseClass: "MOOE",
+        accountCode: "5-02-12-030",
+        description: "5% Local Disaster Risk Reduction & Management Fund (LDRRMF)",
+        amount: 1300000,
+        obligated: 1300000,
+        disbursed: 1300000
+      },
+      {
+        id: "bl25-09",
+        expenseClass: "MOOE",
+        accountCode: "5-02-12-040",
+        description: "5% Gender and Development Fund (GAD)",
+        amount: 1300000,
+        obligated: 1300000,
+        disbursed: 1300000
+      },
+      {
+        id: "bl25-10",
+        expenseClass: "CO",
+        accountCode: "1-07-04-010",
+        description: "20% BDF — Barangay Evacuation Multi-Purpose Center Upgrade",
+        amount: 5200000,
+        obligated: 5200000,
+        disbursed: 5200000
+      },
+      {
+        id: "bl25-11",
+        expenseClass: "CO",
+        accountCode: "1-07-05-010",
+        description: "IT Equipment & CCTV Security Upgrades",
+        amount: 1170000,
+        obligated: 1170000,
+        disbursed: 1170000
+      },
+      {
+        id: "bl25-12",
+        expenseClass: "MOOE",
+        accountCode: "5-02-13-040",
+        description: "Repairs & Maintenance — Hall & Facilities",
+        amount: 700000,
+        obligated: 700000,
+        disbursed: 700000
+      },
+      {
+        id: "bl25-13",
+        expenseClass: "MOOE",
+        accountCode: "5-02-13-060",
+        description: "Repairs & Maintenance — Transportation Equipment",
+        amount: 400000,
+        obligated: 400000,
+        disbursed: 400000
+      },
+      {
+        id: "bl25-14",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-080",
+        description: "Barangay Peace & Order Programs",
+        amount: 1000000,
+        obligated: 1000000,
+        disbursed: 1000000
+      },
+      {
+        id: "bl25-15",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-010",
+        description: "Sangguniang Kabataan (SK 10%) Fund",
+        amount: 2600000,
+        obligated: 2600000,
+        disbursed: 2600000
+      }
+    ]
+  }
+];
+
+export const STATIC_RPT_PROPERTIES: StaticRptProperty[] = [
+  {
+    id: "rpt-01",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00101",
+    ownerInhabitantId: "inh-mateo",
+    ownerName: "Mateo S. Gonzales",
+    propertyType: "residential",
+    assessedValue: 700000,
+    marketValue: 3500000,
+    addressLine: "14 Dela Paz St., Purok 1",
+    purok: "Purok 1",
+    lotNo: "Lot 4",
+    blockNo: "Block 12",
+    isActive: true,
+    createdAt: "2026-01-10T08:30:00.000Z",
+    updatedAt: "2026-01-10T08:30:00.000Z",
+  },
+  {
+    id: "rpt-02",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00102",
+    ownerInhabitantId: null,
+    ownerName: "Barangka River Cafe & Grill / Lea Salonga",
+    propertyType: "commercial",
+    assessedValue: 6000000,
+    marketValue: 12000000,
+    addressLine: "88 Riverbanks Ave., River Park",
+    purok: "Purok 4",
+    lotNo: "Lot 1-A",
+    blockNo: "Block 2",
+    isActive: true,
+    createdAt: "2026-01-12T10:15:00.000Z",
+    updatedAt: "2026-01-12T10:15:00.000Z",
+  },
+  {
+    id: "rpt-03",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00103",
+    ownerInhabitantId: "inh-cristina",
+    ownerName: "Cristina Santos (Aling Tina)",
+    propertyType: "residential",
+    assessedValue: 360000,
+    marketValue: 1800000,
+    addressLine: "25 Gen. J. Cruz St., Purok 2",
+    purok: "Purok 2",
+    lotNo: "Lot 18",
+    blockNo: "Block 5",
+    isActive: true,
+    createdAt: "2026-01-15T14:20:00.000Z",
+    updatedAt: "2026-01-15T14:20:00.000Z",
+  },
+  {
+    id: "rpt-04",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00104",
+    ownerInhabitantId: null,
+    ownerName: "MegaPrime Hardware & Const. Supplies Corp.",
+    propertyType: "commercial",
+    assessedValue: 9250000,
+    marketValue: 18500000,
+    addressLine: "104 A. Bonifacio Ave.",
+    purok: "Purok 3",
+    lotNo: "Lot 8",
+    blockNo: "Block 1",
+    isActive: true,
+    createdAt: "2026-01-18T09:00:00.000Z",
+    updatedAt: "2026-01-18T09:00:00.000Z",
+  },
+  {
+    id: "rpt-05",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00105",
+    ownerInhabitantId: "inh-ricardo",
+    ownerName: "Ricardo De Jesus",
+    propertyType: "residential",
+    assessedValue: 190000,
+    marketValue: 950000,
+    addressLine: "7 P. Burgos St., Purok 5",
+    purok: "Purok 5",
+    lotNo: "Lot 12",
+    blockNo: "Block 8",
+    isActive: true,
+    createdAt: "2026-01-20T11:45:00.000Z",
+    updatedAt: "2026-01-20T11:45:00.000Z",
+  },
+  {
+    id: "rpt-06",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00106",
+    ownerInhabitantId: null,
+    ownerName: "Golden Horizon Bakery Corp.",
+    propertyType: "commercial",
+    assessedValue: 3250000,
+    marketValue: 6500000,
+    addressLine: "42 Marcos Highway cor. Dela Paz",
+    purok: "Purok 1",
+    lotNo: "Lot 2-B",
+    blockNo: "Block 3",
+    isActive: true,
+    createdAt: "2026-01-22T13:30:00.000Z",
+    updatedAt: "2026-01-22T13:30:00.000Z",
+  },
+  {
+    id: "rpt-07",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00107",
+    ownerInhabitantId: null,
+    ownerName: "Marikina Footwear & Leather Processing Plant",
+    propertyType: "industrial",
+    assessedValue: 12000000,
+    marketValue: 24000000,
+    addressLine: "15 Industrial Valley Subd.",
+    purok: "Purok 6",
+    lotNo: "Lot 1",
+    blockNo: "Block 9",
+    isActive: true,
+    createdAt: "2026-01-25T15:00:00.000Z",
+    updatedAt: "2026-01-25T15:00:00.000Z",
+  },
+  {
+    id: "rpt-08",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00108",
+    ownerInhabitantId: "inh-clara",
+    ownerName: "Maria Clara B. Santos",
+    propertyType: "residential",
+    assessedValue: 480000,
+    marketValue: 2400000,
+    addressLine: "31 E. Dela Paz St., Purok 2",
+    purok: "Purok 2",
+    lotNo: "Lot 14",
+    blockNo: "Block 4",
+    isActive: true,
+    createdAt: "2026-01-28T16:10:00.000Z",
+    updatedAt: "2026-01-28T16:10:00.000Z",
+  },
+  {
+    id: "rpt-09",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00109",
+    ownerInhabitantId: null,
+    ownerName: "Philippine Seven Corp (7-Eleven Barangka)",
+    propertyType: "commercial",
+    assessedValue: 7000000,
+    marketValue: 14000000,
+    addressLine: "55 A. Bonifacio Ave. cor. Chorillo St.",
+    purok: "Purok 3",
+    lotNo: "Lot 3",
+    blockNo: "Block 2",
+    isActive: true,
+    createdAt: "2026-02-01T08:45:00.000Z",
+    updatedAt: "2026-02-01T08:45:00.000Z",
+  },
+  {
+    id: "rpt-10",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00110",
+    ownerInhabitantId: "inh-danilo",
+    ownerName: "Danilo M. Cruz",
+    propertyType: "residential",
+    assessedValue: 320000,
+    marketValue: 1600000,
+    addressLine: "19 J.P. Rizal St., Purok 4",
+    purok: "Purok 4",
+    lotNo: "Lot 9",
+    blockNo: "Block 6",
+    isActive: true,
+    createdAt: "2026-02-03T10:00:00.000Z",
+    updatedAt: "2026-02-03T10:00:00.000Z",
+  },
+  {
+    id: "rpt-11",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00111",
+    ownerInhabitantId: null,
+    ownerName: "Barangka Community Urban Farm & Nursery",
+    propertyType: "agricultural",
+    assessedValue: 840000,
+    marketValue: 2100000,
+    addressLine: "Lot 12 Riverbank Greenzone",
+    purok: "Purok 7",
+    lotNo: "Lot 12",
+    blockNo: "Block 1",
+    isActive: true,
+    createdAt: "2026-02-05T11:20:00.000Z",
+    updatedAt: "2026-02-05T11:20:00.000Z",
+  },
+  {
+    id: "rpt-12",
+    barangayId: STATIC_BARANGAY_ID,
+    taxDeclarationNo: "TD-2026-BAR-00112",
+    ownerInhabitantId: "inh-elena",
+    ownerName: "Silver Star Laundry Services / Elena Bautista",
+    propertyType: "commercial",
+    assessedValue: 2100000,
+    marketValue: 4200000,
+    addressLine: "8 Chorillo St., Purok 3",
+    purok: "Purok 3",
+    lotNo: "Lot 6",
+    blockNo: "Block 7",
+    isActive: true,
+    createdAt: "2026-02-08T14:30:00.000Z",
+    updatedAt: "2026-02-08T14:30:00.000Z",
+  },
+];
+
+export const STATIC_RPT_TAX_DUES: StaticRptTaxDue[] = [
+  {
+    id: "due-01",
+    rptPropertyId: "rpt-01",
+    taxYear: 2026,
+    basicTaxAmount: 7000,
+    sefTaxAmount: 7000,
+    penaltyAmount: 0,
+    totalAmount: 14000,
+    paymentStatus: "fully_paid",
+    paidAt: "2026-03-15T09:30:00.000Z",
+    orNumber: "OR-2026-00041",
+    isActive: true,
+  },
+  {
+    id: "due-02",
+    rptPropertyId: "rpt-02",
+    taxYear: 2026,
+    basicTaxAmount: 60000,
+    sefTaxAmount: 60000,
+    penaltyAmount: 0,
+    totalAmount: 120000,
+    paymentStatus: "fully_paid",
+    paidAt: "2026-01-20T11:15:00.000Z",
+    orNumber: "OR-2026-00012",
+    isActive: true,
+  },
+  {
+    id: "due-03",
+    rptPropertyId: "rpt-03",
+    taxYear: 2026,
+    basicTaxAmount: 3600,
+    sefTaxAmount: 3600,
+    penaltyAmount: 720,
+    totalAmount: 7920,
+    paymentStatus: "unpaid",
+    paidAt: null,
+    orNumber: null,
+    isActive: true,
+  },
+  {
+    id: "due-04",
+    rptPropertyId: "rpt-04",
+    taxYear: 2026,
+    basicTaxAmount: 92500,
+    sefTaxAmount: 92500,
+    penaltyAmount: 0,
+    totalAmount: 185000,
+    paymentStatus: "fully_paid",
+    paidAt: "2026-02-28T14:40:00.000Z",
+    orNumber: "OR-2026-00028",
+    isActive: true,
+  },
+  {
+    id: "due-05",
+    rptPropertyId: "rpt-05",
+    taxYear: 2026,
+    basicTaxAmount: 1900,
+    sefTaxAmount: 1900,
+    penaltyAmount: 380,
+    totalAmount: 4180,
+    paymentStatus: "unpaid",
+    paidAt: null,
+    orNumber: null,
+    isActive: true,
+  },
+  {
+    id: "due-06",
+    rptPropertyId: "rpt-06",
+    taxYear: 2026,
+    basicTaxAmount: 32500,
+    sefTaxAmount: 32500,
+    penaltyAmount: 0,
+    totalAmount: 65000,
+    paymentStatus: "partially_paid",
+    paidAt: "2026-04-12T10:00:00.000Z",
+    orNumber: "OR-2026-00067",
+    isActive: true,
+  },
+  {
+    id: "due-07",
+    rptPropertyId: "rpt-07",
+    taxYear: 2026,
+    basicTaxAmount: 120000,
+    sefTaxAmount: 120000,
+    penaltyAmount: 0,
+    totalAmount: 240000,
+    paymentStatus: "fully_paid",
+    paidAt: "2026-01-15T09:00:00.000Z",
+    orNumber: "OR-2026-00008",
+    isActive: true,
+  },
+  {
+    id: "due-08",
+    rptPropertyId: "rpt-08",
+    taxYear: 2026,
+    basicTaxAmount: 4800,
+    sefTaxAmount: 4800,
+    penaltyAmount: 0,
+    totalAmount: 9600,
+    paymentStatus: "fully_paid",
+    paidAt: "2026-03-22T13:20:00.000Z",
+    orNumber: "OR-2026-00055",
+    isActive: true,
+  },
+  {
+    id: "due-09",
+    rptPropertyId: "rpt-09",
+    taxYear: 2026,
+    basicTaxAmount: 70000,
+    sefTaxAmount: 70000,
+    penaltyAmount: 0,
+    totalAmount: 140000,
+    paymentStatus: "fully_paid",
+    paidAt: "2026-01-18T10:45:00.000Z",
+    orNumber: "OR-2026-00010",
+    isActive: true,
+  },
+  {
+    id: "due-10",
+    rptPropertyId: "rpt-10",
+    taxYear: 2026,
+    basicTaxAmount: 3200,
+    sefTaxAmount: 3200,
+    penaltyAmount: 640,
+    totalAmount: 7040,
+    paymentStatus: "unpaid",
+    paidAt: null,
+    orNumber: null,
+    isActive: true,
+  },
+  {
+    id: "due-11",
+    rptPropertyId: "rpt-11",
+    taxYear: 2026,
+    basicTaxAmount: 8400,
+    sefTaxAmount: 8400,
+    penaltyAmount: 0,
+    totalAmount: 16800,
+    paymentStatus: "exempt",
+    paidAt: null,
+    orNumber: null,
+    isActive: true,
+  },
+  {
+    id: "due-12",
+    rptPropertyId: "rpt-12",
+    taxYear: 2026,
+    basicTaxAmount: 21000,
+    sefTaxAmount: 21000,
+    penaltyAmount: 4200,
+    totalAmount: 46200,
+    paymentStatus: "unpaid",
+    paidAt: null,
+    orNumber: null,
+    isActive: true,
+  },
+];
+
 // ============================================================================
 // DILG BIMS BIPS Standard Masterlists (DILG MC No. 2025-104 Annex B)
 // ============================================================================
@@ -966,3 +2276,894 @@ export const DILG_OFFICIAL_POSITIONS: Array<{ position: string; type: "elective"
   { position: "Lupong Tagapamayapa Member", type: "appointive" },
 ];
 
+// ---------------------------------------------------------------------------
+// DISBURSEMENT BATCHES & ITEMS (FINANCE / E-WALLET)
+// ---------------------------------------------------------------------------
+
+export interface StaticBatchItem {
+  id: string;
+  batchId: string;
+  payeeName: string;
+  amountCentavos: string;
+  status: "paid" | "otc_fallback" | "pending" | "failed";
+  paidAt?: string | null;
+  remarks?: string | null;
+  walletId?: string | null;
+  inhabitantId?: string | null;
+  inhabitant?: { firstName: string; lastName: string } | null;
+  createdAt?: string;
+}
+
+export interface StaticDisbursementBatch {
+  id: string;
+  barangayId: string;
+  batchNo: string;
+  kind: "payroll_honoraria" | "ayuda_social" | "allowance_stipend" | "supplier_payment" | "emergency_aid";
+  title: string;
+  fund: "general" | "sk" | "gad" | "disaster" | "trust";
+  status: "draft" | "for_approval" | "approved" | "executing" | "completed" | "failed" | "cancelled";
+  preparedById?: string | null;
+  approvedById?: string | null;
+  approvedAt?: string | null;
+  executedAt?: string | null;
+  totalCentavos: string;
+  itemCount: number;
+  sourceNote?: string | null;
+  dvNumber?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  items?: StaticBatchItem[];
+  _count?: { items: number };
+}
+
+export const STATIC_DISBURSEMENT_ITEMS: StaticBatchItem[] = [
+  // DB-01 Items (Payroll Honoraria)
+  {
+    id: "item-db01-01",
+    batchId: "db-01",
+    inhabitantId: "inh-danilo",
+    payeeName: "Danilo M. Cruz",
+    inhabitant: { firstName: "Danilo", lastName: "Cruz" },
+    walletId: "wal-danilo",
+    amountCentavos: "1250000",
+    status: "paid",
+    paidAt: "2026-08-16T09:05:00.000Z",
+    remarks: "Tanod Executive Officer honorarium & hazard allowance",
+  },
+  {
+    id: "item-db01-02",
+    batchId: "db-01",
+    inhabitantId: "inh-mateo",
+    payeeName: "Mateo S. Gonzales",
+    inhabitant: { firstName: "Mateo", lastName: "Gonzales" },
+    walletId: "wal-mateo",
+    amountCentavos: "1000000",
+    status: "paid",
+    paidAt: "2026-08-16T09:05:00.000Z",
+    remarks: "Lupong Tagapamayapa Member mediation stipend",
+  },
+  {
+    id: "item-db01-03",
+    batchId: "db-01",
+    inhabitantId: "inh-clara",
+    payeeName: "Maria Clara B. Santos",
+    inhabitant: { firstName: "Maria Clara", lastName: "Santos" },
+    walletId: "wal-clara",
+    amountCentavos: "950000",
+    status: "paid",
+    paidAt: "2026-08-16T09:06:00.000Z",
+    remarks: "Barangay Health Worker (BHW) clinical duty allowance",
+  },
+  {
+    id: "item-db01-04",
+    batchId: "db-01",
+    inhabitantId: "inh-ricardo",
+    payeeName: "Ricardo De Jesus",
+    inhabitant: { firstName: "Ricardo", lastName: "De Jesus" },
+    walletId: "wal-ricardo",
+    amountCentavos: "850000",
+    status: "paid",
+    paidAt: "2026-08-16T09:06:00.000Z",
+    remarks: "Barangay Nutrition Scholar monthly incentive",
+  },
+  {
+    id: "item-db01-05",
+    batchId: "db-01",
+    inhabitantId: "inh-elena",
+    payeeName: "Elena Bautista",
+    inhabitant: { firstName: "Elena", lastName: "Bautista" },
+    walletId: "wal-elena",
+    amountCentavos: "900000",
+    status: "paid",
+    paidAt: "2026-08-16T09:07:00.000Z",
+    remarks: "Day Care Center Child Development Teacher subsidy",
+  },
+  {
+    id: "item-db01-06",
+    batchId: "db-01",
+    inhabitantId: null,
+    payeeName: "Fernando Alvarez",
+    inhabitant: null,
+    walletId: null,
+    amountCentavos: "800000",
+    status: "otc_fallback",
+    paidAt: "2026-08-16T14:30:00.000Z",
+    remarks: "Tanod night shift. Cash released over-the-counter via Form 51.",
+  },
+
+  // DB-02 Items (Typhoon Ayuda)
+  {
+    id: "item-db02-01",
+    batchId: "db-02",
+    inhabitantId: "inh-mateo",
+    payeeName: "Mateo S. Gonzales",
+    inhabitant: { firstName: "Mateo", lastName: "Gonzales" },
+    walletId: "wal-mateo",
+    amountCentavos: "1000000",
+    status: "paid",
+    paidAt: "2026-08-21T08:35:00.000Z",
+    remarks: "Calamity assistance — Dela Paz St., Purok 1 flood damage",
+  },
+  {
+    id: "item-db02-02",
+    batchId: "db-02",
+    inhabitantId: "inh-cristina",
+    payeeName: "Cristina Santos (Aling Tina)",
+    inhabitant: { firstName: "Cristina", lastName: "Santos" },
+    walletId: "wal-cristina",
+    amountCentavos: "1000000",
+    status: "paid",
+    paidAt: "2026-08-21T08:35:00.000Z",
+    remarks: "Calamity assistance — Gen. Cruz St. grocery stock loss",
+  },
+  {
+    id: "item-db02-03",
+    batchId: "db-02",
+    inhabitantId: null,
+    payeeName: "Domingo Carpio",
+    inhabitant: null,
+    walletId: null,
+    amountCentavos: "1000000",
+    status: "otc_fallback",
+    paidAt: "2026-08-21T11:20:00.000Z",
+    remarks: "Over-the-counter treasurer release; no registered digital wallet.",
+  },
+  {
+    id: "item-db02-04",
+    batchId: "db-02",
+    inhabitantId: "inh-danilo",
+    payeeName: "Danilo M. Cruz",
+    inhabitant: { firstName: "Danilo", lastName: "Cruz" },
+    walletId: "wal-danilo",
+    amountCentavos: "1000000",
+    status: "paid",
+    paidAt: "2026-08-21T08:36:00.000Z",
+    remarks: "Calamity assistance — J.P. Rizal St. easement zone",
+  },
+
+  // DB-03 Items (SK Stipend - for approval)
+  {
+    id: "item-db03-01",
+    batchId: "db-03",
+    inhabitantId: null,
+    payeeName: "Angela V. Reyes",
+    inhabitant: { firstName: "Angela", lastName: "Reyes" },
+    walletId: "wal-angela",
+    amountCentavos: "500000",
+    status: "pending",
+    remarks: "PLMar 3rd Year BSIT Scholar — Q1 SK Stipend",
+  },
+  {
+    id: "item-db03-02",
+    batchId: "db-03",
+    inhabitantId: null,
+    payeeName: "Mark Anthony Bautista",
+    inhabitant: { firstName: "Mark", lastName: "Bautista" },
+    walletId: "wal-mark",
+    amountCentavos: "500000",
+    status: "pending",
+    remarks: "Marikina Polytechnic College 2nd Year Scholar",
+  },
+  {
+    id: "item-db03-03",
+    batchId: "db-03",
+    inhabitantId: null,
+    payeeName: "Bea Patricia Gomez",
+    inhabitant: { firstName: "Bea", lastName: "Gomez" },
+    walletId: "wal-bea",
+    amountCentavos: "500000",
+    status: "pending",
+    remarks: "EARIST College of Engineering Scholar",
+  },
+  {
+    id: "item-db03-04",
+    batchId: "db-03",
+    inhabitantId: null,
+    payeeName: "Christian Kyle Santos",
+    inhabitant: { firstName: "Christian", lastName: "Santos" },
+    walletId: null,
+    amountCentavos: "500000",
+    status: "pending",
+    remarks: "No wallet registered — requires over-the-counter release",
+  },
+
+  // DB-04 Items (Senior Pension - for approval)
+  {
+    id: "item-db04-01",
+    batchId: "db-04",
+    inhabitantId: null,
+    payeeName: "Lourdes M. Villafuerte",
+    inhabitant: { firstName: "Lourdes", lastName: "Villafuerte" },
+    walletId: "wal-lourdes",
+    amountCentavos: "300000",
+    status: "pending",
+    remarks: "OSCA-verified indigent senior (Age 78, Purok 2)",
+  },
+  {
+    id: "item-db04-02",
+    batchId: "db-04",
+    inhabitantId: null,
+    payeeName: "Artemio P. Mercado",
+    inhabitant: { firstName: "Artemio", lastName: "Mercado" },
+    walletId: null,
+    amountCentavos: "300000",
+    status: "pending",
+    remarks: "Homebound senior (Age 82, Purok 4) — for house-to-house distribution",
+  },
+
+  // DB-05 Items (GAD Livelihood Seed Grants - approved)
+  {
+    id: "item-db05-01",
+    batchId: "db-05",
+    inhabitantId: "inh-elena",
+    payeeName: "Elena Bautista",
+    inhabitant: { firstName: "Elena", lastName: "Bautista" },
+    walletId: "wal-elena",
+    amountCentavos: "1000000",
+    status: "pending",
+    remarks: "Solo parent micro-enterprise laundry supplies grant",
+  },
+  {
+    id: "item-db05-02",
+    batchId: "db-05",
+    inhabitantId: null,
+    payeeName: "Rosanna T. Perez",
+    inhabitant: { firstName: "Rosanna", lastName: "Perez" },
+    walletId: "wal-rosanna",
+    amountCentavos: "1000000",
+    status: "pending",
+    remarks: "Food cart & pastry business seed capital",
+  },
+
+  // DB-06 Items (Supplier Payment - completed)
+  {
+    id: "item-db06-01",
+    batchId: "db-06",
+    inhabitantId: null,
+    payeeName: "MegaPrime Hardware & Const. Supplies Corp.",
+    inhabitant: null,
+    walletId: "wal-megaprime",
+    amountCentavos: "6450000",
+    status: "paid",
+    paidAt: "2026-08-19T15:00:00.000Z",
+    remarks: "Settlement for PO #2026-08-041 (Day Care & Health Center Drainage)",
+  },
+];
+
+export const STATIC_DISBURSEMENT_BATCHES: StaticDisbursementBatch[] = [
+  {
+    id: "db-01",
+    barangayId: STATIC_BARANGAY_ID,
+    batchNo: "DB-2026-0001",
+    kind: "payroll_honoraria",
+    title: "Honoraria & Hazard Pay — Barangay Tanods, Lupon & BHWs (August 2026)",
+    fund: "general",
+    status: "completed",
+    preparedById: "usr-treasurer",
+    approvedById: "usr-pb",
+    approvedAt: "2026-08-15T14:30:00.000Z",
+    executedAt: "2026-08-16T09:00:00.000Z",
+    totalCentavos: "18500000",
+    itemCount: 20,
+    sourceNote: "Regular monthly honoraria & night patrol hazard compensation under Ordinance No. 2026-02.",
+    dvNumber: "DV-2026-08-042",
+    createdAt: "2026-08-15T08:00:00.000Z",
+    updatedAt: "2026-08-16T09:00:00.000Z",
+  },
+  {
+    id: "db-02",
+    barangayId: STATIC_BARANGAY_ID,
+    batchNo: "DB-2026-0002",
+    kind: "ayuda_social",
+    title: "Emergency Calamity Financial Aid (Ayuda) — Riverbanks Flood Relief",
+    fund: "disaster",
+    status: "completed",
+    preparedById: "usr-treasurer",
+    approvedById: "usr-pb",
+    approvedAt: "2026-08-20T16:00:00.000Z",
+    executedAt: "2026-08-21T08:30:00.000Z",
+    totalCentavos: "30000000",
+    itemCount: 30,
+    sourceNote: "LDRRMC Resolution 08-2026: ₱10,000 emergency assistance per severely inundated household (Purok 1, 4, 7).",
+    dvNumber: "DV-DRRM-2026-011",
+    createdAt: "2026-08-20T10:00:00.000Z",
+    updatedAt: "2026-08-21T08:30:00.000Z",
+  },
+  {
+    id: "db-03",
+    barangayId: STATIC_BARANGAY_ID,
+    batchNo: "DB-2026-0003",
+    kind: "allowance_stipend",
+    title: "Sangguniang Kabataan (SK) Academic Incentive & Tertiary Stipend — Term 1",
+    fund: "sk",
+    status: "for_approval",
+    preparedById: "usr-treasurer",
+    approvedById: null,
+    totalCentavos: "9000000",
+    itemCount: 18,
+    sourceNote: "Barangay Barangka SK Scholarship Grant (₱5,000 per scholar) for enrolled college students.",
+    createdAt: "2026-09-02T11:15:00.000Z",
+    updatedAt: "2026-09-02T11:15:00.000Z",
+  },
+  {
+    id: "db-04",
+    barangayId: STATIC_BARANGAY_ID,
+    batchNo: "DB-2026-0004",
+    kind: "ayuda_social",
+    title: "Quarterly Social Pension Subsidy for Indigent Seniors (Q3 2026)",
+    fund: "general",
+    status: "for_approval",
+    preparedById: "usr-treasurer",
+    approvedById: null,
+    totalCentavos: "7500000",
+    itemCount: 25,
+    sourceNote: "OSCA-verified indigent senior citizens (75+ yrs old) at ₱3,000 per beneficiary.",
+    createdAt: "2026-09-05T09:45:00.000Z",
+    updatedAt: "2026-09-05T09:45:00.000Z",
+  },
+  {
+    id: "db-05",
+    barangayId: STATIC_BARANGAY_ID,
+    batchNo: "DB-2026-0005",
+    kind: "allowance_stipend",
+    title: "Gender and Development (GAD) Livelihood Seed Grants for Solo Parents",
+    fund: "gad",
+    status: "approved",
+    preparedById: "usr-treasurer",
+    approvedById: "usr-pb",
+    approvedAt: "2026-09-09T10:00:00.000Z",
+    totalCentavos: "12000000",
+    itemCount: 12,
+    sourceNote: "GAD Statutory Fund: ₱10,000 micro-enterprise capital assistance for registered solo mothers.",
+    createdAt: "2026-09-08T13:20:00.000Z",
+    updatedAt: "2026-09-09T10:00:00.000Z",
+  },
+  {
+    id: "db-06",
+    barangayId: STATIC_BARANGAY_ID,
+    batchNo: "DB-2026-0006",
+    kind: "supplier_payment",
+    title: "Procurement of Repair Materials — Day Care & Health Center Drainage",
+    fund: "general",
+    status: "completed",
+    preparedById: "usr-treasurer",
+    approvedById: "usr-pb",
+    approvedAt: "2026-08-19T09:30:00.000Z",
+    executedAt: "2026-08-19T15:00:00.000Z",
+    totalCentavos: "6450000",
+    itemCount: 1,
+    sourceNote: "Purchase Order #2026-08-041; Payee: MegaPrime Hardware & Construction Supplies Corp.",
+    dvNumber: "DV-2026-08-041",
+    createdAt: "2026-08-18T14:00:00.000Z",
+    updatedAt: "2026-08-19T15:00:00.000Z",
+  },
+  {
+    id: "db-07",
+    barangayId: STATIC_BARANGAY_ID,
+    batchNo: "DB-2026-0007",
+    kind: "payroll_honoraria",
+    title: "TUPAD Community Public Sanitation & Canal De-clogging Workers",
+    fund: "general",
+    status: "draft",
+    preparedById: "usr-treasurer",
+    totalCentavos: "4500000",
+    itemCount: 9,
+    sourceNote: "10-day emergency public sanitation work along river easement zone.",
+    createdAt: "2026-09-10T16:00:00.000Z",
+    updatedAt: "2026-09-10T16:00:00.000Z",
+  },
+  {
+    id: "db-08",
+    barangayId: STATIC_BARANGAY_ID,
+    batchNo: "DB-2026-0008",
+    kind: "allowance_stipend",
+    title: "BDRRMC Emergency First Responder & Flood Duty Allowance",
+    fund: "disaster",
+    status: "completed",
+    preparedById: "usr-treasurer",
+    approvedById: "usr-pb",
+    approvedAt: "2026-09-01T11:00:00.000Z",
+    executedAt: "2026-09-01T15:30:00.000Z",
+    totalCentavos: "3600000",
+    itemCount: 8,
+    sourceNote: "Quarterly flood response duty and rescue operations honorarium.",
+    dvNumber: "DV-DRRM-2026-015",
+    createdAt: "2026-09-01T08:30:00.000Z",
+    updatedAt: "2026-09-01T15:30:00.000Z",
+  },
+];
+
+// ============================================================================
+// BARANGAY ASSETS, PROPERTIES & MATERIALS INVENTORY (LGC §375)
+// ============================================================================
+
+export interface StaticProperty {
+  id: string;
+  barangayId: string;
+  name: string;
+  type: "infrastructure" | "non_infrastructure";
+  status: "operational" | "under_maintenance" | "damaged" | "disposed";
+  category: string;
+  capacity: number;
+  custodian?: string | null;
+  addressLine?: string | null;
+  description?: string | null;
+  acquiredAt?: string | null;
+  acquisitionCost?: number | null;
+  isEvacuationCenter?: boolean;
+  source?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaticMaterial {
+  id: string;
+  barangayId: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  reorderLevel: number;
+  location?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const STATIC_PROPERTIES: StaticProperty[] = [
+  {
+    id: "prop-01",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "BARANGAY HALL & MULTI-PURPOSE COMPLEX",
+    type: "infrastructure",
+    status: "operational",
+    category: "Good Fiscal or Financial Administration or Fiscal Sustainability",
+    capacity: 350,
+    custodian: "Hon. Ernesto Dela Cruz (Punong Barangay)",
+    addressLine: "J.P. Rizal St., Brgy. Barangka, Marikina City",
+    description: "Main administrative government center housing Session Hall, PB Office, Treasury, Lupong Tagapamayapa, and BDRRM Operations Desk.",
+    acquiredAt: "2018-03-15T08:00:00.000Z",
+    acquisitionCost: 18500000,
+    isEvacuationCenter: true,
+    source: "CBMS",
+    createdAt: "2018-03-15T08:00:00.000Z",
+    updatedAt: "2026-08-20T10:00:00.000Z",
+  },
+  {
+    id: "prop-02",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "BARANGAY COVERED COURT & DISASTER EVACUATION CENTER",
+    type: "infrastructure",
+    status: "operational",
+    category: "Disaster Preparedness",
+    capacity: 800,
+    custodian: "Danilo Ramos (BDRRMC Action Officer)",
+    addressLine: "A. Bonifacio Ave., Brgy. Barangka, Marikina City",
+    description: "Designated Tier-1 high-ground evacuation sanctuary with overhead shower partitions, dual backup power inlets, and community sports facilities.",
+    acquiredAt: "2020-09-10T10:00:00.000Z",
+    acquisitionCost: 12800000,
+    isEvacuationCenter: true,
+    source: "CBMS",
+    createdAt: "2020-09-10T10:00:00.000Z",
+    updatedAt: "2026-08-22T14:30:00.000Z",
+  },
+  {
+    id: "prop-03",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "PRIMARY HEALTH CLINIC & BIRTHING STATION",
+    type: "infrastructure",
+    status: "operational",
+    category: "Health Compliance and Responsiveness",
+    capacity: 120,
+    custodian: "Dr. Carmela Santos (MHO Lead Physician)",
+    addressLine: "Health Compound, A. Bonifacio St., Brgy. Barangka",
+    description: "DOH-accredited primary medical and maternal healthcare unit with cold-chain vaccine storage and triage zone.",
+    acquiredAt: "2019-06-20T09:00:00.000Z",
+    acquisitionCost: 9200000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2019-06-20T09:00:00.000Z",
+    updatedAt: "2026-08-15T11:00:00.000Z",
+  },
+  {
+    id: "prop-04",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "EARLY CHILDHOOD DEVELOPMENT & DAY CARE CENTER",
+    type: "infrastructure",
+    status: "operational",
+    category: "Social Protection and Sensitivity Program",
+    capacity: 60,
+    custodian: "Elena Reyes (Child Development Worker)",
+    addressLine: "Purok 2 Elementary School Lane, Brgy. Barangka",
+    description: "Inclusive early education facility serving 3-5 year old children from low-income households with nutritional feeding counter.",
+    acquiredAt: "2021-02-14T08:00:00.000Z",
+    acquisitionCost: 4500000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2021-02-14T08:00:00.000Z",
+    updatedAt: "2026-07-28T09:30:00.000Z",
+  },
+  {
+    id: "prop-05",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "MATERIALS RECOVERY FACILITY (MRF) & ECO-HUB",
+    type: "infrastructure",
+    status: "operational",
+    category: "Environmental Management",
+    capacity: 50,
+    custodian: "Fernando Cruz (Solid Waste Management Supervisor)",
+    addressLine: "Riverside Access Road, Zone 4",
+    description: "Solid waste segregation shed, compost shredding station, and plastic bottle baling equipment per RA 9003.",
+    acquiredAt: "2022-04-18T11:00:00.000Z",
+    acquisitionCost: 3200000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2022-04-18T11:00:00.000Z",
+    updatedAt: "2026-08-10T16:00:00.000Z",
+  },
+  {
+    id: "prop-06",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "COMMUNITY POLICE ACTION & TANOD SECURITY OUTPOST",
+    type: "infrastructure",
+    status: "operational",
+    category: "Peace and Order",
+    capacity: 25,
+    custodian: "Rodolfo Magno (Chief Tanod / Security Officer)",
+    addressLine: "Junction Marcos Highway & J.P. Rizal St.",
+    description: "24/7 strategic peace-and-order monitoring hub with radio dispatch relay and holding bench.",
+    acquiredAt: "2021-11-05T14:00:00.000Z",
+    acquisitionCost: 1850000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2021-11-05T14:00:00.000Z",
+    updatedAt: "2026-08-05T12:00:00.000Z",
+  },
+  {
+    id: "prop-07",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "MARIKINA RIVER FLOOD MITIGATION PUMPING STATION #1",
+    type: "infrastructure",
+    status: "operational",
+    category: "Disaster Preparedness",
+    capacity: 15,
+    custodian: "Engr. Manuel Soriano (Flood Mitigation Officer)",
+    addressLine: "Marikina Riverbanks Dike Station 3",
+    description: "High-capacity dual axial flow submersible flood pumps serving low-lying catchment areas.",
+    acquiredAt: "2021-07-22T08:30:00.000Z",
+    acquisitionCost: 14750000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2021-07-22T08:30:00.000Z",
+    updatedAt: "2026-09-02T10:00:00.000Z",
+  },
+  {
+    id: "prop-08",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "BARANGAY LIVELIHOOD & WOMEN'S SKILLS TRAINING CENTER",
+    type: "infrastructure",
+    status: "operational",
+    category: "Social Protection and Sensitivity Program",
+    capacity: 80,
+    custodian: "Rosario Gomez (GAD Focal Person)",
+    addressLine: "3rd Floor, Annex Bldg., Barangay Complex",
+    description: "GAD-funded facility equipped with commercial sewing machines, baking ovens, and soap-making workshop tables.",
+    acquiredAt: "2022-10-10T13:00:00.000Z",
+    acquisitionCost: 5600000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2022-10-10T13:00:00.000Z",
+    updatedAt: "2026-08-18T15:00:00.000Z",
+  },
+  {
+    id: "prop-09",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "SENIOR CITIZENS & PWD MULTI-PURPOSE ACTIVITY PAVILION",
+    type: "infrastructure",
+    status: "operational",
+    category: "Social Protection and Sensitivity Program",
+    capacity: 150,
+    custodian: "Lualhati Mendoza (OSCA Barangay Coordinator)",
+    addressLine: "Purok 3 Green Park Compound",
+    description: "Wheelchair-accessible community pavilion with senior physical therapy equipment, social hall, and pension disbursement station.",
+    acquiredAt: "2023-01-20T09:15:00.000Z",
+    acquisitionCost: 4800000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2023-01-20T09:15:00.000Z",
+    updatedAt: "2026-08-12T11:45:00.000Z",
+  },
+  {
+    id: "prop-10",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "TOYOTA HILUX 4X4 EMERGENCY PATROL & RESCUE VEHICLE",
+    type: "non_infrastructure",
+    status: "operational",
+    category: "Peace and Order",
+    capacity: 6,
+    custodian: "Rodolfo Magno (Chief Tanod)",
+    addressLine: "Barangay Hall Motorpool Bay 1",
+    description: "Plate: SAA-4892. Outfitted with LED lightbar, PA amplifier, heavy-duty winch, searchlights, and medical first-response kit.",
+    acquiredAt: "2022-03-12T10:00:00.000Z",
+    acquisitionCost: 1950000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2022-03-12T10:00:00.000Z",
+    updatedAt: "2026-09-01T08:00:00.000Z",
+  },
+  {
+    id: "prop-11",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "TYPE II FULLY EQUIPPED EMERGENCY MEDICAL AMBULANCE",
+    type: "non_infrastructure",
+    status: "operational",
+    category: "Health Compliance and Responsiveness",
+    capacity: 4,
+    custodian: "Katrina Aquino (Emergency Medical Head / BHW Lead)",
+    addressLine: "Health Center Ambulance Bay",
+    description: "Plate: SAA-3190. Equipped with stretcher, suction pump, portable ventilator, cardiac monitor, and oxygen manifold.",
+    acquiredAt: "2021-08-15T09:00:00.000Z",
+    acquisitionCost: 2850000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2021-08-15T09:00:00.000Z",
+    updatedAt: "2026-08-30T14:20:00.000Z",
+  },
+  {
+    id: "prop-12",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "HEAVY-DUTY ALUMINUM RESCUE BOATS WITH 40HP OUTBOARD MOTOR (SET OF 2)",
+    type: "non_infrastructure",
+    status: "operational",
+    category: "Disaster Preparedness",
+    capacity: 12,
+    custodian: "Danilo Ramos (BDRRMC Action Officer)",
+    addressLine: "Riverbank Staging Shed Station B",
+    description: "Rigid-hull aluminum flood rescue watercraft with Yamaha 40HP 2-stroke outboard engine, oars, life jackets, and throw bags.",
+    acquiredAt: "2023-05-18T14:30:00.000Z",
+    acquisitionCost: 980000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2023-05-18T14:30:00.000Z",
+    updatedAt: "2026-08-25T16:00:00.000Z",
+  },
+  {
+    id: "prop-13",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "CUMMINS 75KVA SILENT DIESEL STANDBY GENERATOR",
+    type: "non_infrastructure",
+    status: "operational",
+    category: "Good Fiscal or Financial Administration or Fiscal Sustainability",
+    capacity: 0,
+    custodian: "Roberto Valenzuela (Building Maintenance Head)",
+    addressLine: "Hall Utility Yard Power Enclosure",
+    description: "Auto-transfer switch (ATS) soundproof generator supplying backup power to Barangay Hall, Health Clinic, and CCTV Command Center.",
+    acquiredAt: "2020-11-02T11:00:00.000Z",
+    acquisitionCost: 1450000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2020-11-02T11:00:00.000Z",
+    updatedAt: "2026-08-28T10:15:00.000Z",
+  },
+  {
+    id: "prop-14",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "ISUZU ELF 6-WHEELER HYDRAULIC COMPACTOR GARBAGE TRUCK",
+    type: "non_infrastructure",
+    status: "operational",
+    category: "Environmental Management",
+    capacity: 3,
+    custodian: "Fernando Cruz (Solid Waste Management Supervisor)",
+    addressLine: "Motorpool Bay 3",
+    description: "Plate: NBE-8821. 6-cubic meter rear-loading hydraulic compactor truck serving daily Purok segregation routes.",
+    acquiredAt: "2021-06-25T08:00:00.000Z",
+    acquisitionCost: 3400000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2021-06-25T08:00:00.000Z",
+    updatedAt: "2026-09-03T11:00:00.000Z",
+  },
+  {
+    id: "prop-15",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "FEDERAL SIGNAL COMMUNITY EARLY WARNING SIREN SYSTEM",
+    type: "non_infrastructure",
+    status: "operational",
+    category: "Disaster Preparedness",
+    capacity: 0,
+    custodian: "Danilo Ramos (BDRRMC Action Officer)",
+    addressLine: "Barangay Hall Roofdeck Tower",
+    description: "128dB multi-tone omnidirectional electronic flood warning siren network with wireless radio trigger and solar backup.",
+    acquiredAt: "2022-09-08T15:00:00.000Z",
+    acquisitionCost: 650000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2022-09-08T15:00:00.000Z",
+    updatedAt: "2026-08-14T09:00:00.000Z",
+  },
+  {
+    id: "prop-16",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "HIGH-DEFINITION CCTV CENTRAL COMMAND & SURVEILLANCE CONSOLE",
+    type: "non_infrastructure",
+    status: "operational",
+    category: "Peace and Order",
+    capacity: 8,
+    custodian: "Mark Villanueva (IT & CCTV Supervisor)",
+    addressLine: "2nd Floor Command Operations Center",
+    description: "32-channel 4K NVR matrix with 64TB NAS storage, 6 wall display screens, and PTZ controllers covering critical intersections.",
+    acquiredAt: "2023-03-14T10:30:00.000Z",
+    acquisitionCost: 2100000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2023-03-14T10:30:00.000Z",
+    updatedAt: "2026-08-20T17:00:00.000Z",
+  },
+  {
+    id: "prop-17",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "AUTOMATED EXTERNAL DEFIBRILLATOR (AED) PORTABLE UNITS (3 UNITS)",
+    type: "non_infrastructure",
+    status: "operational",
+    category: "Health Compliance and Responsiveness",
+    capacity: 0,
+    custodian: "Katrina Aquino (Emergency Medical Head)",
+    addressLine: "Hall Lobby, Covered Court, Clinic",
+    description: "Philips HeartStart bilingual CPR-assist AED units mounted in alarmed quick-access wall enclosures.",
+    acquiredAt: "2023-06-11T13:00:00.000Z",
+    acquisitionCost: 360000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2023-06-11T13:00:00.000Z",
+    updatedAt: "2026-07-30T10:00:00.000Z",
+  },
+  {
+    id: "prop-18",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "KUBOTA EMERGENCY DRAINAGE DEWATERING SUBMERSIBLE PUMP",
+    type: "non_infrastructure",
+    status: "under_maintenance",
+    category: "Disaster Preparedness",
+    capacity: 0,
+    custodian: "Engr. Manuel Soriano (Flood Mitigation Officer)",
+    addressLine: "Equipment Depot Bay 2",
+    description: "3-inch portable diesel trash pump for alleyway flood pocket de-clogging and street drainage flushing. Undergoing routine seal servicing.",
+    acquiredAt: "2022-08-30T16:00:00.000Z",
+    acquisitionCost: 520000,
+    isEvacuationCenter: false,
+    source: "CBMS",
+    createdAt: "2022-08-30T16:00:00.000Z",
+    updatedAt: "2026-09-08T09:00:00.000Z",
+  },
+];
+
+export const STATIC_MATERIALS: StaticMaterial[] = [
+  {
+    id: "mat-01",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "Emergency Family Food Packs (6kg Rice, Canned Goods, Coffee, Biscuits)",
+    unit: "boxes",
+    quantity: 450,
+    reorderLevel: 200,
+    location: "DRRM Relief Warehouse Bay A",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-09-05T14:30:00.000Z",
+  },
+  {
+    id: "mat-02",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "Trauma & First Aid Emergency Response Medical Kits",
+    unit: "kits",
+    quantity: 35,
+    reorderLevel: 50,
+    location: "Health Center Medical Stockroom",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-09-10T11:00:00.000Z",
+  },
+  {
+    id: "mat-03",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "Heavy-Duty Adult Life Vests with SOLAS Whistle",
+    unit: "pcs",
+    quantity: 180,
+    reorderLevel: 100,
+    location: "River Rescue Staging Bay",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-08-28T16:00:00.000Z",
+  },
+  {
+    id: "mat-04",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "High-Lumen Rechargeable LED Searchlights with Beacon",
+    unit: "units",
+    quantity: 24,
+    reorderLevel: 15,
+    location: "Tanod Equipment Locker",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-08-15T10:00:00.000Z",
+  },
+  {
+    id: "mat-05",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "Heavy-Duty Woven Polypropylene Flood Sandbags",
+    unit: "sacks",
+    quantity: 1200,
+    reorderLevel: 500,
+    location: "Flood Mitigation Depot",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-09-02T13:20:00.000Z",
+  },
+  {
+    id: "mat-06",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "Emergency Family Hygiene & Sanitation Kits",
+    unit: "kits",
+    quantity: 85,
+    reorderLevel: 100,
+    location: "DSWD Barangay Storage Shelf 2",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-09-08T15:40:00.000Z",
+  },
+  {
+    id: "mat-07",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "Calcium Hypochlorite 70% Water Purification Chemical Drums (45kg)",
+    unit: "drums",
+    quantity: 12,
+    reorderLevel: 8,
+    location: "Health Sanitation Chemical Vault",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-08-20T09:15:00.000Z",
+  },
+  {
+    id: "mat-08",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "Stihl MS-382 Heavy-Duty Gasoline Rescue Chainsaws",
+    unit: "units",
+    quantity: 4,
+    reorderLevel: 3,
+    location: "DRRM Power Tools Rack",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-08-10T14:00:00.000Z",
+  },
+  {
+    id: "mat-09",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "Waterproof High-Visibility BDRRMC Responder Rain Suits & Boots",
+    unit: "sets",
+    quantity: 42,
+    reorderLevel: 30,
+    location: "Volunteer Depot Locker C",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-08-25T11:30:00.000Z",
+  },
+  {
+    id: "mat-10",
+    barangayId: STATIC_BARANGAY_ID,
+    name: "Unleaded Fuel & Low-Sulfur Diesel Strategic Generator Reserve",
+    unit: "drums (200L)",
+    quantity: 6,
+    reorderLevel: 10,
+    location: "Motorpool Fuel Bunker",
+    createdAt: "2026-08-01T08:00:00.000Z",
+    updatedAt: "2026-09-09T16:00:00.000Z",
+  },
+];

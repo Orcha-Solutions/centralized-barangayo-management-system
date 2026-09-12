@@ -438,6 +438,7 @@ export interface DisbursementBatch {
   totalCentavos: string;
   itemCount: number;
   sourceNote?: string | null;
+  dvNumber?: string | null;
   createdAt: string;
   items?: BatchItem[];
   _count?: { items: number };

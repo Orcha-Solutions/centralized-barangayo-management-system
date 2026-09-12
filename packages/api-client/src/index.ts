@@ -74,6 +74,15 @@ import {
   STATIC_BLOTTER_ENTRIES,
   STATIC_KP_CASES,
   STATIC_SOS_ALERTS,
+  STATIC_LEDGER_ENTRIES,
+  STATIC_OFFICIAL_RECEIPTS,
+  STATIC_BUDGETS,
+  STATIC_RPT_PROPERTIES,
+  STATIC_RPT_TAX_DUES,
+  STATIC_DISBURSEMENT_BATCHES,
+  STATIC_DISBURSEMENT_ITEMS,
+  STATIC_PROPERTIES,
+  STATIC_MATERIALS,
 } from "./staticData";
 
 export * from "./staticData";
@@ -130,6 +139,42 @@ function getStore(): Record<string, any[]> {
       ...STATIC_SOS_ALERTS,
       ...(initializedStore.SosAlert || []).filter(x => !STATIC_SOS_ALERTS.some(s => s.id === x.id))
     ];
+    initializedStore.LedgerEntry = [
+      ...STATIC_LEDGER_ENTRIES,
+      ...(initializedStore.LedgerEntry || []).filter(x => !STATIC_LEDGER_ENTRIES.some(s => s.id === x.id))
+    ];
+    initializedStore.OfficialReceipt = [
+      ...STATIC_OFFICIAL_RECEIPTS,
+      ...(initializedStore.OfficialReceipt || []).filter(x => !STATIC_OFFICIAL_RECEIPTS.some(s => s.id === x.id))
+    ];
+    initializedStore.Budget = [
+      ...STATIC_BUDGETS,
+      ...(initializedStore.Budget || []).filter(x => !STATIC_BUDGETS.some(s => s.id === x.id))
+    ];
+    initializedStore.RptProperty = [
+      ...STATIC_RPT_PROPERTIES,
+      ...(initializedStore.RptProperty || []).filter(x => !STATIC_RPT_PROPERTIES.some(s => s.id === x.id))
+    ];
+    initializedStore.RptTaxDue = [
+      ...STATIC_RPT_TAX_DUES,
+      ...(initializedStore.RptTaxDue || []).filter(x => !STATIC_RPT_TAX_DUES.some(s => s.id === x.id))
+    ];
+    initializedStore.DisbursementBatch = [
+      ...STATIC_DISBURSEMENT_BATCHES,
+      ...(initializedStore.DisbursementBatch || []).filter(x => !STATIC_DISBURSEMENT_BATCHES.some(s => s.id === x.id))
+    ];
+    initializedStore.DisbursementBatchItem = [
+      ...STATIC_DISBURSEMENT_ITEMS,
+      ...(initializedStore.DisbursementBatchItem || []).filter(x => !STATIC_DISBURSEMENT_ITEMS.some(s => s.id === x.id))
+    ];
+    initializedStore.Property = [
+      ...STATIC_PROPERTIES,
+      ...(initializedStore.Property || []).filter(x => !STATIC_PROPERTIES.some(s => s.id === x.id))
+    ];
+    initializedStore.Material = [
+      ...STATIC_MATERIALS,
+      ...(initializedStore.Material || []).filter(x => !STATIC_MATERIALS.some(s => s.id === x.id))
+    ];
 
     _inMemoryStore = initializedStore;
   }
@@ -148,7 +193,9 @@ function saveStore(store: Record<string, any[]>) {
       SosAlert: store.SosAlert,
       Household: store.Household,
       Concern: store.Concern,
-      Appointment: store.Appointment
+      Appointment: store.Appointment,
+      Property: store.Property,
+      Material: store.Material
     };
     window.localStorage.setItem("cbms.mutations", JSON.stringify(delta));
   } catch {}
@@ -157,10 +204,10 @@ function saveStore(store: Record<string, any[]>) {
 const ROLE_PERMISSIONS_MOCK: Record<string, string[]> = {
   SYSTEM_ADMIN: ["*"],
   PUNONG_BARANGAY: ["*"],
-  LGU_ADMIN: ["inhabitants:view", "issuance:view", "kp:view", "property:view", "disaster:view", "gad:view", "legislation:view", "devplan:view", "institutions:view", "finance:view", "wallet:manage", "concerns:view", "feedback:view", "reports:view", "admin:view", "admin:approve", "admin:configure", "ai:view"],
-  BARANGAY_SECRETARY: ["inhabitants:view", "inhabitants:create", "inhabitants:edit", "issuance:view", "issuance:create", "issuance:edit", "appointments:view", "concerns:view", "legislation:view", "announcements:view", "reports:view", "kp:view", "blotter:view"],
+  LGU_ADMIN: ["inhabitants:view", "issuance:view", "kp:view", "property:view", "property:encode", "disaster:view", "gad:view", "legislation:view", "devplan:view", "institutions:view", "finance:view", "wallet:manage", "concerns:view", "feedback:view", "reports:view", "admin:view", "admin:approve", "admin:configure", "ai:view"],
+  BARANGAY_SECRETARY: ["inhabitants:view", "inhabitants:create", "inhabitants:edit", "issuance:view", "issuance:create", "issuance:edit", "appointments:view", "concerns:view", "legislation:view", "announcements:view", "reports:view", "kp:view", "blotter:view", "property:view", "property:encode"],
   BDC_OFFICER: ["devplan:view", "devplan:create", "devplan:edit", "institutions:view", "reports:view"],
-  BDRRMC_OFFICER: ["disaster:view", "disaster:create", "sos:view", "property:view"],
+  BDRRMC_OFFICER: ["disaster:view", "disaster:create", "sos:view", "property:view", "property:encode"],
   VAW_DESK_OFFICER: [
     "blotter:view",
     "blotter:create",
@@ -169,7 +216,7 @@ const ROLE_PERMISSIONS_MOCK: Record<string, string[]> = {
     "vawc:encode"
   ],
   LUPON_SECRETARY: ["kp:view", "kp:create", "kp:edit", "blotter:view"],
-  BARANGAY_TREASURER: ["finance:view", "wallet:manage", "property:view", "issuance:view"],
+  BARANGAY_TREASURER: ["finance:view", "wallet:manage", "property:view", "property:encode", "issuance:view"],
   TANOD: ["sos:view", "sos:respond", "kp:view", "blotter:view", "concerns:view"],
   BHW: ["inhabitants:view", "health:view"],
   SK_OFFICIAL: ["devplan:view", "institutions:view", "announcements:view"],
@@ -609,6 +656,7 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
     if (!item) {
       throw new Error("Blotter entry not found.");
     }
+    const body = opts.body ? JSON.parse(opts.body as string) : {};
     const newAction = {
       id: `act-${Date.now()}`,
       actionTaken: body?.actionTaken || "Action Recorded",
@@ -675,13 +723,117 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
     };
   }
 
-  // 7. Properties & Concerns
+  // 7. Properties & Materials & Concerns
+  const propSingleMatch = cleanPath.match(/^\/properties\/([^/]+)$/);
+  if (propSingleMatch && method === "GET") {
+    const id = propSingleMatch[1];
+    const list = store.Property || STATIC_PROPERTIES;
+    const item = list.find((p: any) => p.id === id);
+    if (!item) return null;
+    return {
+      ...item,
+      acquisitionCost: typeof item.acquisitionCost === "object" && item.acquisitionCost !== null
+        ? Number(item.acquisitionCost.value)
+        : (item.acquisitionCost !== undefined && item.acquisitionCost !== null ? Number(item.acquisitionCost) : null),
+      capacity: Number(item.capacity) || 0,
+    };
+  }
+
   if (cleanPath === "/properties" && method === "GET") {
-    let list = store.Property || [];
-    if (currentUser.barangayId) {
-      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    const queryString = path.includes("?") ? path.split("?")[1] : "";
+    const queryParams = new URLSearchParams(queryString);
+    const q = (queryParams.get("q") || "").toLowerCase().trim();
+    const type = queryParams.get("type") || "all";
+    const status = queryParams.get("status") || "all";
+    const page = parseInt(queryParams.get("page") || "1", 10);
+    const pageSize = parseInt(queryParams.get("pageSize") || "25", 10);
+
+    let list = (store.Property || STATIC_PROPERTIES) as any[];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filteredByBrgy = list.filter(x => !x.barangayId || x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filteredByBrgy.length > 0) list = filteredByBrgy;
     }
-    return list;
+
+    list = list.map(item => ({
+      ...item,
+      acquisitionCost: typeof item.acquisitionCost === "object" && item.acquisitionCost !== null
+        ? Number(item.acquisitionCost.value)
+        : (item.acquisitionCost !== undefined && item.acquisitionCost !== null ? Number(item.acquisitionCost) : null),
+      capacity: Number(item.capacity) || 0,
+    }));
+
+    if (type !== "all") {
+      list = list.filter(x => x.type === type);
+    }
+    if (status !== "all") {
+      list = list.filter(x => x.status === status);
+    }
+    if (q) {
+      list = list.filter(x =>
+        (x.name && x.name.toLowerCase().includes(q)) ||
+        (x.category && x.category.toLowerCase().includes(q)) ||
+        (x.custodian && x.custodian.toLowerCase().includes(q)) ||
+        (x.addressLine && x.addressLine.toLowerCase().includes(q)) ||
+        (x.description && x.description.toLowerCase().includes(q))
+      );
+    }
+
+    const total = list.length;
+    const startIndex = (page - 1) * pageSize;
+    const items = list.slice(startIndex, startIndex + pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  const matSingleMatch = cleanPath.match(/^\/materials\/([^/]+)$/);
+  if (matSingleMatch && method === "GET") {
+    const id = matSingleMatch[1];
+    const list = store.Material || STATIC_MATERIALS;
+    return list.find((m: any) => m.id === id) || null;
+  }
+
+  if (cleanPath === "/materials" && method === "GET") {
+    const queryString = path.includes("?") ? path.split("?")[1] : "";
+    const queryParams = new URLSearchParams(queryString);
+    const q = (queryParams.get("q") || "").toLowerCase().trim();
+    const page = parseInt(queryParams.get("page") || "1", 10);
+    const pageSize = parseInt(queryParams.get("pageSize") || "100", 10);
+
+    let list = (store.Material || STATIC_MATERIALS) as any[];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filteredByBrgy = list.filter(x => !x.barangayId || x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filteredByBrgy.length > 0) list = filteredByBrgy;
+    }
+
+    list = list.map(item => ({
+      ...item,
+      quantity: Number(item.quantity) || 0,
+      reorderLevel: Number(item.reorderLevel) || 0,
+    }));
+
+    if (q) {
+      list = list.filter(x =>
+        (x.name && x.name.toLowerCase().includes(q)) ||
+        (x.location && x.location.toLowerCase().includes(q)) ||
+        (x.unit && x.unit.toLowerCase().includes(q))
+      );
+    }
+
+    const total = list.length;
+    const startIndex = (page - 1) * pageSize;
+    const items = list.slice(startIndex, startIndex + pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   if (cleanPath === "/concerns" && method === "GET") {
@@ -730,7 +882,417 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
   }
 
   if (cleanPath === "/wallet/batches" && method === "GET") {
-    return store.DisbursementBatch || [];
+    let list = (store.DisbursementBatch || STATIC_DISBURSEMENT_BATCHES) as any[];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filtered = list.filter(x => !x.barangayId || x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filtered.length > 0) list = filtered;
+    }
+    const allItems = store.DisbursementBatchItem || STATIC_DISBURSEMENT_ITEMS;
+    list = list.map(b => {
+      const rawItems = b.items || allItems.filter((i: any) => i.batchId === b.id);
+      const items = rawItems.map((it: any) => ({
+        ...it,
+        amountCentavos: String(it.amountCentavos || "0").replace(/n$/, "")
+      }));
+      return {
+        ...b,
+        totalCentavos: String(b.totalCentavos || "0").replace(/n$/, ""),
+        itemCount: items.length || b.itemCount || 0,
+        items,
+        _count: { items: items.length || b.itemCount || 0 }
+      };
+    });
+    return { items: list };
+  }
+
+  const batchDetailMatch = cleanPath.match(/^\/wallet\/batches\/([^/]+)$/);
+  if (batchDetailMatch && method === "GET") {
+    const id = batchDetailMatch[1];
+    const list = (store.DisbursementBatch || STATIC_DISBURSEMENT_BATCHES) as any[];
+    const batch = list.find((b: any) => b.id === id || b.batchNo === id);
+    if (!batch) return null;
+    const allItems = store.DisbursementBatchItem || STATIC_DISBURSEMENT_ITEMS;
+    const items = (batch.items || allItems.filter((i: any) => i.batchId === batch.id)).map((it: any) => ({
+      ...it,
+      amountCentavos: String(it.amountCentavos || "0").replace(/n$/, "")
+    }));
+    return {
+      ...batch,
+      totalCentavos: String(batch.totalCentavos || "0").replace(/n$/, ""),
+      items,
+      itemCount: items.length || batch.itemCount || 0,
+      _count: { items: items.length || batch.itemCount || 0 }
+    };
+  }
+
+  if (cleanPath === "/wallet/batches" && method === "POST") {
+    const body = opts.body ? JSON.parse(opts.body as string) : {};
+    const existing = store.DisbursementBatch || STATIC_DISBURSEMENT_BATCHES;
+    const nextNum = 100 + existing.length + 1;
+    const batchNo = `DB-2026-00${nextNum}`;
+    const batchId = "db-" + Math.random().toString(36).substring(2, 9);
+
+    const items = (body.items || []).map((it: any, idx: number) => {
+      const amountCentavos = String(Math.round((Number(it.amountPeso) || 0) * 100));
+      return {
+        id: `item-${batchId}-${idx + 1}`,
+        batchId,
+        payeeName: it.payeeName,
+        amountCentavos,
+        status: "pending",
+        walletId: "wal-" + Math.random().toString(36).substring(2, 7),
+        inhabitantId: it.inhabitantId || null,
+        remarks: null,
+        createdAt: new Date().toISOString()
+      };
+    });
+
+    const totalCentavos = items.reduce((acc: bigint, curr: any) => acc + BigInt(curr.amountCentavos || 0), 0n).toString();
+
+    const newBatch = {
+      id: batchId,
+      barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+      batchNo,
+      kind: body.kind || "payroll_honoraria",
+      title: body.title || "Disbursement Batch",
+      fund: body.fund || "general",
+      status: "for_approval",
+      preparedById: currentUser.id || "usr-treasurer",
+      sourceNote: body.sourceNote || null,
+      totalCentavos,
+      itemCount: items.length,
+      items,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (!store.DisbursementBatch) store.DisbursementBatch = [...STATIC_DISBURSEMENT_BATCHES];
+    store.DisbursementBatch = [newBatch, ...store.DisbursementBatch];
+
+    if (!store.DisbursementBatchItem) store.DisbursementBatchItem = [...STATIC_DISBURSEMENT_ITEMS];
+    store.DisbursementBatchItem = [...items, ...store.DisbursementBatchItem];
+
+    saveStore(store);
+    return newBatch;
+  }
+
+  const batchApproveMatch = cleanPath.match(/^\/wallet\/batches\/([^/]+)\/approve$/);
+  if (batchApproveMatch && method === "POST") {
+    const id = batchApproveMatch[1];
+    const list = (store.DisbursementBatch || STATIC_DISBURSEMENT_BATCHES) as any[];
+    const batch = list.find((b: any) => b.id === id || b.batchNo === id);
+    if (!batch) return { error: "Batch not found" };
+
+    if (batch.preparedById && currentUser.id && batch.preparedById === currentUser.id) {
+      const err: any = new Error("Maker–checker violation: you prepared this batch and cannot approve it (LGC §375).");
+      err.status = 403;
+      throw err;
+    }
+
+    const allItems = store.DisbursementBatchItem || STATIC_DISBURSEMENT_ITEMS;
+    const items = batch.items || allItems.filter((i: any) => i.batchId === batch.id);
+
+    let paid = 0;
+    let otcFallback = 0;
+    let failed = 0;
+    let totalPaidCentavos = 0n;
+
+    items.forEach((item: any) => {
+      if (item.walletId) {
+        item.status = "paid";
+        item.paidAt = new Date().toISOString();
+        paid++;
+        totalPaidCentavos += BigInt(String(item.amountCentavos).replace(/n$/, "") || 0);
+      } else {
+        item.status = "otc_fallback";
+        item.remarks = "No registered e-wallet. Queued for over-the-counter treasurer payout.";
+        otcFallback++;
+      }
+    });
+
+    const dvNo = "DV-2026-" + Math.floor(1000 + Math.random() * 9000);
+    batch.status = "completed";
+    batch.approvedById = currentUser.id || "usr-pb";
+    batch.approvedAt = new Date().toISOString();
+    batch.executedAt = new Date().toISOString();
+    batch.dvNumber = dvNo;
+    batch.items = items;
+
+    // Post corresponding Disbursement Voucher in General Ledger!
+    const amountPesos = Number(totalPaidCentavos) / 100;
+    const ledgerEntry = {
+      id: "led-" + Math.random().toString(36).substring(2, 9),
+      barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+      postedAt: batch.executedAt,
+      fund: batch.fund,
+      accountCode: batch.fund === "sk" ? "5-02-99-010" : batch.fund === "disaster" ? "5-02-12-030" : "5-01-01-010",
+      description: `Disbursement: ${batch.title} (${batch.batchNo}) via E-Money Rail`,
+      direction: "debit",
+      amount: amountPesos,
+      dvNumber: dvNo,
+      refType: "disbursement_voucher"
+    };
+    store.LedgerEntry = [ledgerEntry, ...(store.LedgerEntry || STATIC_LEDGER_ENTRIES)];
+
+    saveStore(store);
+    return {
+      paid,
+      failed,
+      otcFallback,
+      totalPaidCentavos: totalPaidCentavos.toString(),
+      dvNumber: dvNo,
+    };
+  }
+
+  // 8.5 Treasury & Finance (Ledger, Official Receipts, Budgets)
+  if (cleanPath === "/finance/ledger" && method === "GET") {
+    const queryString = path.includes("?") ? path.split("?")[1] : "";
+    const queryParams = new URLSearchParams(queryString);
+    const fund = queryParams.get("fund") || "all";
+    const direction = queryParams.get("direction") || "all";
+    const q = (queryParams.get("q") || "").toLowerCase().trim();
+    const page = parseInt(queryParams.get("page") || "1", 10);
+    const pageSize = parseInt(queryParams.get("pageSize") || "25", 10);
+
+    let list = (store.LedgerEntry || STATIC_LEDGER_ENTRIES) as any[];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filteredByBrgy = list.filter(x => !x.barangayId || x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filteredByBrgy.length > 0) list = filteredByBrgy;
+    }
+
+    list = list.map(item => ({
+      ...item,
+      amount: typeof item.amount === "object" && item.amount !== null ? item.amount.value : Number(item.amount)
+    }));
+
+    if (fund !== "all") {
+      list = list.filter(x => x.fund && x.fund.toLowerCase() === fund.toLowerCase());
+    }
+    if (direction !== "all") {
+      list = list.filter(x => x.direction && x.direction.toLowerCase() === direction.toLowerCase());
+    }
+    if (q) {
+      list = list.filter(x =>
+        (x.description && x.description.toLowerCase().includes(q)) ||
+        (x.accountCode && x.accountCode.toLowerCase().includes(q)) ||
+        (x.orNumber && x.orNumber.toLowerCase().includes(q)) ||
+        (x.dvNumber && x.dvNumber.toLowerCase().includes(q))
+      );
+    }
+
+    list = [...list].sort((a, b) => new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime());
+
+    const total = list.length;
+    const startIndex = (page - 1) * pageSize;
+    const items = list.slice(startIndex, startIndex + pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize
+    };
+  }
+
+  const ledgerDetailMatch = cleanPath.match(/^\/finance\/ledger\/([^/]+)$/);
+  if (ledgerDetailMatch && method === "GET") {
+    const id = ledgerDetailMatch[1];
+    const list = (store.LedgerEntry || STATIC_LEDGER_ENTRIES) as any[];
+    const item = list.find((x: any) => x.id === id || x.orNumber === id || x.dvNumber === id);
+    if (!item) return null;
+    return {
+      ...item,
+      amount: typeof item.amount === "object" && item.amount !== null ? item.amount.value : Number(item.amount)
+    };
+  }
+
+  if (cleanPath === "/finance/ledger" && method === "POST") {
+    const body = opts.body ? JSON.parse(opts.body as string) : {};
+    const newEntry = {
+      id: "led-" + Math.random().toString(36).substring(2, 9),
+      barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+      postedAt: body.postedAt || new Date().toISOString(),
+      fund: body.fund || "general",
+      accountCode: body.accountCode || "4-02-01-040",
+      description: body.description || "General Ledger entry",
+      direction: body.direction || "credit",
+      amount: Number(body.amount) || 0,
+      orNumber: body.orNumber || null,
+      dvNumber: body.dvNumber || null,
+      refType: body.refType || (body.orNumber ? "official_receipt" : body.dvNumber ? "disbursement_voucher" : "manual")
+    };
+    store.LedgerEntry = [newEntry, ...(store.LedgerEntry || STATIC_LEDGER_ENTRIES)];
+    saveStore(store);
+    return newEntry;
+  }
+
+  if (cleanPath === "/finance/receipts" && method === "GET") {
+    const queryString = path.includes("?") ? path.split("?")[1] : "";
+    const queryParams = new URLSearchParams(queryString);
+    const page = parseInt(queryParams.get("page") || "1", 10);
+    const pageSize = parseInt(queryParams.get("pageSize") || "50", 10);
+
+    let list = (store.OfficialReceipt || STATIC_OFFICIAL_RECEIPTS) as any[];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filteredByBrgy = list.filter(x => !x.barangayId || x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filteredByBrgy.length > 0) list = filteredByBrgy;
+    }
+
+    list = list.map(item => ({
+      ...item,
+      amount: typeof item.amount === "object" && item.amount !== null ? item.amount.value : Number(item.amount)
+    }));
+
+    list = [...list].sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime());
+
+    const total = list.length;
+    const startIndex = (page - 1) * pageSize;
+    const items = list.slice(startIndex, startIndex + pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize
+    };
+  }
+
+  const receiptDetailMatch = cleanPath.match(/^\/finance\/receipts\/([^/]+)$/);
+  if (receiptDetailMatch && method === "GET") {
+    const id = receiptDetailMatch[1];
+    const list = (store.OfficialReceipt || STATIC_OFFICIAL_RECEIPTS) as any[];
+    const item = list.find((x: any) => x.id === id || x.orNumber === id);
+    if (!item) return null;
+    return {
+      ...item,
+      amount: typeof item.amount === "object" && item.amount !== null ? item.amount.value : Number(item.amount)
+    };
+  }
+
+  if (cleanPath === "/finance/receipts" && method === "POST") {
+    const body = opts.body ? JSON.parse(opts.body as string) : {};
+    const list = (store.OfficialReceipt || STATIC_OFFICIAL_RECEIPTS) as any[];
+    const nextNum = 100 + list.length + 1;
+    const orNumber = body.orNumber || `OR-2026-00${nextNum}`;
+    const amount = Number(body.amount) || 0;
+    const newReceipt = {
+      id: "or-" + Math.random().toString(36).substring(2, 9),
+      barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+      orNumber,
+      payorName: body.payorName || "Resident",
+      amount,
+      particulars: body.particulars || "Barangay Clearance / Certification Fee",
+      issuedAt: new Date().toISOString(),
+      status: "issued"
+    };
+    store.OfficialReceipt = [newReceipt, ...list];
+
+    // Automatically generate corresponding credit entry in general ledger
+    const newLedgerEntry = {
+      id: "led-" + Math.random().toString(36).substring(2, 9),
+      barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+      postedAt: newReceipt.issuedAt,
+      fund: body.fund || "general",
+      accountCode: body.accountCode || "4-02-01-040",
+      description: `Official Receipt collection (${orNumber}) — ${newReceipt.particulars} (${newReceipt.payorName})`,
+      direction: "credit",
+      amount,
+      orNumber,
+      refType: "official_receipt"
+    };
+    store.LedgerEntry = [newLedgerEntry, ...(store.LedgerEntry || STATIC_LEDGER_ENTRIES)];
+
+    saveStore(store);
+    return newReceipt;
+  }
+
+  const cancelReceiptMatch = cleanPath.match(/^\/finance\/receipts\/([^/]+)\/cancel$/);
+  if (cancelReceiptMatch && method === "POST") {
+    const id = cancelReceiptMatch[1];
+    const body = opts.body ? JSON.parse(opts.body as string) : {};
+    const list = (store.OfficialReceipt || STATIC_OFFICIAL_RECEIPTS) as any[];
+    const item = list.find((x: any) => x.id === id || x.orNumber === id);
+    if (item) {
+      item.status = "cancelled";
+      item.cancellationReason = body.reason || "Cancelled by Treasurer";
+      item.cancelledAt = new Date().toISOString();
+      saveStore(store);
+    }
+    return item || {};
+  }
+
+  if (cleanPath === "/finance/budgets" && method === "GET") {
+    const queryString = path.includes("?") ? path.split("?")[1] : "";
+    const queryParams = new URLSearchParams(queryString);
+    const pageSize = parseInt(queryParams.get("pageSize") || "20", 10);
+
+    let list = (store.Budget || STATIC_BUDGETS) as any[];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filteredByBrgy = list.filter(x => !x.barangayId || x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filteredByBrgy.length > 0) list = filteredByBrgy;
+    }
+
+    list = list.map(b => {
+      let rawLines = b.lines;
+      if (rawLines && typeof rawLines === "object" && !Array.isArray(rawLines) && Array.isArray(rawLines.create)) {
+        rawLines = rawLines.create;
+      }
+      const lines = Array.isArray(rawLines)
+        ? rawLines.map((l: any, idx: number) => ({
+            id: l.id || `bl-${idx + 1}`,
+            expenseClass: l.expenseClass || "MOOE",
+            accountCode: l.accountCode || "",
+            description: l.description || "",
+            amount: typeof l.amount === "object" && l.amount !== null ? l.amount.value : Number(l.amount || 0),
+            obligated: typeof l.obligated === "object" && l.obligated !== null ? l.obligated.value : Number(l.obligated || 0),
+            disbursed: typeof l.disbursed === "object" && l.disbursed !== null ? l.disbursed.value : Number(l.disbursed || 0)
+          }))
+        : [];
+      return {
+        ...b,
+        totalAmount: typeof b.totalAmount === "object" && b.totalAmount !== null ? b.totalAmount.value : Number(b.totalAmount || 0),
+        skFundAmount: typeof b.skFundAmount === "object" && b.skFundAmount !== null ? b.skFundAmount.value : Number(b.skFundAmount || 0),
+        lines
+      };
+    });
+
+    return {
+      items: list,
+      total: list.length,
+      page: 1,
+      pageSize
+    };
+  }
+
+  const budgetDetailMatch = cleanPath.match(/^\/finance\/budgets\/([^/]+)$/);
+  if (budgetDetailMatch && method === "GET") {
+    const id = budgetDetailMatch[1];
+    const list = (store.Budget || STATIC_BUDGETS) as any[];
+    const found = list.find(b => b.id === id) || list[0];
+    if (found) {
+      let rawLines = found.lines;
+      if (rawLines && typeof rawLines === "object" && !Array.isArray(rawLines) && Array.isArray(rawLines.create)) {
+        rawLines = rawLines.create;
+      }
+      const lines = Array.isArray(rawLines)
+        ? rawLines.map((l: any, idx: number) => ({
+            id: l.id || `bl-${idx + 1}`,
+            expenseClass: l.expenseClass || "MOOE",
+            accountCode: l.accountCode || "",
+            description: l.description || "",
+            amount: typeof l.amount === "object" && l.amount !== null ? l.amount.value : Number(l.amount || 0),
+            obligated: typeof l.obligated === "object" && l.obligated !== null ? l.obligated.value : Number(l.obligated || 0),
+            disbursed: typeof l.disbursed === "object" && l.disbursed !== null ? l.disbursed.value : Number(l.disbursed || 0)
+          }))
+        : [];
+      return {
+        ...found,
+        totalAmount: typeof found.totalAmount === "object" && found.totalAmount !== null ? found.totalAmount.value : Number(found.totalAmount || 0),
+        skFundAmount: typeof found.skFundAmount === "object" && found.skFundAmount !== null ? found.skFundAmount.value : Number(found.skFundAmount || 0),
+        lines
+      };
+    }
+    return null;
   }
 
   // 9. Dashboard aggregates
@@ -757,7 +1319,7 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       activeSosAlerts: sosAlerts.filter(x => x.status === "active").length,
       kpCasesNearDeadline: kpCases.filter(x => x.stage !== "closed" && x.stage !== "settled").length,
       kpCasesBreached: 0,
-      disbursementBatchesForApproval: batches.filter(x => x.status === "pending" || x.status === "prepared").length
+      disbursementBatchesForApproval: batches.filter(x => x.status === "pending" || x.status === "prepared" || x.status === "for_approval").length
     };
 
     const wallet = {
@@ -930,15 +1492,73 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
   }
 
   if (cleanPath === "/rpt" && method === "GET") {
-    let list = store.RptProperty || [];
-    if (currentUser.barangayId) {
-      list = list.filter(x => x.barangayId === currentUser.barangayId);
+    let list = (store.RptProperty || STATIC_RPT_PROPERTIES) as any[];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filteredByBrgy = list.filter(x => !x.barangayId || x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filteredByBrgy.length > 0) list = filteredByBrgy;
     }
-    return list;
+    return list.filter(p => p.isActive !== false);
   }
 
   if (cleanPath === "/rpt/dues" && method === "GET") {
-    return store.RptTaxDue || [];
+    return store.RptTaxDue || STATIC_RPT_TAX_DUES;
+  }
+
+  const rptDetailMatch = cleanPath.match(/^\/rpt\/([^/]+)$/);
+  if (rptDetailMatch && method === "GET") {
+    const id = rptDetailMatch[1];
+    const list = (store.RptProperty || STATIC_RPT_PROPERTIES) as any[];
+    const prop = list.find((p: any) => p.id === id || p.taxDeclarationNo === id);
+    if (!prop) return null;
+    const dues = (store.RptTaxDue || STATIC_RPT_TAX_DUES).filter((d: any) => d.rptPropertyId === prop.id);
+    return { ...prop, dues };
+  }
+
+  const rptPayMatch = cleanPath.match(/^\/rpt\/([^/]+)\/pay$/);
+  if (rptPayMatch && method === "POST") {
+    const id = rptPayMatch[1];
+    const dues = store.RptTaxDue || STATIC_RPT_TAX_DUES;
+    const due = dues.find((d: any) => d.id === id || d.rptPropertyId === id);
+    const properties = store.RptProperty || STATIC_RPT_PROPERTIES;
+    const prop = properties.find((p: any) => p.id === (due ? due.rptPropertyId : id));
+
+    if (due) {
+      const receipts = store.OfficialReceipt || [];
+      const nextNum = 100 + receipts.length + 1;
+      const orNo = `OR-2026-00${nextNum}`;
+      due.paymentStatus = "fully_paid";
+      due.paidAt = new Date().toISOString();
+      due.orNumber = orNo;
+
+      const newReceipt = {
+        id: "or-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+        orNumber: orNo,
+        payorName: prop?.ownerName || "Property Owner",
+        amount: Number(due.totalAmount) || 0,
+        particulars: `Real Property Tax Payment (TDN #${prop?.taxDeclarationNo || ""}) — Tax Year ${due.taxYear}`,
+        issuedAt: due.paidAt,
+        status: "issued"
+      };
+      store.OfficialReceipt = [newReceipt, ...(store.OfficialReceipt || [])];
+
+      const newLedger = {
+        id: "led-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+        postedAt: due.paidAt,
+        fund: "general",
+        accountCode: "4-01-02-040",
+        description: `Real Property Tax (RPT) Collection (${orNo}) — ${prop?.ownerName || "Owner"} (TDN #${prop?.taxDeclarationNo || ""})`,
+        direction: "credit",
+        amount: Number(due.totalAmount) || 0,
+        orNumber: orNo,
+        refType: "official_receipt"
+      };
+      store.LedgerEntry = [newLedger, ...(store.LedgerEntry || [])];
+
+      saveStore(store);
+      return { success: true, orNumber: orNo, due, receipt: newReceipt };
+    }
   }
 
   if (cleanPath === "/drrm-resources" && method === "GET") {
@@ -1060,6 +1680,52 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       }
       return { success: true };
     }
+
+    const rptDelMatch = cleanPath.match(/\/rpt\/([^\/]+)/);
+    if (rptDelMatch) {
+      const id = rptDelMatch[1];
+      if (store.RptProperty) {
+        store.RptProperty = store.RptProperty.filter(x => x.id !== id);
+      }
+      if (store.RptTaxDue) {
+        store.RptTaxDue = store.RptTaxDue.filter(x => x.rptPropertyId !== id);
+      }
+      saveStore(store);
+      return { success: true };
+    }
+
+    const propDelMatch = cleanPath.match(/\/properties\/([^\/]+)/);
+    if (propDelMatch) {
+      const id = propDelMatch[1];
+      if (store.Property) {
+        store.Property = store.Property.filter(x => x.id !== id);
+        saveStore(store);
+      }
+      return { success: true };
+    }
+
+    const matDelMatch = cleanPath.match(/\/materials\/([^\/]+)/);
+    if (matDelMatch) {
+      const id = matDelMatch[1];
+      if (store.Material) {
+        store.Material = store.Material.filter(x => x.id !== id);
+        saveStore(store);
+      }
+      return { success: true };
+    }
+
+    const batchDelMatch = cleanPath.match(/\/wallet\/batches\/([^\/]+)/);
+    if (batchDelMatch) {
+      const id = batchDelMatch[1];
+      if (store.DisbursementBatch) {
+        store.DisbursementBatch = store.DisbursementBatch.filter(x => x.id !== id && x.batchNo !== id);
+      }
+      if (store.DisbursementBatchItem) {
+        store.DisbursementBatchItem = store.DisbursementBatchItem.filter(x => x.batchId !== id);
+      }
+      saveStore(store);
+      return { success: true };
+    }
   }
 
   // Mutations / PATCH requests
@@ -1090,6 +1756,19 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
         saveStore(store);
       }
       return p || {};
+    }
+
+    // Materials PATCH
+    const matMatch = cleanPath.match(/\/materials\/([^\/]+)/);
+    if (matMatch) {
+      const id = matMatch[1];
+      const m = store.Material?.find(x => x.id === id);
+      if (m) {
+        Object.assign(m, body);
+        m.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return m || {};
     }
 
     // LGU Requests PATCH
@@ -1124,11 +1803,35 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       const id = rptMatch[1];
       const r = store.RptProperty?.find(x => x.id === id);
       if (r) {
+        if (body.assessedValue !== undefined) body.assessedValue = Number(body.assessedValue);
+        if (body.marketValue !== undefined) body.marketValue = Number(body.marketValue);
         Object.assign(r, body);
         r.updatedAt = new Date().toISOString();
+
+        if (body.assessedValue) {
+          const due = store.RptTaxDue?.find(d => d.rptPropertyId === id && d.paymentStatus === "unpaid");
+          if (due) {
+            due.basicTaxAmount = Math.round(r.assessedValue * 0.01);
+            due.sefTaxAmount = Math.round(r.assessedValue * 0.005);
+            due.totalAmount = due.basicTaxAmount + due.sefTaxAmount + (due.penaltyAmount || 0);
+          }
+        }
         saveStore(store);
       }
       return r || {};
+    }
+
+    // Disbursement Batch PATCH
+    const batchPatchMatch = cleanPath.match(/\/wallet\/batches\/([^\/]+)/);
+    if (batchPatchMatch) {
+      const id = batchPatchMatch[1];
+      const b = store.DisbursementBatch?.find(x => x.id === id || x.batchNo === id);
+      if (b) {
+        Object.assign(b, body);
+        b.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return b || {};
     }
 
     // Household PATCH
@@ -1326,11 +2029,14 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
         status: body.status,
         category: body.category,
         capacity: Number(body.capacity) || 0,
-        custodian: body.custodian,
-        addressLine: body.addressLine,
-        description: body.description,
+        custodian: body.custodian || null,
+        addressLine: body.addressLine || null,
+        description: body.description || null,
+        isEvacuationCenter: Boolean(body.isEvacuationCenter),
+        acquisitionCost: body.acquisitionCost !== undefined && body.acquisitionCost !== null ? Number(body.acquisitionCost) : null,
+        acquiredAt: body.acquiredAt || new Date().toISOString(),
         source: "CBMS",
-        barangayId: currentUser.barangayId || "barangka",
+        barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -1338,6 +2044,25 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       store.Property.push(newProp);
       saveStore(store);
       return newProp;
+    }
+
+    // Materials POST
+    if (cleanPath === "/materials") {
+      const newMat = {
+        id: "mat-" + Math.random().toString(36).substring(2, 9),
+        name: body.name,
+        unit: body.unit || "units",
+        quantity: Number(body.quantity) || 0,
+        reorderLevel: Number(body.reorderLevel) || 0,
+        location: body.location || "Barangay Stockroom",
+        barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      if (!store.Material) store.Material = [];
+      store.Material.push(newMat);
+      saveStore(store);
+      return newMat;
     }
 
     // Civil Registry POST
@@ -1423,6 +2148,8 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
         marketValue: Number(body.marketValue) || 0,
         addressLine: body.addressLine,
         purok: body.purok,
+        lotNo: body.lotNo || "",
+        blockNo: body.blockNo || "",
         isActive: true,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()

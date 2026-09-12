@@ -572,7 +572,7 @@ export default function BlotterDetailPage() {
                     )}
 
                     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                      <Field label="Action Taken / Intervention Title" required>
+                      <Field label="Action Taken / Intervention Title">
                         <input
                           type="text"
                           className="cbms-input"
@@ -598,7 +598,7 @@ export default function BlotterDetailPage() {
                       </Field>
 
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                        <Field label="Acting Officer Name" required>
+                        <Field label="Acting Officer Name">
                           <input
                             type="text"
                             className="cbms-input"
@@ -608,7 +608,7 @@ export default function BlotterDetailPage() {
                           />
                         </Field>
 
-                        <Field label="Officer Role / Department" required>
+                        <Field label="Officer Role / Department">
                           <input
                             type="text"
                             className="cbms-input"
@@ -647,7 +647,7 @@ export default function BlotterDetailPage() {
                         </Field>
                       </div>
 
-                      <Field label="Operational Notes & Actions Performed" required>
+                      <Field label="Operational Notes & Actions Performed">
                         <textarea
                           className="cbms-input"
                           rows={4}
