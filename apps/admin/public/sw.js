@@ -1,12 +1,10 @@
 // CBMS Admin Simple Service Worker
 const CACHE_NAME = "cbms-admin-v2";
 
-// Install Event
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
-// Activate Event - Clean up all old caches immediately
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -16,8 +14,8 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch Event - Pure network-first, NEVER cache _next bundles
-self.addEventListener("fetch", (event) => {
-  // Let browser handle all requests directly from network
+self.addEventListener("fetch", () => {
+  // Let the browser handle network directly without caching
   return;
 });
+

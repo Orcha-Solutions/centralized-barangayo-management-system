@@ -7,7 +7,7 @@ export function PwaRegister() {
   const [showReconnected, setShowReconnected] = React.useState(false);
 
   React.useEffect(() => {
-    // 1. In local dev, unregister any service workers & clear stale caches
+    // 1. Unregister any service workers and clear stale caches
     if (typeof window !== "undefined") {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.getRegistrations().then((registrations) => {
