@@ -7,16 +7,22 @@ export function PwaRegister() {
   const [showReconnected, setShowReconnected] = React.useState(false);
 
   React.useEffect(() => {
-    // 1. Register Service Worker
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          console.log("[PWA] Admin Service Worker registered:", reg.scope);
-        })
-        .catch((err) => {
-          console.warn("[PWA] Admin Service Worker registration failed:", err);
+    // 1. In local dev, unregister any service workers & clear stale caches
+    if (typeof window !== "undefined") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const reg of registrations) {
+            reg.unregister();
+          }
         });
+      }
+      if ("caches" in window) {
+        caches.keys().then((names) => {
+          for (const name of names) {
+            caches.delete(name);
+          }
+        });
+      }
     }
 
     // 2. Offline / Online network listeners

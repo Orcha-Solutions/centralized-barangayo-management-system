@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ApiError, post, qs, useApi } from "@cbms/api-client";
 import {
   Alert,
@@ -23,6 +25,7 @@ import { BLOTTER_CATEGORIES } from "../../../lib/labels";
 import type { BlotterEntry, Paged } from "../../../lib/types";
 
 export default function BlotterPage() {
+  const router = useRouter();
   const { can } = useConsole();
   const [q, setQ] = React.useState("");
   const [search, setSearch] = React.useState("");
@@ -35,8 +38,8 @@ export default function BlotterPage() {
     `/blotter${qs({ q: search, category, page, pageSize })}`,
   );
 
-  const mayEncode = can("kp:encode");
-  const mayVawc = can("vawc:encode");
+  const mayEncode = can("blotter:create") || can("kp:encode") || can("vawc:encode");
+  const mayVawc = can("vawc:encode") || can("vawc:view");
 
   const [form, setForm] = React.useState({
     category: "dispute",
@@ -146,6 +149,7 @@ export default function BlotterPage() {
                     className="cbms-input"
                     value={form.location}
                     onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                    placeholder="Purok, street, or landmark"
                     required
                   />
                 </Field>
@@ -235,7 +239,14 @@ export default function BlotterPage() {
                 render: (b) => (
                   <span className="adm-chiprow">
                     {b.isConfidential && <span title="Restricted record">🔒</span>}
-                    <span className="cbms-table__primary">{b.entryNo}</span>
+                    <Link
+                      href={`/blotter/${b.id}`}
+                      className="cbms-table__primary"
+                      style={{ fontWeight: 600, textDecoration: "underline" }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {b.entryNo}
+                    </Link>
                   </span>
                 ),
               },
@@ -273,6 +284,7 @@ export default function BlotterPage() {
                       href={`/kp/${b.kpCase.id}`}
                       className="adm-strong"
                       style={{ textDecoration: "underline" }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {b.kpCase.caseNo}
                     </a>
@@ -282,6 +294,10 @@ export default function BlotterPage() {
               },
             ]}
             rows={list.data?.items ?? []}
+            rowKey={(b) => b.id}
+            onRowClick={(b) => {
+              router.push(`/blotter/${b.id}`);
+            }}
             empty="No blotter entries match this filter."
           />
         </Async>

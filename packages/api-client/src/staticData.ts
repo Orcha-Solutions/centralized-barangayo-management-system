@@ -55,6 +55,17 @@ export interface StaticLguDocRequest {
   updatedAt: string;
 }
 
+export interface StaticBlotterActionLog {
+  id: string;
+  actionTaken: string;
+  officerName: string;
+  officerRole: string;
+  notes?: string | null;
+  statusAfter?: string | null;
+  timestamp: string;
+  documentRef?: string | null;
+}
+
 export interface StaticBlotterEntry {
   id: string;
   entryNo: string;
@@ -70,6 +81,7 @@ export interface StaticBlotterEntry {
   status: string;
   createdAt: string;
   kpCase?: { id: string; caseNo: string; stage: string } | null;
+  actionsTaken?: StaticBlotterActionLog[];
 }
 
 export interface StaticKpCase {
@@ -395,6 +407,48 @@ export const STATIC_BLOTTER_ENTRIES: StaticBlotterEntry[] = [
     status: "active",
     createdAt: "2026-08-22T15:00:00.000Z",
     kpCase: { id: "kp-001", caseNo: "KP-2026-001", stage: "mediation" },
+    actionsTaken: [
+      {
+        id: "act-101",
+        actionTaken: "Initial Intake & Sworn Narrative Recorded",
+        officerName: "Officer Rommel Reyes",
+        officerRole: "Executive Officer, Barangay Tanod",
+        notes: "Complainant Juan Dela Cruz appeared in person. Documented boundary dispute regarding recent concrete footing extension.",
+        statusAfter: "active",
+        timestamp: "2026-08-22T15:00:00.000Z",
+        documentRef: "Blotter Sheet No. 2026-08-01",
+      },
+      {
+        id: "act-102",
+        actionTaken: "Ocular Inspection & Purok Validation",
+        officerName: "Tanod Mobile Patrol Team & Kagawad on Infrastructure",
+        officerRole: "Barangay Tanod / Committee on Infrastructure",
+        notes: "On-site ocular verification conducted at Purok 3 Bonifacio St. Verified concrete wall footing extended approximately 1.2m into access path.",
+        statusAfter: "active",
+        timestamp: "2026-08-22T16:30:00.000Z",
+        documentRef: "Ocular Inspection Report #2026-044",
+      },
+      {
+        id: "act-103",
+        actionTaken: "Summons / Notice of Hearing Issued (KP Form 7)",
+        officerName: "Hon. Eduardo M. Santos",
+        officerRole: "Punong Barangay",
+        notes: "Official Notice to Appear served to respondent Pedro Penduko for 1st Mediation Conference scheduled at the Barangay Hall.",
+        statusAfter: "under_mediation",
+        timestamp: "2026-08-23T09:00:00.000Z",
+        documentRef: "Summons Subpoena KP-7-001",
+      },
+      {
+        id: "act-104",
+        actionTaken: "Endorsed to Katarungang Pambarangay (KP-2026-001)",
+        officerName: "Atty. Fernando Cruz",
+        officerRole: "Lupon Secretary",
+        notes: "Case docketed under KP-2026-001. Formal mediation proceedings opened before the Lupon Tagapamayapa.",
+        statusAfter: "endorsed_kp",
+        timestamp: "2026-08-24T10:00:00.000Z",
+        documentRef: "KP Docket Notice #KP-2026-001",
+      },
+    ],
   },
   {
     id: "blotter-002",
@@ -411,6 +465,48 @@ export const STATIC_BLOTTER_ENTRIES: StaticBlotterEntry[] = [
     status: "resolved",
     createdAt: "2026-08-23T23:00:00.000Z",
     kpCase: null,
+    actionsTaken: [
+      {
+        id: "act-201",
+        actionTaken: "Desk Intake & Hotline Dispatch Call",
+        officerName: "Tanod Desk Officer",
+        officerRole: "Duty Tanod",
+        notes: "Emergency hotline call logged regarding excessive videoke noise echoing across residential cluster past curfew.",
+        statusAfter: "active",
+        timestamp: "2026-08-23T23:00:00.000Z",
+        documentRef: "Hotline Call Log #8821",
+      },
+      {
+        id: "act-202",
+        actionTaken: "Tanod Mobile Patrol Unit Dispatched",
+        officerName: "Mobile Unit 2 (Ex-O Reyes & Tanod Bautista)",
+        officerRole: "Barangay Public Safety Officers",
+        notes: "Patrol vehicle arrived at venue within 12 minutes. Sound level confirmed exceeding 85dB at property line.",
+        statusAfter: "in_progress",
+        timestamp: "2026-08-23T23:15:00.000Z",
+        documentRef: "Patrol Log Entry #2026-08-112",
+      },
+      {
+        id: "act-203",
+        actionTaken: "Verbal Warning & Voluntary Compliance",
+        officerName: "Executive Officer Rommel Reyes",
+        officerRole: "Executive Officer, Barangay Tanod",
+        notes: "Respondent Alex Bautista complied immediately by powering down sound system. Signed 1st Offense Warning undertaking.",
+        statusAfter: "resolved",
+        timestamp: "2026-08-23T23:25:00.000Z",
+        documentRef: "Barangay Ordinance Citation #OR-2026-089",
+      },
+      {
+        id: "act-204",
+        actionTaken: "Case Closed & Archived",
+        officerName: "Maria Clara Santos",
+        officerRole: "Barangay Secretary",
+        notes: "Follow-up monitoring patrol at 01:00 AM confirmed no recurring noise. Case marked resolved.",
+        statusAfter: "resolved",
+        timestamp: "2026-08-24T08:00:00.000Z",
+        documentRef: "Blotter Resolution Slip #BLT-RES-002",
+      },
+    ],
   },
   {
     id: "blotter-003",
@@ -427,6 +523,38 @@ export const STATIC_BLOTTER_ENTRIES: StaticBlotterEntry[] = [
     status: "active",
     createdAt: "2026-08-21T12:00:00.000Z",
     kpCase: null,
+    actionsTaken: [
+      {
+        id: "act-301",
+        actionTaken: "Incident Blotter Booking",
+        officerName: "Officer Rommel Reyes",
+        officerRole: "Executive Officer, Barangay Tanod",
+        notes: "Complainant Mark Lopez presented purchase invoice and serial number (TRX-9982) for stolen mountain bike.",
+        statusAfter: "active",
+        timestamp: "2026-08-21T12:00:00.000Z",
+        documentRef: "Blotter Entry Sheet #BLT-2026-003",
+      },
+      {
+        id: "act-302",
+        actionTaken: "Barangay CCTV Footage Extraction",
+        officerName: "BDRRMC IT & Operations Desk",
+        officerRole: "Barangay Command & Control Center",
+        notes: "Retrieved 1080p security video from Camera 04 (Mabini-Bonifacio corner). Identified suspect wearing black cap leaving east on foot at 11:18 AM.",
+        statusAfter: "investigating",
+        timestamp: "2026-08-21T13:30:00.000Z",
+        documentRef: "CCTV Chain of Custody Ref #CCTV-2026-031",
+      },
+      {
+        id: "act-303",
+        actionTaken: "Police Endorsement & Evidence Transmittal",
+        officerName: "Hon. Eduardo M. Santos",
+        officerRole: "Punong Barangay",
+        notes: "Transmitted formal Endorsement Letter with thumb drive of CCTV footage to Marikina Police Sub-Station 3 for investigation and case buildup.",
+        statusAfter: "referred_pnp",
+        timestamp: "2026-08-21T15:00:00.000Z",
+        documentRef: "PNP Endorsement Form #BRGY-PNP-2026-052",
+      },
+    ],
   },
   {
     id: "blotter-004",
@@ -443,6 +571,48 @@ export const STATIC_BLOTTER_ENTRIES: StaticBlotterEntry[] = [
     status: "endorsed",
     createdAt: "2026-08-20T20:00:00.000Z",
     kpCase: null,
+    actionsTaken: [
+      {
+        id: "act-401",
+        actionTaken: "Confidential Intake in VAW Desk Safe Room",
+        officerName: "Elena Rivera",
+        officerRole: "Barangay VAW Desk Officer",
+        notes: "Conducted private, trauma-informed interview pursuant to RA 9262 protocols. Recorded confidential victim narrative and risk assessment.",
+        statusAfter: "active",
+        timestamp: "2026-08-20T20:00:00.000Z",
+        documentRef: "BIMS Form D1 Intake #VAWC-2026-004",
+      },
+      {
+        id: "act-402",
+        actionTaken: "Medical Examination Referral Issued",
+        officerName: "Elena Rivera",
+        officerRole: "Barangay VAW Desk Officer",
+        notes: "Issued official Medical Referral Slip to Amang Rodriguez Memorial Medical Center (ARMMC) for medico-legal assessment.",
+        statusAfter: "medical_eval",
+        timestamp: "2026-08-20T20:45:00.000Z",
+        documentRef: "Medical Referral Slip #MED-2026-019",
+      },
+      {
+        id: "act-403",
+        actionTaken: "Barangay Protection Order (BPO) Processed & Issued",
+        officerName: "Hon. Eduardo M. Santos",
+        officerRole: "Punong Barangay",
+        notes: "Ex-parte 15-day Barangay Protection Order (BPO) issued under Sec. 15 of RA 9262, prohibiting respondent within 500 meters of victim and residence.",
+        statusAfter: "bpo_issued",
+        timestamp: "2026-08-21T08:30:00.000Z",
+        documentRef: "BPO Form 2 Order #BPO-2026-004",
+      },
+      {
+        id: "act-404",
+        actionTaken: "CSWDO & PNP Women's Desk Case Endorsement",
+        officerName: "Elena Rivera",
+        officerRole: "Barangay VAW Desk Officer",
+        notes: "Formally endorsed case packet to Marikina City Social Welfare and Development Office (CSWDO) for continuous psychosocial support and protective monitoring.",
+        statusAfter: "endorsed",
+        timestamp: "2026-08-21T11:00:00.000Z",
+        documentRef: "CSWDO Transmittal #CSWDO-BAR-2026-088",
+      },
+    ],
   },
   {
     id: "blotter-005",
@@ -459,6 +629,38 @@ export const STATIC_BLOTTER_ENTRIES: StaticBlotterEntry[] = [
     status: "active",
     createdAt: "2026-08-19T09:00:00.000Z",
     kpCase: { id: "kp-002", caseNo: "KP-2026-002", stage: "conciliation" },
+    actionsTaken: [
+      {
+        id: "act-501",
+        actionTaken: "Complaint Intake & Photo Evidence Logged",
+        officerName: "Duty Tanod Desk",
+        officerRole: "Barangay Public Safety Desk",
+        notes: "Elena Ramos filed formal complaint regarding drainage obstruction caused by neighboring construction debris.",
+        statusAfter: "active",
+        timestamp: "2026-08-19T09:00:00.000Z",
+        documentRef: "Blotter Sheet #BLT-2026-005",
+      },
+      {
+        id: "act-502",
+        actionTaken: "Joint Sanitation & Engineering Site Inspection",
+        officerName: "Kagawad on Environmental Sanitation & Maintenance Crew",
+        officerRole: "Barangay Council & Engineering Staff",
+        notes: "Inspected Purok 5 drainage line. Found hardened gravel and cement runoff clogging municipal culvert. Immediate partial clearance performed.",
+        statusAfter: "investigating",
+        timestamp: "2026-08-19T14:00:00.000Z",
+        documentRef: "Sanitation Inspection Sheet #SAN-2026-012",
+      },
+      {
+        id: "act-503",
+        actionTaken: "Notice of Conciliation Issued (KP-2026-002)",
+        officerName: "Atty. Fernando Cruz",
+        officerRole: "Lupon Secretary",
+        notes: "Elevated to Katarungang Pambarangay for cost settlement and permanent pipe rehabilitation agreements.",
+        statusAfter: "endorsed_kp",
+        timestamp: "2026-08-20T10:00:00.000Z",
+        documentRef: "KP Conciliation Notice #KP-2026-002",
+      },
+    ],
   },
 ];
 

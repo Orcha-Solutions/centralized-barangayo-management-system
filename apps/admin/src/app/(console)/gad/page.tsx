@@ -35,7 +35,7 @@ const GAD_FLOOR = 0.05;
 
 export default function GadPage() {
   const { can } = useConsole();
-  const mayEncode = can("gad:encode");
+  const mayEncode = can("gad:encode") || can("gad:create") || can("gad:edit");
 
   const [picked, setPicked] = React.useState<string>("");
   const [showNew, setShowNew] = React.useState(false);

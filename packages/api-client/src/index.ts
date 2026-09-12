@@ -41,13 +41,23 @@ export function getToken(): string | null {
 
 export function setSession(token: string, user: SessionUser) {
   window.localStorage.setItem(TOKEN_KEY, token);
-  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+  const fresh = user?.email ? mockSessionUser(user.email) : user;
+  window.localStorage.setItem(USER_KEY, JSON.stringify(fresh));
 }
 
 export function getStoredUser(): SessionUser | null {
   if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(USER_KEY);
-  return raw ? (JSON.parse(raw) as SessionUser) : null;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as SessionUser;
+    if (parsed?.email) {
+      return mockSessionUser(parsed.email);
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 export function clearSession() {
@@ -151,7 +161,13 @@ const ROLE_PERMISSIONS_MOCK: Record<string, string[]> = {
   BARANGAY_SECRETARY: ["inhabitants:view", "inhabitants:create", "inhabitants:edit", "issuance:view", "issuance:create", "issuance:edit", "appointments:view", "concerns:view", "legislation:view", "announcements:view", "reports:view", "kp:view", "blotter:view"],
   BDC_OFFICER: ["devplan:view", "devplan:create", "devplan:edit", "institutions:view", "reports:view"],
   BDRRMC_OFFICER: ["disaster:view", "disaster:create", "sos:view", "property:view"],
-  VAW_DESK_OFFICER: ["vawc:view", "kp:view", "blotter:view", "blotter:create"],
+  VAW_DESK_OFFICER: [
+    "blotter:view",
+    "blotter:create",
+    "vawc:view",
+    "vawc:create",
+    "vawc:encode"
+  ],
   LUPON_SECRETARY: ["kp:view", "kp:create", "kp:edit", "blotter:view"],
   BARANGAY_TREASURER: ["finance:view", "wallet:manage", "property:view", "issuance:view"],
   TANOD: ["sos:view", "sos:respond", "kp:view", "blotter:view", "concerns:view"],
@@ -369,18 +385,16 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
   }
 
   if (cleanPath === "/auth/me" && method === "GET") {
-    const storedUser = getStoredUser();
-    let email = storedUser?.email || "";
-    if (!email) {
-      // Fallback
-      const port = window.location.port;
-      email = "kapitan@barangka.gov.ph";
-      if (port === "4101") email = "resident1@example.ph";
-      else if (port === "4102") email = "lgu@marikina.gov.ph";
-      else if (port === "4103") email = "treasurer@barangka.gov.ph";
+    const token = getToken();
+    if (!token) {
+      throw new ApiError(401, { message: "Unauthorized: No token provided" });
     }
-    const refreshed = mockSessionUser(email);
-    setSession("mock-token", refreshed);
+    const storedUser = getStoredUser();
+    if (!storedUser?.email) {
+      throw new ApiError(401, { message: "Unauthorized: No active user session" });
+    }
+    const refreshed = mockSessionUser(storedUser.email);
+    setSession(token, refreshed);
     return { user: refreshed };
   }
 
@@ -585,6 +599,54 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       total: atRisk.length,
       breached: atRisk.filter(x => x.breached).length
     };
+  }
+
+  const blotterActionMatch = cleanPath.match(/\/blotter\/([^\/]+)\/actions$/);
+  if (blotterActionMatch && method === "POST") {
+    const bId = blotterActionMatch[1];
+    const list = store.BlotterEntry || [];
+    const item = list.find((b: any) => b.id === bId || b.entryNo === bId);
+    if (!item) {
+      throw new Error("Blotter entry not found.");
+    }
+    const newAction = {
+      id: `act-${Date.now()}`,
+      actionTaken: body?.actionTaken || "Action Recorded",
+      officerName: body?.officerName || currentUser.fullName || "Barangay Officer",
+      officerRole: body?.officerRole || (currentUser.roles?.[0] ? currentUser.roles[0].replace(/_/g, " ") : "Duty Officer"),
+      notes: body?.notes || "",
+      statusAfter: body?.statusAfter || item.status || "active",
+      timestamp: new Date().toISOString(),
+      documentRef: body?.documentRef || null
+    };
+    item.actionsTaken = [...(item.actionsTaken || []), newAction];
+    if (body?.statusAfter) {
+      item.status = body.statusAfter;
+    }
+    saveStore(store);
+    return item;
+  }
+
+  const blotterDetailMatch = cleanPath.match(/\/blotter\/([^\/]+)$/);
+  if (blotterDetailMatch && method === "GET") {
+    const bId = blotterDetailMatch[1];
+    const list = store.BlotterEntry || [];
+    const item = list.find((b: any) => b.id === bId || b.entryNo === bId);
+    if (!item) {
+      throw new Error("Blotter entry not found.");
+    }
+    return item;
+  }
+
+  const kpDetailMatch = cleanPath.match(/\/kp\/cases\/([^\/]+)$/);
+  if (kpDetailMatch && method === "GET") {
+    const kId = kpDetailMatch[1];
+    const list = store.KpCase || STATIC_KP_CASES;
+    const item = list.find((k: any) => k.id === kId || k.caseNo === kId || k.caseNumber === kId);
+    if (!item) {
+      throw new Error("KP case not found.");
+    }
+    return item;
   }
 
   if (cleanPath === "/blotter" && method === "GET") {

@@ -83,12 +83,115 @@ export default function DashboardPage() {
       !can("wallet:manage") &&
       !can("blotter:view"));
 
+  // Check if current user is VAW Desk Officer
+  const isVaw =
+    user?.roles?.includes("VAW_DESK_OFFICER") ||
+    user?.email?.includes("vaw") ||
+    (can("vawc:view") &&
+      !can("issuance:view") &&
+      !can("devplan:view") &&
+      !can("wallet:manage"));
+
   // BDC calculations
   const ongoingCount = projects.filter((p) => p.status === "ongoing").length;
   const completedCount = projects.filter((p) => p.status === "completed").length;
   const proposedCount = projects.filter((p) => p.status === "proposed").length;
   const totalBudget = projects.reduce((sum, p) => sum + Number(p.budget ?? 0), 0);
   const activePlan = plans[0] ?? null;
+
+  // --------------------------------------------------------------------------
+  // VAW DESK OFFICER DEDICATED DASHBOARD
+  // --------------------------------------------------------------------------
+  if (isVaw) {
+    return (
+      <>
+        <PageHead
+          title="VAW Desk & Protection Dashboard"
+          subtitle={
+            user?.barangay?.name
+              ? `Confidential VAWC & Child Abuse incident intake, protection order management, and case documentation under RA 9262 and RA 10173 for Barangay ${user.barangay.name}.`
+              : "Confidential VAWC intake, protection order management, and case documentation."
+          }
+          breadcrumb="Justice & Governance / Overview"
+          actions={
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <Link href="/blotter" className="cbms-btn cbms-btn--primary">
+                📕 Blotter & VAWC Intake
+              </Link>
+            </div>
+          }
+        />
+
+        {/* Protection Strategic Demographics */}
+        <StatGrid>
+          <StatCard
+            label="Total Inhabitants"
+            value={num(dashboard?.population.inhabitants ?? 12840)}
+            hint="Living residents on RBI"
+            icon="👥"
+          />
+          <StatCard
+            label="Registered Households"
+            value={num(dashboard?.population.households ?? 3120)}
+            hint="Registered household folders"
+            icon="🏠"
+          />
+          <StatCard
+            label="Senior Citizens"
+            value={num(dashboard?.population.seniors ?? 1240)}
+            hint="Sectoral protection group"
+            icon="🧓"
+            tone="gold"
+          />
+          <StatCard
+            label="Persons with Disability"
+            value={num(dashboard?.population.pwd ?? 312)}
+            hint="Sectoral protection group"
+            icon="♿"
+            tone="green"
+          />
+        </StatGrid>
+
+        <div style={{ height: 16 }} />
+
+        {/* Two-column layout for VAWC Desk Protocols & Referral Workflow */}
+        <div className="cbms-grid-2">
+          {/* Confidential VAWC Desk Guidelines */}
+          <Panel title="🛡️ Confidential VAWC Desk Protocols (RA 9262 & DILG Form D1)">
+            <p style={{ margin: "0 0 0.85rem 0", fontSize: 13.5, lineHeight: 1.6 }}>
+              Pursuant to the <strong>Anti-Violence Against Women and Their Children Act (RA 9262)</strong> and the <strong>Data Privacy Act of 2012 (RA 10173)</strong>, all VAWC and child abuse incident entries are strictly confidential.
+            </p>
+            <ul style={{ margin: "0 0 1rem 0", paddingLeft: "1.25rem", fontSize: "0.85rem", lineHeight: 1.7, color: "#475569" }}>
+              <li>Narratives and victim identities are automatically encrypted and redacted across general logs.</li>
+              <li>Exempt from standard Katarungang Pambarangay (KP) mediation — immediate safety and protection orders are prioritized.</li>
+              <li>Official BIMS Form D1 reports are submitted directly to the Punong Barangay and DILG field offices.</li>
+            </ul>
+            <Link href="/blotter" className="cbms-btn cbms-btn--primary">
+              📕 Open Confidential Blotter Intake →
+            </Link>
+          </Panel>
+
+          {/* Standard Intake & Action Workflow */}
+          <Panel title="📋 Standard VAW Desk Action & Referrals Workflow">
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+              <div style={{ padding: "0.6rem 0.8rem", backgroundColor: "var(--color-bg-subtle, #f8fafc)", borderRadius: "0.375rem", border: "1px solid var(--color-border, #e2e8f0)", fontSize: "0.82rem" }}>
+                <strong>1. Immediate Intake & Safe Space:</strong> Document the sworn narrative in private; ensure victim physical safety.
+              </div>
+              <div style={{ padding: "0.6rem 0.8rem", backgroundColor: "var(--color-bg-subtle, #f8fafc)", borderRadius: "0.375rem", border: "1px solid var(--color-border, #e2e8f0)", fontSize: "0.82rem" }}>
+                <strong>2. Barangay Protection Order (BPO):</strong> Assist applicant for immediate 15-day ex-parte protection order issuance.
+              </div>
+              <div style={{ padding: "0.6rem 0.8rem", backgroundColor: "var(--color-bg-subtle, #f8fafc)", borderRadius: "0.375rem", border: "1px solid var(--color-border, #e2e8f0)", fontSize: "0.82rem" }}>
+                <strong>3. Medical & Legal Referral:</strong> Coordinate with PNP Women & Children Protection Desk (WCPD) and City Health Office.
+              </div>
+              <div style={{ padding: "0.6rem 0.8rem", backgroundColor: "var(--color-bg-subtle, #f8fafc)", borderRadius: "0.375rem", border: "1px solid var(--color-border, #e2e8f0)", fontSize: "0.82rem" }}>
+                <strong>4. CSWDO Coordination:</strong> Refer to City Social Welfare for psychosocial counseling and temporary protective shelter.
+              </div>
+            </div>
+          </Panel>
+        </div>
+      </>
+    );
+  }
 
   // --------------------------------------------------------------------------
   // BDC OFFICER DEDICATED DASHBOARD
