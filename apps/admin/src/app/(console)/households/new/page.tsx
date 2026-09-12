@@ -249,7 +249,10 @@ export default function NewHouseholdPage() {
 
       <form onSubmit={submit}>
         {/* Part 1: Location & Metrics */}
-        <Panel title="Part 1: Location & Household Metrics" subtitle="Geographic boundaries and household composition numbers">
+        <Panel title="Part 1: Location & Household Metrics">
+          <div className="adm-muted" style={{ marginBottom: 12 }}>
+            Geographic boundaries and household composition numbers per DILG Form A1
+          </div>
           <div className="adm-form-grid">
             <Field label="Household Number (Auto/System)">
               <input
@@ -324,7 +327,10 @@ export default function NewHouseholdPage() {
         <div style={{ height: 16 }} />
 
         {/* Part 2: Structure, Tenure & Monthly Income */}
-        <Panel title="Part 2: Structure, Tenure & Housing Profile" subtitle="Household head responsibility and socio-economic category">
+        <Panel title="Part 2: Structure, Tenure & Housing Profile">
+          <div className="adm-muted" style={{ marginBottom: 12 }}>
+            Household head responsibility and socio-economic category
+          </div>
           <div className="adm-form-grid">
             <Field label="Household Name / Label" hint='e.g. "Dela Cruz Family" or "Dela Cruz Residence"'>
               <input
@@ -520,7 +526,10 @@ export default function NewHouseholdPage() {
         <div style={{ height: 16 }} />
 
         {/* Part 3: Migrant Information */}
-        <Panel title="Part 3: Migrant Information (BIMS Form A1 Part 3)" subtitle="To be filled out if household members are migrants (moved usual residence)">
+        <Panel title="Part 3: Migrant Information (BIMS Form A1 Part 3)">
+          <div className="adm-muted" style={{ marginBottom: 12 }}>
+            To be filled out if household members are migrants (moved usual residence)
+          </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <span className="adm-muted" style={{ fontSize: "0.85rem" }}>
               Migrant: A person who moved from another geographic/political area involving a change of usual residence.
@@ -645,7 +654,10 @@ export default function NewHouseholdPage() {
         <div style={{ height: 16 }} />
 
         {/* Data Privacy Consent */}
-        <Panel title="Data Privacy Act of 2012 Consent Clause" subtitle="Statutory compliance per RA 10173 and Section 394(d)(6) of RA 7160">
+        <Panel title="Data Privacy Act of 2012 Consent Clause">
+          <div className="adm-muted" style={{ marginBottom: 12 }}>
+            Statutory compliance per RA 10173 and Section 394(d)(6) of RA 7160
+          </div>
           <Alert tone="info">
             📜 <strong>Privacy Notice</strong>: I understand that for the Barangay to carry out its mandate pursuant to Section 394 (d)(6) of the Local Government Code of 1991, they must necessarily process personal information for easy identification of inhabitants, as a tool in planning, and as an updated reference in the number of inhabitants of the Barangay. Therefore, I grant my consent that my data will be stored in the LGUSS-BIMS.
           </Alert>

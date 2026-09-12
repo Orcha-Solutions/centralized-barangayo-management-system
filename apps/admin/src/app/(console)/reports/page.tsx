@@ -17,8 +17,13 @@ import {
   peso,
   titleize,
 } from "@cbms/ui";
-import { Async, BarRow, EmptyNote } from "../../../components/common";
+import { ActionResult, Async, BarRow, EmptyNote } from "../../../components/common";
 import { downloadText, toCsv } from "../../../lib/download";
+import {
+  REPORT_SAMPLES,
+  downloadSampleReport,
+  type ReportSample,
+} from "../../../lib/reportSamples";
 import type { CsmSummary, QuarterlyReport } from "../../../lib/types";
 
 const QUARTERLY_FIELDS: Array<[string, (r: QuarterlyReport) => string | number]> = [
@@ -41,6 +46,10 @@ export default function ReportsPage() {
   const q = quarterly.data;
   const c = csm.data;
 
+  const [sampleCategory, setSampleCategory] = React.useState<string>("ALL");
+  const [sampleSearch, setSampleSearch] = React.useState<string>("");
+  const [downloadMsg, setDownloadMsg] = React.useState<string | null>(null);
+
   function exportQuarterly() {
     if (!q) return;
     const csv = toCsv(
@@ -48,7 +57,27 @@ export default function ReportsPage() {
       [QUARTERLY_FIELDS.map(([, get]) => get(q))],
     );
     downloadText(csv, `quarterly-${q.period}.csv`, "text/csv;charset=utf-8;");
+    setDownloadMsg(`Downloaded quarterly rollup report for period ${q.period}.`);
   }
+
+  function handleDownloadCsv(sample: ReportSample) {
+    downloadSampleReport(sample);
+    setDownloadMsg(`Downloaded sample “${sample.filename}” (${sample.recordCount} sample records).`);
+  }
+
+  const filteredSamples = REPORT_SAMPLES.filter((s) => {
+    if (sampleCategory !== "ALL" && s.category !== sampleCategory) return false;
+    if (sampleSearch.trim()) {
+      const q = sampleSearch.toLowerCase();
+      return (
+        s.title.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q) ||
+        s.complianceTag.toLowerCase().includes(q) ||
+        s.filename.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   const distribution = [...(c?.distribution ?? [])].sort((a, b) => b.star - a.star);
   const maxCount = distribution.reduce((m, d) => Math.max(m, d.count), 0);
@@ -56,18 +85,137 @@ export default function ReportsPage() {
   return (
     <>
       <PageHead
-        title="Reports"
-        subtitle="The quarterly statistical rollup aligned to NBOO quarterly reporting, plus the Client Satisfaction Measurement that RA 11032 requires every service office to publish."
+        title="Reports & Compliance"
+        subtitle="The quarterly statistical rollup aligned to DILG NBOO standards, official downloadable reporting templates, and the RA 11032 Citizen Satisfaction Measurement."
         breadcrumb="Admin"
         exclusive
         actions={
           <Button variant="primary" onClick={exportQuarterly} disabled={!q}>
-            ⬇ Download CSV
+            ⬇ CSV
           </Button>
         }
       />
 
-      <Panel title="Quarterly statistical report">
+      <ActionResult success={downloadMsg} />
+
+      {/* Downloadable DILG Samples & Templates */}
+      <Panel
+        title="📥 Downloadable Report Samples & Official DILG Templates"
+        actions={
+          <span className="adm-muted" style={{ fontSize: "0.85rem" }}>
+            {filteredSamples.length} template sample(s) available
+          </span>
+        }
+      >
+        <div style={{ marginBottom: "1rem" }}>
+          <p style={{ margin: "0 0 1rem 0", fontSize: 13.5, lineHeight: 1.6, color: "var(--color-text, #1b2430)" }}>
+            Download pre-formatted, DILG-compliant sample datasets and intake templates for BIPS inhabitants profiling, BDP multi-year investments, Katarungang Pambarangay caseloads, GAD budget matrices, and ARTA citizen feedback.
+          </p>
+
+          <Toolbar>
+            <select
+              className="cbms-select"
+              value={sampleCategory}
+              onChange={(e) => setSampleCategory(e.target.value)}
+            >
+              <option value="ALL">All Categories</option>
+              <option value="BIPS">DILG BIPS Profiling (Forms A1, A2, A4)</option>
+              <option value="BDP">Barangay Development Plan (BDP / AIP)</option>
+              <option value="KP">Katarungang Pambarangay (KPISBH)</option>
+              <option value="GAD">Gender & Development (BGADPBMS)</option>
+              <option value="CSM">Citizen Satisfaction (RA 11032)</option>
+              <option value="OFFICIALS">Barangay Officials Roster</option>
+            </select>
+
+            <input
+              className="cbms-input"
+              type="search"
+              placeholder="Search templates or compliance tag…"
+              style={{ maxWidth: 300 }}
+              value={sampleSearch}
+              onChange={(e) => setSampleSearch(e.target.value)}
+            />
+          </Toolbar>
+        </div>
+
+        <DataTable
+          columns={[
+            {
+              key: "title",
+              header: "Report / Form Title",
+              render: (s: ReportSample) => (
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <span className="cbms-table__primary" style={{ fontWeight: 600 }}>
+                      {s.title}
+                    </span>
+                    <Chip tone="navy">{s.complianceTag}</Chip>
+                  </div>
+                  <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "0.25rem", lineHeight: 1.4 }}>
+                    {s.description}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: "category",
+              header: "Category",
+              width: 120,
+              render: (s: ReportSample) => (
+                <Chip
+                  tone={
+                    s.category === "BIPS"
+                      ? "blue"
+                      : s.category === "BDP"
+                      ? "green"
+                      : s.category === "KP"
+                      ? "red"
+                      : s.category === "GAD"
+                      ? "gold"
+                      : "gray"
+                  }
+                >
+                  {s.category}
+                </Chip>
+              ),
+            },
+            {
+              key: "recordCount",
+              header: "Sample Size",
+              align: "right",
+              width: 120,
+              render: (s: ReportSample) => (
+                <span style={{ fontSize: "0.85rem", color: "#475569" }}>
+                  {num(s.recordCount)} records
+                </span>
+              ),
+            },
+            {
+              key: "actions",
+              header: "Download",
+              align: "right",
+              width: 100,
+              render: (s: ReportSample) => (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => handleDownloadCsv(s)}
+                  title={`Download ${s.filename}`}
+                  style={{ padding: "0.25rem 0.65rem" }}
+                >
+                  ⬇ CSV
+                </Button>
+              ),
+            },
+          ]}
+          rows={filteredSamples}
+          empty="No sample reports match your search filter."
+        />
+      </Panel>
+
+      <div style={{ height: 20 }} />
+
+      <Panel title="Quarterly statistical report (DILG NBOO Rollup)">
         <Async loading={quarterly.loading} error={quarterly.error}>
           {q ? (
             <>
