@@ -56,7 +56,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Justice & Safety",
     items: [
-      { href: "/blotter", label: "Blotter", icon: "📕", perm: "kp:view" },
+      { href: "/blotter", label: "Blotter", icon: "📕", perm: "blotter:view" },
       { href: "/kp", label: "KP Cases", icon: "⚖️", perm: "kp:view" },
       {
         href: "/sos",

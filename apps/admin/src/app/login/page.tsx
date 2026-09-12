@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ApiError, getToken, login } from "@cbms/api-client";
+import { ApiError, clearSession, getToken, login } from "@cbms/api-client";
 import { Alert, Button, Field, Spinner } from "@cbms/ui";
 
 const DEMO_PASSWORD = "Cbms#2026";
@@ -31,15 +31,7 @@ export default function LoginPage() {
   const [notice, setNotice] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
-  const [booting, setBooting] = React.useState(true);
-
-  React.useEffect(() => {
-    if (getToken()) {
-      window.location.href = "/";
-      return;
-    }
-    setBooting(false);
-  }, []);
+  const [booting, setBooting] = React.useState(false);
 
   function pick(next: string) {
     setEmail(next);

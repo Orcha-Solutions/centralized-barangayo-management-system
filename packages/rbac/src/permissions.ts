@@ -11,7 +11,8 @@ export const MODULES = {
   // Group A — LGUSS-BIMS parity
   inhabitants: "A1 Inhabitant Profiling (BIPS)",
   issuance: "A2 Issuance Management (BCIS)",
-  kp: "A3 Katarungang Pambarangay & Blotter (KPISBH)",
+  blotter: "A3 Blotter Incident Intake",
+  kp: "A3 Katarungang Pambarangay (KPISBH)",
   vawc: "A3 VAWC/VAC restricted track",
   property: "A4 Property & Asset Management (BAMS)",
   disaster: "A5 Disaster Resilience (BDRIS)",
@@ -180,10 +181,9 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   ],
 
   VAW_DESK_OFFICER: [
-    ...VIEW("inhabitants"),
-    ...VIEW_ENCODE("kp"),
-    ...ALL("vawc"), // the only role besides PB with VAWC access
-    ...VIEW("reports"),
+    permission("blotter", "view"),
+    permission("blotter", "encode"),
+    ...ALL("vawc"), // confidential VAWC intake & protection track
   ],
 
   BHW: [

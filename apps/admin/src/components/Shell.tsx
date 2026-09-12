@@ -118,7 +118,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     NAV_GROUPS.flatMap((g) => g.items).find((i) => i.href === current)?.label ??
     "Barangay Console";
 
-  if (!authed) {
+  if (!authed || session.loading || !user) {
     return (
       <div className="cbms-center">
         <Spinner />
@@ -130,6 +130,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
     ? `Barangay ${user.barangay.name}`
     : user?.city?.name ?? "CBMS";
   const mode = user?.barangay?.mode ?? "companion";
+
+  const isVawUser =
+    user?.roles?.includes("VAW_DESK_OFFICER") ||
+    user?.email?.toLowerCase().includes("vaw");
+  const isLuponUser =
+    user?.roles?.includes("LUPON_SECRETARY") ||
+    user?.email?.toLowerCase().includes("lupon");
+  const isBdcUser =
+    user?.roles?.includes("BDC_OFFICER") ||
+    user?.email?.toLowerCase().includes("bdc");
 
   return (
     <ConsoleContext.Provider value={value}>
@@ -145,7 +155,27 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
           <nav className="cbms-nav">
             {NAV_GROUPS.map((group) => {
-              const items = group.items.filter((i) => !i.perm || session.can(i.perm));
+              const items = group.items.filter((i) => {
+                // Strict functionary role rules:
+                if (isVawUser) {
+                  // VAW Desk Officer strictly sees only Dashboard and Blotter (NO KP cases, NO GAD, NO institutions)
+                  return i.href === "/" || i.href === "/blotter";
+                }
+                if (isLuponUser) {
+                  // Lupon Secretary strictly sees Dashboard, Blotter, and KP Cases
+                  return i.href === "/" || i.href === "/blotter" || i.href === "/kp";
+                }
+                if (isBdcUser) {
+                  // BDC Officer strictly sees Dashboard, Dev Plan, Institutions, and Reports
+                  return (
+                    i.href === "/" ||
+                    i.href === "/devplan" ||
+                    i.href === "/institutions" ||
+                    i.href === "/reports"
+                  );
+                }
+                return !i.perm || session.can(i.perm);
+              });
               if (!items.length) return null;
               return (
                 <div className="cbms-nav__group" key={group.label}>

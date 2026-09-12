@@ -340,6 +340,17 @@ export interface KpCase {
   _count?: { hearings: number };
 }
 
+export interface BlotterActionLog {
+  id: string;
+  actionTaken: string;
+  officerName: string;
+  officerRole: string;
+  notes?: string | null;
+  statusAfter?: string | null;
+  timestamp: string;
+  documentRef?: string | null;
+}
+
 export interface BlotterEntry {
   id: string;
   entryNo: string;
@@ -350,7 +361,9 @@ export interface BlotterEntry {
   reportedBy: string;
   respondentName?: string | null;
   isConfidential: boolean;
+  status?: string;
   kpCase?: { id: string; caseNo: string; stage: string } | null;
+  actionsTaken?: BlotterActionLog[];
 }
 
 // ---------------------------------------------------------------- wallet
