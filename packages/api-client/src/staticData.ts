@@ -121,6 +121,50 @@ export interface StaticSosAlert {
   createdAt: string;
 }
 
+export interface StaticLedgerEntry {
+  id: string;
+  barangayId: string;
+  postedAt: string;
+  fund: "general" | "sk" | "gad" | "disaster" | "trust";
+  accountCode: string;
+  description: string;
+  direction: "credit" | "debit";
+  amount: number;
+  orNumber?: string | null;
+  dvNumber?: string | null;
+  refType?: string | null;
+}
+
+export interface StaticOfficialReceipt {
+  id: string;
+  barangayId: string;
+  orNumber: string;
+  payorName: string;
+  amount: number;
+  particulars: string;
+  issuedAt: string;
+}
+
+export interface StaticBudgetLine {
+  id: string;
+  expenseClass: "PS" | "MOOE" | "CO";
+  accountCode: string;
+  description: string;
+  amount: number;
+  obligated: number;
+  disbursed: number;
+}
+
+export interface StaticBudget {
+  id: string;
+  barangayId: string;
+  year: number;
+  totalAmount: number;
+  skFundAmount: number;
+  status: string;
+  lines: StaticBudgetLine[];
+}
+
 export const STATIC_BARANGAY_ID = "van6rdk";
 
 export const STATIC_CERTIFICATE_TYPES: StaticCertificateType[] = [
@@ -798,6 +842,872 @@ export const STATIC_SOS_ALERTS: StaticSosAlert[] = [
     inhabitant: { firstName: "DRRM Monitoring", lastName: "Officer", contactPhone: "09990001122" },
     createdAt: "2026-08-23T06:00:00.000Z",
   },
+];
+
+export const STATIC_LEDGER_ENTRIES: StaticLedgerEntry[] = [
+  {
+    id: "led-01",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-11T09:30:00.000Z",
+    fund: "general",
+    accountCode: "4-02-01-040",
+    description: "Clearance & Certification Fees collection (Batch OR-2026-00115 to 00118)",
+    direction: "credit",
+    amount: 1400,
+    orNumber: "OR-2026-00118",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-02",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-10T14:15:00.000Z",
+    fund: "disaster",
+    accountCode: "5-02-03-080",
+    description: "First aid & trauma kits replenishment for BDRRMC rescue team",
+    direction: "debit",
+    amount: 36000,
+    dvNumber: "DV-DRRM-2026-015",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-03",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-08T11:00:00.000Z",
+    fund: "sk",
+    accountCode: "5-02-99-010",
+    description: "High school scholarship learning materials & book assistance grants",
+    direction: "debit",
+    amount: 65000,
+    dvNumber: "DV-SK-2026-008",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-04",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-06T15:40:00.000Z",
+    fund: "gad",
+    accountCode: "5-02-03-080",
+    description: "Maternal health checkup kits & hygiene supplies for Barangay Health Clinic",
+    direction: "debit",
+    amount: 31200,
+    dvNumber: "DV-GAD-2026-010",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-05",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-05T10:20:00.000Z",
+    fund: "general",
+    accountCode: "5-02-13-060",
+    description: "Preventive maintenance, oil change & fuel replenishment for Patrol Mobile 01 & 02",
+    direction: "debit",
+    amount: 32800,
+    dvNumber: "DV-2026-09-003",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-06",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-03T16:00:00.000Z",
+    fund: "general",
+    accountCode: "4-02-01-040",
+    description: "Business clearance & inspection fees — Commercial establishments",
+    direction: "credit",
+    amount: 18700,
+    orNumber: "OR-2026-00113",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-07",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-09-01T08:00:00.000Z",
+    fund: "general",
+    accountCode: "4-01-01-010",
+    description: "National Tax Allotment (NTA / IRA) — Monthly Allotment Release (September 2026)",
+    direction: "credit",
+    amount: 2375000,
+    orNumber: "NTA-2026-09",
+    refType: "bank_credit"
+  },
+  {
+    id: "led-08",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-30T16:45:00.000Z",
+    fund: "general",
+    accountCode: "5-01-01-010",
+    description: "Honoraria & personnel compensation — Punong Barangay & Kagawads (August 2026)",
+    direction: "debit",
+    amount: 450000,
+    dvNumber: "DV-2026-08-041",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-09",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-30T16:45:00.000Z",
+    fund: "general",
+    accountCode: "5-01-02-990",
+    description: "Honoraria & subsistence allowances — Barangay Tanods & Security Force (24 personnel)",
+    direction: "debit",
+    amount: 192000,
+    dvNumber: "DV-2026-08-042",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-10",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-30T16:45:00.000Z",
+    fund: "general",
+    accountCode: "5-01-02-010",
+    description: "Honoraria — Appointed Barangay Officials (Secretary, Treasurer)",
+    direction: "debit",
+    amount: 100000,
+    dvNumber: "DV-2026-08-043",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-11",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-28T13:30:00.000Z",
+    fund: "general",
+    accountCode: "4-02-02-010",
+    description: "Gymnasium & Multi-Purpose Covered Court rental fees — Inter-Purok Invitational",
+    direction: "credit",
+    amount: 3500,
+    orNumber: "OR-2026-00111",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-12",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-27T10:15:00.000Z",
+    fund: "general",
+    accountCode: "5-02-04-010",
+    description: "Meralco electric utility bills for Barangay Complex & Outposts (August 2026)",
+    direction: "debit",
+    amount: 78450,
+    dvNumber: "DV-2026-08-044",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-13",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-26T14:30:00.000Z",
+    fund: "gad",
+    accountCode: "5-02-02-010",
+    description: "Livelihood skills training workshop (Baking & Pastry) for solo parents and women",
+    direction: "debit",
+    amount: 58000,
+    dvNumber: "DV-GAD-2026-008",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-14",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-25T11:00:00.000Z",
+    fund: "general",
+    accountCode: "5-02-04-010",
+    description: "Manila Water utility bills for Barangay Hall & Health Center",
+    direction: "debit",
+    amount: 14320,
+    dvNumber: "DV-2026-08-045",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-15",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-24T09:00:00.000Z",
+    fund: "trust",
+    accountCode: "1-07-04-020",
+    description: "Progress Billing #2 — Riverbank drainage desilting & flood buffer wall construction",
+    direction: "debit",
+    amount: 385000,
+    dvNumber: "DV-BDF-2026-014",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-16",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-22T15:20:00.000Z",
+    fund: "general",
+    accountCode: "4-02-01-040",
+    description: "Tricycle franchise clearance & TODA supervision fees",
+    direction: "credit",
+    amount: 4500,
+    orNumber: "OR-2026-00108",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-17",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-20T10:00:00.000Z",
+    fund: "general",
+    accountCode: "4-02-02-010",
+    description: "Barangka Wet & Dry Market stall rental collections (August 2026)",
+    direction: "credit",
+    amount: 6800,
+    orNumber: "OR-2026-00107",
+    refType: "official_receipt"
+  },
+  {
+    id: "led-18",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-19T14:00:00.000Z",
+    fund: "disaster",
+    accountCode: "5-02-12-030",
+    description: "Procurement of 500 emergency relief food packs (canned goods, rice, hygiene packs)",
+    direction: "debit",
+    amount: 187500,
+    dvNumber: "DV-DRRM-2026-009",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-19",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-18T11:30:00.000Z",
+    fund: "sk",
+    accountCode: "5-02-99-010",
+    description: "Barangka Youth Inter-Purok Basketball & Volleyball League uniforms and kits",
+    direction: "debit",
+    amount: 92000,
+    dvNumber: "DV-SK-2026-005",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-20",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-16T16:00:00.000Z",
+    fund: "gad",
+    accountCode: "5-02-12-040",
+    description: "VAWC Crisis Desk emergency survivor assistance & temporary shelter subsidy",
+    direction: "debit",
+    amount: 42500,
+    dvNumber: "DV-GAD-2026-006",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-21",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-15T09:30:00.000Z",
+    fund: "general",
+    accountCode: "4-01-02-040",
+    description: "Real Property Tax (RPT) 50% City Barangay Share (Q2 2026 Remittance)",
+    direction: "credit",
+    amount: 842500,
+    orNumber: "RPT-2026-Q2",
+    refType: "bank_credit"
+  },
+  {
+    id: "led-22",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-14T10:45:00.000Z",
+    fund: "general",
+    accountCode: "5-02-03-010",
+    description: "Procurement of quarterly office, printing, and document supplies",
+    direction: "debit",
+    amount: 48200,
+    dvNumber: "DV-2026-08-048",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-23",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-12T13:00:00.000Z",
+    fund: "trust",
+    accountCode: "4-01-01-010",
+    description: "Local Government Support Fund (LGSF) — Financial Assistance grant from DILG",
+    direction: "credit",
+    amount: 1500000,
+    orNumber: "LGSF-2026-GR",
+    refType: "bank_credit"
+  },
+  {
+    id: "led-24",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-10T14:30:00.000Z",
+    fund: "disaster",
+    accountCode: "5-02-13-050",
+    description: "Calibration and battery replacement for Barangka early flood warning siren system",
+    direction: "debit",
+    amount: 28400,
+    dvNumber: "DV-DRRM-2026-011",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-25",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-05T11:00:00.000Z",
+    fund: "sk",
+    accountCode: "5-02-02-010",
+    description: "SK Youth Leadership Summit & anti-drug awareness camp supplies",
+    direction: "debit",
+    amount: 45000,
+    dvNumber: "DV-SK-2026-007",
+    refType: "disbursement_voucher"
+  },
+  {
+    id: "led-26",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-01T08:00:00.000Z",
+    fund: "general",
+    accountCode: "4-01-01-010",
+    description: "National Tax Allotment (NTA / IRA) — Monthly Allotment Release (August 2026)",
+    direction: "credit",
+    amount: 2375000,
+    orNumber: "NTA-2026-08",
+    refType: "bank_credit"
+  },
+  {
+    id: "led-27",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-01T08:30:00.000Z",
+    fund: "sk",
+    accountCode: "4-01-01-010",
+    description: "10% SK Fund mandatory statutory transfer from General Fund (August 2026)",
+    direction: "credit",
+    amount: 237500,
+    orNumber: "SK-TR-08",
+    refType: "fund_transfer"
+  },
+  {
+    id: "led-28",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-01T08:30:00.000Z",
+    fund: "disaster",
+    accountCode: "4-01-01-010",
+    description: "5% BDRRMF statutory allocation monthly transfer (August 2026)",
+    direction: "credit",
+    amount: 118750,
+    orNumber: "DRRM-TR-08",
+    refType: "fund_transfer"
+  },
+  {
+    id: "led-29",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-08-01T08:30:00.000Z",
+    fund: "gad",
+    accountCode: "4-01-01-010",
+    description: "5% GAD statutory allocation monthly transfer (August 2026)",
+    direction: "credit",
+    amount: 118750,
+    orNumber: "GAD-TR-08",
+    refType: "fund_transfer"
+  },
+  {
+    id: "led-30",
+    barangayId: STATIC_BARANGAY_ID,
+    postedAt: "2026-07-25T14:00:00.000Z",
+    fund: "trust",
+    accountCode: "1-07-04-010",
+    description: "Solar street lighting installation along Dela Paz & A. Bonifacio (Phase 1)",
+    direction: "debit",
+    amount: 450000,
+    dvNumber: "DV-BDF-2026-012",
+    refType: "disbursement_voucher"
+  }
+];
+
+export const STATIC_OFFICIAL_RECEIPTS: StaticOfficialReceipt[] = [
+  {
+    id: "or-101",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00101",
+    payorName: "Mateo S. Gonzales",
+    amount: 150,
+    particulars: "Barangay Clearance for Employment",
+    issuedAt: "2026-08-10T09:15:00.000Z"
+  },
+  {
+    id: "or-102",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00102",
+    payorName: "Barangka River Cafe & Grill / Lea Salonga",
+    amount: 2500,
+    particulars: "Barangay Business Clearance (Annual Renewal)",
+    issuedAt: "2026-08-11T10:30:00.000Z"
+  },
+  {
+    id: "or-103",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00103",
+    payorName: "Aling Tina's Sari-Sari Store / Cristina Santos",
+    amount: 500,
+    particulars: "Barangay Business Clearance & Signboard Fee",
+    issuedAt: "2026-08-12T11:45:00.000Z"
+  },
+  {
+    id: "or-104",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00104",
+    payorName: "Ricardo De Jesus",
+    amount: 50,
+    particulars: "Certificate of Indigency (PAO Legal Endorsement)",
+    issuedAt: "2026-08-14T08:50:00.000Z"
+  },
+  {
+    id: "or-105",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00105",
+    payorName: "MegaPrime Hardware & Const. Supplies",
+    amount: 4200,
+    particulars: "Barangay Business Clearance & Heavy Truck Staging Fee",
+    issuedAt: "2026-08-15T14:10:00.000Z"
+  },
+  {
+    id: "or-106",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00106",
+    payorName: "Maria Clara B. Santos",
+    amount: 100,
+    particulars: "Certificate of Residency (PhilSys / DFA Passport)",
+    issuedAt: "2026-08-18T10:00:00.000Z"
+  },
+  {
+    id: "or-107",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00107",
+    payorName: "Barangka Wet & Dry Market Vendors Coop",
+    amount: 6800,
+    particulars: "Market Stall Rental & Environmental Maintenance Fee",
+    issuedAt: "2026-08-20T10:00:00.000Z"
+  },
+  {
+    id: "or-108",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00108",
+    payorName: "Danilo M. Cruz",
+    amount: 75,
+    particulars: "Barangay Clearance for Tricycle Franchise Renewal (TODA Zone 3)",
+    issuedAt: "2026-08-22T15:20:00.000Z"
+  },
+  {
+    id: "or-109",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00109",
+    payorName: "Golden Horizon Bakery Corp.",
+    amount: 1800,
+    particulars: "Barangay Business Clearance & Sanitary Inspection Fee",
+    issuedAt: "2026-08-25T13:40:00.000Z"
+  },
+  {
+    id: "or-110",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00110",
+    payorName: "Elena Bautista",
+    amount: 50,
+    particulars: "Certificate of Good Moral Character (Scholarship Application)",
+    issuedAt: "2026-08-26T09:20:00.000Z"
+  },
+  {
+    id: "or-111",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00111",
+    payorName: "Marikina Riverway Sports Club",
+    amount: 3500,
+    particulars: "Barangay Gymnasium Rental Fee — Inter-Purok Tournament",
+    issuedAt: "2026-08-28T13:30:00.000Z"
+  },
+  {
+    id: "or-112",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00112",
+    payorName: "Vicente Ramirez Jr.",
+    amount: 150,
+    particulars: "Barangay Clearance for Police Clearance & LTOPF",
+    issuedAt: "2026-09-01T11:15:00.000Z"
+  },
+  {
+    id: "or-113",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00113",
+    payorName: "7-Eleven Barangka Branch / PhilSeven Corp",
+    amount: 5000,
+    particulars: "Annual Barangay Business Permit & Solid Waste Assessment",
+    issuedAt: "2026-09-02T14:30:00.000Z"
+  },
+  {
+    id: "or-114",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00114",
+    payorName: "Rosalinda P. Dizon",
+    amount: 100,
+    particulars: "Certificate of Cohabitation & Residency",
+    issuedAt: "2026-09-04T10:05:00.000Z"
+  },
+  {
+    id: "or-115",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00115",
+    payorName: "Silver Star Laundry Services",
+    amount: 1200,
+    particulars: "Barangay Clearance (Commercial Laundry & Wastewater Compliance)",
+    issuedAt: "2026-09-05T15:00:00.000Z"
+  },
+  {
+    id: "or-116",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00116",
+    payorName: "Arturo Macaraeg",
+    amount: 200,
+    particulars: "Barangay Clearance for Electrical Wiring & Building Permit",
+    issuedAt: "2026-09-07T09:40:00.000Z"
+  },
+  {
+    id: "or-117",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00117",
+    payorName: "Barangka Community Multi-Purpose Coop",
+    amount: 2000,
+    particulars: "Barangay Hall Conference Room Use & Audio-Visual Equipment Fee",
+    issuedAt: "2026-09-09T16:10:00.000Z"
+  },
+  {
+    id: "or-118",
+    barangayId: STATIC_BARANGAY_ID,
+    orNumber: "OR-2026-00118",
+    payorName: "Corazon Del Mundo",
+    amount: 50,
+    particulars: "Barangay Certification (First Time Jobseeker / Documentary Stamp)",
+    issuedAt: "2026-09-10T11:25:00.000Z"
+  }
+];
+
+export const STATIC_BUDGETS: StaticBudget[] = [
+  {
+    id: "bgt-2026",
+    barangayId: STATIC_BARANGAY_ID,
+    year: 2026,
+    totalAmount: 28500000,
+    skFundAmount: 2850000,
+    status: "enacted",
+    lines: [
+      {
+        id: "bl-01",
+        expenseClass: "PS",
+        accountCode: "5-01-01-010",
+        description: "Salaries & Honoraria — Punong Barangay & Sangguniang Barangay Members",
+        amount: 5400000,
+        obligated: 3600000,
+        disbursed: 3600000
+      },
+      {
+        id: "bl-02",
+        expenseClass: "PS",
+        accountCode: "5-01-02-010",
+        description: "Honoraria — Appointed Barangay Officials (Secretary, Treasurer)",
+        amount: 1200000,
+        obligated: 800000,
+        disbursed: 800000
+      },
+      {
+        id: "bl-03",
+        expenseClass: "PS",
+        accountCode: "5-01-02-990",
+        description: "Honoraria & Allowances — Barangay Tanod Security Force (24 Pax)",
+        amount: 2304000,
+        obligated: 1536000,
+        disbursed: 1536000
+      },
+      {
+        id: "bl-04",
+        expenseClass: "PS",
+        accountCode: "5-01-02-991",
+        description: "Honoraria — Barangay Health Workers (BHW) & Nutrition Scholars",
+        amount: 1080000,
+        obligated: 720000,
+        disbursed: 720000
+      },
+      {
+        id: "bl-05",
+        expenseClass: "PS",
+        accountCode: "5-01-04-030",
+        description: "Year-End Bonus & Cash Gift (Barangay Appointed & Elective Personnel)",
+        amount: 850000,
+        obligated: 0,
+        disbursed: 0
+      },
+      {
+        id: "bl-06",
+        expenseClass: "MOOE",
+        accountCode: "5-02-01-010",
+        description: "Travelling & Training Expenses — Local Seminars & DILG Workshops",
+        amount: 350000,
+        obligated: 210000,
+        disbursed: 185000
+      },
+      {
+        id: "bl-07",
+        expenseClass: "MOOE",
+        accountCode: "5-02-03-010",
+        description: "Office Supplies & Materials Expenses — Hall & Desk Operations",
+        amount: 620000,
+        obligated: 480000,
+        disbursed: 435000
+      },
+      {
+        id: "bl-08",
+        expenseClass: "MOOE",
+        accountCode: "5-02-04-010",
+        description: "Electricity & Water Utility Expenses — Barangay Hall & Health Center",
+        amount: 980000,
+        obligated: 660000,
+        disbursed: 642000
+      },
+      {
+        id: "bl-09",
+        expenseClass: "MOOE",
+        accountCode: "5-02-05-020",
+        description: "Internet & Telecommunications Expenses (Fiber & Radio Relay)",
+        amount: 240000,
+        obligated: 160000,
+        disbursed: 160000
+      },
+      {
+        id: "bl-10",
+        expenseClass: "MOOE",
+        accountCode: "5-02-13-040",
+        description: "Repairs & Maintenance — Multi-Purpose Hall & Day Care Facilities",
+        amount: 750000,
+        obligated: 520000,
+        disbursed: 485000
+      },
+      {
+        id: "bl-11",
+        expenseClass: "MOOE",
+        accountCode: "5-02-13-060",
+        description: "Repairs & Maintenance — Patrol Vehicles & Ambulance",
+        amount: 460000,
+        obligated: 340000,
+        disbursed: 315000
+      },
+      {
+        id: "bl-12",
+        expenseClass: "MOOE",
+        accountCode: "5-02-12-030",
+        description: "5% Local Disaster Risk Reduction & Management Fund (LDRRMF / BDRRMC)",
+        amount: 1425000,
+        obligated: 980000,
+        disbursed: 890000
+      },
+      {
+        id: "bl-13",
+        expenseClass: "MOOE",
+        accountCode: "5-02-12-040",
+        description: "5% Gender and Development Fund (GAD Statutory Allocation — VAW & Livelihood)",
+        amount: 1425000,
+        obligated: 875000,
+        disbursed: 810000
+      },
+      {
+        id: "bl-14",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-080",
+        description: "Barangay Peace and Order Council (BPOC) Operations",
+        amount: 500000,
+        obligated: 360000,
+        disbursed: 345000
+      },
+      {
+        id: "bl-15",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-090",
+        description: "Barangay Anti-Drug Abuse Council (BADAC) Community Rehabilitation",
+        amount: 350000,
+        obligated: 220000,
+        disbursed: 195000
+      },
+      {
+        id: "bl-16",
+        expenseClass: "CO",
+        accountCode: "1-07-04-010",
+        description: "20% Barangay Development Fund (BDF) — Solar Street Lighting Along A. Bonifacio",
+        amount: 3200000,
+        obligated: 3200000,
+        disbursed: 2400000
+      },
+      {
+        id: "bl-17",
+        expenseClass: "CO",
+        accountCode: "1-07-04-020",
+        description: "20% BDF — Riverbank Drainage Desilting & Flood Barrier Improvement",
+        amount: 2500000,
+        obligated: 2500000,
+        disbursed: 1850000
+      },
+      {
+        id: "bl-18",
+        expenseClass: "CO",
+        accountCode: "1-07-05-010",
+        description: "IT Equipment & Digital Identification Terminals for CBMS Kiosks",
+        amount: 1066000,
+        obligated: 850000,
+        disbursed: 780000
+      },
+      {
+        id: "bl-19",
+        expenseClass: "CO",
+        accountCode: "1-07-06-010",
+        description: "Disaster Rescue Equipment & High-Water Rubber Boats",
+        amount: 950000,
+        obligated: 950000,
+        disbursed: 950000
+      },
+      {
+        id: "bl-20",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-010",
+        description: "Sangguniang Kabataan (SK 10%) — Youth Development, Sports & Training Programs",
+        amount: 2850000,
+        obligated: 1900000,
+        disbursed: 1650000
+      }
+    ]
+  },
+  {
+    id: "bgt-2025",
+    barangayId: STATIC_BARANGAY_ID,
+    year: 2025,
+    totalAmount: 26000000,
+    skFundAmount: 2600000,
+    status: "enacted",
+    lines: [
+      {
+        id: "bl25-01",
+        expenseClass: "PS",
+        accountCode: "5-01-01-010",
+        description: "Salaries & Honoraria — Punong Barangay & Sangguniang Barangay Members",
+        amount: 5100000,
+        obligated: 5100000,
+        disbursed: 5100000
+      },
+      {
+        id: "bl25-02",
+        expenseClass: "PS",
+        accountCode: "5-01-02-010",
+        description: "Honoraria — Appointed Barangay Officials (Secretary, Treasurer)",
+        amount: 1100000,
+        obligated: 1100000,
+        disbursed: 1100000
+      },
+      {
+        id: "bl25-03",
+        expenseClass: "PS",
+        accountCode: "5-01-02-990",
+        description: "Honoraria & Allowances — Barangay Tanod Security Force",
+        amount: 2100000,
+        obligated: 2100000,
+        disbursed: 2100000
+      },
+      {
+        id: "bl25-04",
+        expenseClass: "PS",
+        accountCode: "5-01-02-991",
+        description: "Honoraria — Barangay Health Workers (BHW)",
+        amount: 980000,
+        obligated: 980000,
+        disbursed: 980000
+      },
+      {
+        id: "bl25-05",
+        expenseClass: "PS",
+        accountCode: "5-01-04-030",
+        description: "Year-End Bonus & Cash Gift",
+        amount: 720000,
+        obligated: 720000,
+        disbursed: 720000
+      },
+      {
+        id: "bl25-06",
+        expenseClass: "MOOE",
+        accountCode: "5-02-03-010",
+        description: "Office Supplies & Materials Expenses",
+        amount: 550000,
+        obligated: 550000,
+        disbursed: 550000
+      },
+      {
+        id: "bl25-07",
+        expenseClass: "MOOE",
+        accountCode: "5-02-04-010",
+        description: "Electricity & Water Utility Expenses",
+        amount: 880000,
+        obligated: 880000,
+        disbursed: 880000
+      },
+      {
+        id: "bl25-08",
+        expenseClass: "MOOE",
+        accountCode: "5-02-12-030",
+        description: "5% Local Disaster Risk Reduction & Management Fund (LDRRMF)",
+        amount: 1300000,
+        obligated: 1300000,
+        disbursed: 1300000
+      },
+      {
+        id: "bl25-09",
+        expenseClass: "MOOE",
+        accountCode: "5-02-12-040",
+        description: "5% Gender and Development Fund (GAD)",
+        amount: 1300000,
+        obligated: 1300000,
+        disbursed: 1300000
+      },
+      {
+        id: "bl25-10",
+        expenseClass: "CO",
+        accountCode: "1-07-04-010",
+        description: "20% BDF — Barangay Evacuation Multi-Purpose Center Upgrade",
+        amount: 5200000,
+        obligated: 5200000,
+        disbursed: 5200000
+      },
+      {
+        id: "bl25-11",
+        expenseClass: "CO",
+        accountCode: "1-07-05-010",
+        description: "IT Equipment & CCTV Security Upgrades",
+        amount: 1170000,
+        obligated: 1170000,
+        disbursed: 1170000
+      },
+      {
+        id: "bl25-12",
+        expenseClass: "MOOE",
+        accountCode: "5-02-13-040",
+        description: "Repairs & Maintenance — Hall & Facilities",
+        amount: 700000,
+        obligated: 700000,
+        disbursed: 700000
+      },
+      {
+        id: "bl25-13",
+        expenseClass: "MOOE",
+        accountCode: "5-02-13-060",
+        description: "Repairs & Maintenance — Transportation Equipment",
+        amount: 400000,
+        obligated: 400000,
+        disbursed: 400000
+      },
+      {
+        id: "bl25-14",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-080",
+        description: "Barangay Peace & Order Programs",
+        amount: 1000000,
+        obligated: 1000000,
+        disbursed: 1000000
+      },
+      {
+        id: "bl25-15",
+        expenseClass: "MOOE",
+        accountCode: "5-02-99-010",
+        description: "Sangguniang Kabataan (SK 10%) Fund",
+        amount: 2600000,
+        obligated: 2600000,
+        disbursed: 2600000
+      }
+    ]
+  }
 ];
 
 // ============================================================================
