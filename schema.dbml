@@ -241,10 +241,94 @@ enum CivilStatus {
   annulled
 }
 
+enum ResidentType {
+  non_migrant // >= 5 years + 1 day
+  migrant // 6 months + 1 day up to 5 years
+  transient // < 6 months
+}
+
+enum GenderIdentity {
+  male
+  female
+  lesbian
+  gay
+  bisexual
+  transgender
+  queer
+  intersex
+  asexual
+  others
+}
+
+enum ComplexionType {
+  fair
+  medium
+  dark
+}
+
+enum NationalityType {
+  filipino
+  dual_citizen
+  foreign_citizen
+  no_citizenship
+}
+
+enum HouseholdType {
+  nuclear
+  extended
+  single_parent
+  childless
+  blended_stepfamily
+  single_person
+  non_related
+  others
+}
+
+enum HousingTenureStatus {
+  owner
+  renter
+  others
+}
+
+enum HousingUnitType {
+  single_house
+  duplex
+  townhouse_rowhouse
+  condominium
+  apartment
+  others
+}
+
+enum UnderlyingCauseOfDeath {
+  mental
+  physical
+  infectious
+  non_infectious
+  deficiency
+  inherited
+  degenerative
+  social
+  self_inflicted
+  others
+}
+
+enum OfficialPositionType {
+  elective
+  appointive
+}
+
 Table Household {
   id String [pk, default: `cuid()`]
   barangayId String
   householdNo String
+  householdName String // e.g. "Dela Cruz Family" (BIMS Form A1)
+  householdType HouseholdType [default: 'nuclear']
+  tenureStatus HousingTenureStatus [default: 'owner']
+  housingUnit HousingUnitType [default: 'single_house']
+  monthlyIncome Decimal [default: 0]
+  numFamilies Int [default: 1]
+  numMembers Int [default: 1]
+  numMigrants Int [default: 0]
   purok String
   sitio String
   houseNo String
@@ -254,24 +338,14 @@ Table Household {
   subdivision String
   buildingName String
   addressLine String
+  zipCode String
   latitude Float
   longitude Float
-  squareMeters Float
-  hasGarage Boolean [default: false]
-  dwellingType String
-  roofMaterial String
-  wallMaterial String
-  tenureStatus String
-  landTenure String
   waterSource String
   toiletFacility String
   electricitySource String
   cookingFuel String
   wasteDisposal String
-  internetAccess String
-  monthlyIncomeBand String
-  primaryIncomeSource String
-  hazardZoneRisk String
   is4Ps Boolean [default: false]
   isIndigent Boolean [default: false]
   headId String [unique]
@@ -286,41 +360,113 @@ Table Inhabitant {
   id String [pk, default: `cuid()`]
   barangayId String
   householdId String
-  relationToHead String
+  relationToHead String // Standard DILG Code 1 to 26 (BIMS Form A1)
+  incomeSource String // Standard DILG Code 1 to 8 (BIMS Form A1)
+  residentType ResidentType [default: 'non_migrant']
+  philsysNo String // 16-digit PhilSys PCN (BIMS Form A2)
   firstName String
   middleName String
   lastName String
   suffix String
   sex Sex
+  gender GenderIdentity [default: 'male']
   birthDate DateTime
   birthPlace String
+  residenceMotherAtBirth String
   civilStatus CivilStatus [default: 'single']
-  citizenship String [default: 'Filipino']
-  philsysNo String
+  isPregnant Boolean [default: false]
+  educationLevel String
+  occupation String
   contactPhone String
   contactEmail String
-  occupation String
-  educationLevel String
+  telephoneNumber String
+  
+  // Identity & Physical (BIMS Form A2)
+  bloodType String // A+, O+, B+, AB+, A-, O-, B-, AB-
+  height Float // in meters e.g. 1.75
+  weight Float // in kg e.g. 70.0
+  complexion ComplexionType [default: 'medium']
+  nationality NationalityType [default: 'filipino']
+  isRegisteredVoter Boolean [default: false]
+  isResidentVoter Boolean [default: false]
+  lastVotedYear Int
+  ethnicity String // Standard DILG Form 1.A (70 options)
   religion String
-  bloodType String
-  monthlyIncome Decimal
+  mothersMaidenFirstName String
+  mothersMaidenMiddleName String
+  mothersMaidenLastName String
+
+  // Beneficiary & Sectoral (BIMS Form A2)
+  govAssistance String // 4Ps, TUPAD, SLP, Others
+  isEmployed Boolean [default: false]
+  isUnemployed Boolean [default: false]
+  isOfw Boolean [default: false]
+  isIndigenous Boolean [default: false]
+  isStudent Boolean [default: false]
+  isOsc Boolean [default: false] // Out of School Children (6-14 y.o.)
+  isOsy Boolean [default: false] // Out of School Youth (15-24 y.o.)
+  isMigrant Boolean [default: false]
+  isRefugee Boolean [default: false]
   isSenior Boolean [default: false]
+  isRegisteredSenior Boolean [default: false]
   isPwd Boolean [default: false]
+  isRegisteredPwd Boolean [default: false]
   pwdType String
   isSoloParent Boolean [default: false]
+  isRegisteredSoloParent Boolean [default: false]
   is4Ps Boolean [default: false]
-  isIndigenous Boolean [default: false]
-  isPregnant Boolean [default: false]
-  isBedridden Boolean [default: false]
-  isOfw Boolean [default: false]
-  isVoter Boolean [default: false]
+  
+  // System & Compliance
   isDeceased Boolean [default: false]
-  deceasedDate DateTime
-  residencyStart DateTime
   isResident Boolean [default: true]
+  privacyConsent Boolean [default: true] // RA 10173 & RA 7160 Sec 394(d)(6)
   source RecordSource [default: 'CBMS']
   bimsRef String
   photoUrl String
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table HouseholdMigrant {
+  id String [pk, default: `cuid()`]
+  householdId String
+  inhabitantId String
+  previousResidence String // Province/HUC, City, Barangay / Country (BIMS Form A1 Part 3)
+  stayPreviousYears Int [default: 0]
+  stayPreviousMonths Int [default: 0]
+  reasonForLeaving String // DILG Codes 1 to 16
+  transferDate DateTime
+  reasonForTransferring String // DILG Codes 1 to 5
+  stayCurrentYears Int [default: 0]
+  stayCurrentMonths Int [default: 0]
+  intentionToReturn Boolean [default: false]
+  createdAt DateTime [default: `now()`]
+}
+
+Table DeceasedRecord {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  inhabitantId String [unique]
+  dateOfDeath DateTime // BIMS Form A3
+  immediateCause String // e.g. "Heart Attack"
+  underlyingCause UnderlyingCauseOfDeath [default: 'physical']
+  recordedById String
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime
+}
+
+Table BarangayOfficial {
+  id String [pk, default: `cuid()`]
+  barangayId String
+  inhabitantId String?
+  fullName String
+  positionType OfficialPositionType [default: 'elective'] // BIMS Form A4
+  position String // Punong Barangay, SB Member, Treasurer, Secretary, Tanod, etc.
+  termStart Int // e.g. 2023
+  termEnd Int // e.g. 2025
+  monthlyHonorarium Decimal [default: 0]
+  isActive Boolean [default: true]
+  inactiveReason String
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -1732,3 +1878,9 @@ Ref: ConversationThread.inhabitantId > Inhabitant.id
 Ref: ConversationThread.assignedOfficerId > User.id
 Ref: ChatMessage.threadId > ConversationThread.id
 Ref: MessengerPageConfig.barangayId > Barangay.id
+Ref: HouseholdMigrant.householdId > Household.id
+Ref: HouseholdMigrant.inhabitantId > Inhabitant.id
+Ref: DeceasedRecord.barangayId > Barangay.id
+Ref: DeceasedRecord.inhabitantId > Inhabitant.id
+Ref: BarangayOfficial.barangayId > Barangay.id
+Ref: BarangayOfficial.inhabitantId > Inhabitant.id

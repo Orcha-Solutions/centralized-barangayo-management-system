@@ -56,26 +56,53 @@ export interface Inhabitant {
   barangayId?: string;
   householdId?: string | null;
   relationToHead?: string | null;
+  incomeSource?: string | null;
+  residentType?: string; // non_migrant, migrant, transient (BIMS Form A2)
   firstName: string;
   middleName?: string | null;
   lastName: string;
   suffix?: string | null;
   sex: string;
+  gender?: string; // male, female, lesbian, gay, bisexual, transgender, queer, etc.
   birthDate: string;
   birthPlace?: string | null;
+  residenceMotherAtBirth?: string | null;
   civilStatus?: string;
   citizenship?: string;
-  philsysNo?: string | null;
+  philsysNo?: string | null; // 16-digit PCN
   contactPhone?: string | null;
   contactEmail?: string | null;
+  telephoneNumber?: string | null;
   occupation?: string | null;
   educationLevel?: string | null;
   religion?: string | null;
   bloodType?: string | null;
+  height?: number | null; // meters
+  weight?: number | null; // kg
+  complexion?: string | null; // fair, medium, dark
+  nationality?: string | null; // filipino, dual_citizen, foreign_citizen, no_citizenship
+  isRegisteredVoter?: boolean;
+  isResidentVoter?: boolean;
+  lastVotedYear?: number | null;
+  ethnicity?: string | null; // Form 1.A
+  mothersMaidenFirstName?: string | null;
+  mothersMaidenMiddleName?: string | null;
+  mothersMaidenLastName?: string | null;
+  govAssistance?: string | null; // 4Ps, TUPAD, SLP, Others
+  isEmployed?: boolean;
+  isUnemployed?: boolean;
+  isStudent?: boolean;
+  isOsc?: boolean; // Out of School Children 6-14
+  isOsy?: boolean; // Out of School Youth 15-24
+  isMigrant?: boolean;
+  isRefugee?: boolean;
   isSenior: boolean;
+  isRegisteredSenior?: boolean;
   isPwd: boolean;
+  isRegisteredPwd?: boolean;
   pwdType?: string | null;
   isSoloParent: boolean;
+  isRegisteredSoloParent?: boolean;
   is4Ps: boolean;
   isIndigenous: boolean;
   isPregnant?: boolean;
@@ -83,6 +110,8 @@ export interface Inhabitant {
   isOfw?: boolean;
   isVoter?: boolean;
   isDeceased?: boolean;
+  privacyConsent?: boolean;
+  monthlyIncome?: number | null;
   source: string;
   bimsRef?: string | null;
   photoUrl?: string | null;
@@ -114,9 +143,61 @@ export interface ConsentRecord {
   notes?: string | null;
 }
 
+export interface HouseholdMigrant {
+  id: string;
+  householdId: string;
+  inhabitantId?: string | null;
+  inhabitantName?: string | null;
+  previousResidence: string;
+  stayPreviousYears: number;
+  stayPreviousMonths: number;
+  reasonForLeaving: string; // DILG Codes 1-16
+  transferDate: string;
+  reasonForTransferring: string; // DILG Codes 1-5
+  stayCurrentYears: number;
+  stayCurrentMonths: number;
+  intentionToReturn: boolean;
+  createdAt?: string;
+}
+
+export interface DeceasedRecord {
+  id: string;
+  barangayId?: string;
+  inhabitantId: string;
+  dateOfDeath: string;
+  immediateCause: string;
+  underlyingCause: string; // mental, physical, infectious, non_infectious, deficiency, etc.
+  recordedById?: string;
+  createdAt?: string;
+  inhabitant?: Inhabitant | null;
+}
+
+export interface BarangayOfficial {
+  id: string;
+  barangayId?: string;
+  inhabitantId?: string | null;
+  fullName: string;
+  positionType: "elective" | "appointive";
+  position: string;
+  termStart: number;
+  termEnd: number;
+  monthlyHonorarium?: number;
+  isActive: boolean;
+  inactiveReason?: string | null;
+  createdAt?: string;
+}
+
 export interface Household {
   id: string;
   householdNo: string;
+  householdName?: string | null; // e.g. "Dela Cruz Family" (BIMS Form A1)
+  householdType?: string | null; // nuclear, extended, single_parent, childless, blended, single_person, non_related
+  tenureStatus?: string | null; // owner, renter, others
+  housingUnit?: string | null; // single_house, duplex, townhouse_rowhouse, condominium, apartment
+  monthlyIncome?: number | null;
+  numFamilies?: number;
+  numMembers?: number;
+  numMigrants?: number;
   purok?: string | null;
   sitio?: string | null;
   houseNo?: string | null;
@@ -126,24 +207,14 @@ export interface Household {
   subdivision?: string | null;
   buildingName?: string | null;
   addressLine: string;
+  zipCode?: string | null;
   latitude?: number | null;
   longitude?: number | null;
-  squareMeters?: number | null;
-  hasGarage?: boolean;
-  dwellingType?: string | null;
-  roofMaterial?: string | null;
-  wallMaterial?: string | null;
-  tenureStatus?: string | null;
-  landTenure?: string | null;
   waterSource?: string | null;
   toiletFacility?: string | null;
   electricitySource?: string | null;
   cookingFuel?: string | null;
   wasteDisposal?: string | null;
-  internetAccess?: string | null;
-  monthlyIncomeBand?: string | null;
-  primaryIncomeSource?: string | null;
-  hazardZoneRisk?: string | null;
   is4Ps?: boolean;
   isIndigent?: boolean;
   source?: string;
@@ -152,6 +223,7 @@ export interface Household {
   _count?: { members: number };
   consents?: ConsentRecord[];
   members?: Inhabitant[];
+  migrants?: HouseholdMigrant[];
 }
 
 // ---------------------------------------------------------------- issuance

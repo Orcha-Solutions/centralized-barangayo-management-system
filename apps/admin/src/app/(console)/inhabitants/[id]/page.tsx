@@ -3,10 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useApi } from "@cbms/api-client";
+import { useApi, post, DILG_CAUSE_OF_DEATH_CATEGORIES } from "@cbms/api-client";
 import {
+  Alert,
+  Button,
   Chip,
   DataTable,
+  Field,
   KeyValue,
   PageHead,
   Panel,
@@ -33,21 +36,63 @@ export default function InhabitantDetailPage() {
   const p = inh.data;
   const household = useApi<Household>(p?.householdId ? `/households/${p.householdId}` : null);
 
+  // Deceased Modal (BIMS Form A3)
+  const [showDeceasedModal, setShowDeceasedModal] = React.useState(false);
+  const [deceasedDate, setDeceasedDate] = React.useState(new Date().toISOString().split("T")[0]);
+  const [immediateCause, setImmediateCause] = React.useState("");
+  const [underlyingCause, setUnderlyingCause] = React.useState(DILG_CAUSE_OF_DEATH_CATEGORIES[0]);
+  const [deceasedConsent, setDeceasedConsent] = React.useState(true);
+  const [deceasedBusy, setDeceasedBusy] = React.useState(false);
+  const [deceasedError, setDeceasedError] = React.useState<string | null>(null);
+
   const completeness = p?.completeness ?? 0;
   const tone = completeness >= 80 ? "green" : completeness >= 50 ? "gold" : "red";
+
+  async function submitDeceased(e: React.FormEvent) {
+    e.preventDefault();
+    if (!deceasedConsent) {
+      setDeceasedError("Consent is required under RA 10173.");
+      return;
+    }
+    setDeceasedBusy(true);
+    setDeceasedError(null);
+    try {
+      await post(`/inhabitants/${id}/deceased`, {
+        dateOfDeath: deceasedDate,
+        immediateCause,
+        underlyingCause,
+      });
+      setShowDeceasedModal(false);
+      inh.reload();
+    } catch (err: any) {
+      setDeceasedError(err?.message ?? "Could not record deceased profile.");
+    } finally {
+      setDeceasedBusy(false);
+    }
+  }
 
   return (
     <>
       <PageHead
         title={p ? fullName(p) : "Inhabitant"}
-        subtitle={p ? `Resident profile · ${p.household?.addressLine ?? "No address on file"}` : ""}
+        subtitle={p ? `DILG BIMS Individual Profile (Form A2) · ${p.household?.addressLine ?? "No address on file"}` : ""}
         breadcrumb="Residents / Inhabitants"
-        parity="BIPS"
+        parity="BIPS Form A2"
         actions={
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button type="button" className="cbms-btn" onClick={() => router.push("/inhabitants")}>
               ← Back to list
             </button>
+            {p && !p.isDeceased && mayEncode && (
+              <button
+                type="button"
+                className="cbms-btn"
+                onClick={() => setShowDeceasedModal(true)}
+                style={{ color: "#ef4444" }}
+              >
+                ✝ Mark as Deceased (Form A3)
+              </button>
+            )}
             {mayEncode && (
               <button 
                 type="button" 
@@ -66,47 +111,65 @@ export default function InhabitantDetailPage() {
           <EmptyNote>Record not found.</EmptyNote>
         ) : (
           <div className="adm-stack">
+            {p.isDeceased && (
+              <Alert tone="danger">
+                ✝ <strong>DECEASED INHABITANT</strong> — Marked as deceased per DILG BIMS Form A3 on {date(p.birthDate)}.
+              </Alert>
+            )}
+
             <div className="cbms-grid-2">
-              <Panel title="Identity">
+              <Panel title="Part 1 & 3: Identity & Demographics (Form A2)">
                 <KeyValue
                   items={[
-                    ["Full name", fullName(p)],
-                    ["Sex / Age", `${titleize(p.sex)} · ${age(p.birthDate) ?? "—"} years old`],
-                    ["Birth date", date(p.birthDate)],
-                    ["Birth place", p.birthPlace ?? "—"],
-                    ["Civil status", titleize(p.civilStatus ?? "")],
-                    ["Citizenship", p.citizenship ?? "—"],
-                    ["PhilSys number", p.philsysNo ?? "Not captured"],
-                    ["Contact", p.contactPhone ?? "—"],
-                    ["Email", p.contactEmail ?? "—"],
-                    ["Relation to head", titleize(p.relationToHead ?? "")],
-                    ["Record source", <SourceChip key="src" source={p.source} />],
+                    ["Full Name", fullName(p)],
+                    ["PhilSys Card (PCN)", p.philsysNo ? <Chip tone="green">{p.philsysNo}</Chip> : <span className="adm-muted">Not captured</span>],
+                    ["Resident Type", titleize(p.residentType ?? "Non-migrant")],
+                    ["Sex / Gender", `${titleize(p.sex)} · Gender: ${titleize(p.gender ?? p.sex)}`],
+                    ["Age / Birth Date", `${age(p.birthDate) ?? "—"} years old (${date(p.birthDate)})`],
+                    ["Place of Birth", p.birthPlace ?? "—"],
+                    ["Mother's Residence at Birth", p.residenceMotherAtBirth ?? "—"],
+                    ["Civil Status", titleize(p.civilStatus ?? "")],
+                    ["Blood Type", p.bloodType ?? "—"],
+                    ["Height / Weight", `${p.height ? `${p.height} m` : "—"} · ${p.weight ? `${p.weight} kg` : "—"}`],
+                    ["Complexion", titleize(p.complexion ?? "Medium")],
+                    ["Nationality", titleize(p.nationality ?? "Filipino")],
+                    ["Ethnicity (Form 1.A)", p.ethnicity ?? "Tagalog"],
+                    ["Religion", p.religion ?? "Roman Catholic"],
+                    ["Mother's Maiden Name", `${p.mothersMaidenFirstName ?? ""} ${p.mothersMaidenMiddleName ?? ""} ${p.mothersMaidenLastName ?? ""}`.trim() || "—"],
+                    ["Record Source", <SourceChip key="src" source={p.source} />],
                   ]}
                 />
               </Panel>
 
               <div className="adm-stack">
-                <Panel title="Profile completeness">
+                <Panel title="Profile Completeness & BIMS Sectoral Flags">
                   <Progress
                     value={completeness}
                     tone={tone}
-                    label={`${completeness}% of the RBI fields are captured (PhilSys, contact, occupation, education, religion, blood type, birth place, household, photo).`}
+                    label={`${completeness}% of DILG BIMS Form A2 fields are captured.`}
                   />
                   <div style={{ marginTop: 14 }}>
-                    <div className="cbms-label">Sectoral registry</div>
+                    <div className="cbms-label">Sectoral & Beneficiary Profile (Form A2 Part 4)</div>
                     <SectorChips row={p} />
+                    {p.govAssistance && (
+                      <div style={{ marginTop: 8 }}>
+                        <Chip tone="gold">🏛️ Beneficiary: {p.govAssistance}</Chip>
+                      </div>
+                    )}
                   </div>
                 </Panel>
 
-                <Panel title="Socioeconomic">
+                <Panel title="Contact, Occupation & Voter Registry">
                   <KeyValue
                     items={[
+                      ["Mobile Number", p.contactPhone ?? "—"],
+                      ["Email Address", p.contactEmail ?? "—"],
+                      ["Telephone", p.telephoneNumber ?? "—"],
                       ["Occupation", p.occupation ?? "—"],
-                      ["Education", p.educationLevel ?? "—"],
-                      ["Religion", p.religion ?? "—"],
-                      ["Blood type", p.bloodType ?? "—"],
-                      ["Registered voter", p.isVoter ? "Yes" : "No"],
-                      ["OFW", p.isOfw ? "Yes" : "No"],
+                      ["Education Level", p.educationLevel ?? "—"],
+                      ["Monthly Income", p.monthlyIncome ? peso(p.monthlyIncome * 100) : "—"],
+                      ["Registered Voter", p.isRegisteredVoter ? `Yes (Last voted: ${p.lastVotedYear ?? "2025"})` : "No"],
+                      ["Resident Voter", p.isResidentVoter ? "Yes" : "No"],
                     ]}
                   />
                 </Panel>
@@ -117,21 +180,20 @@ export default function InhabitantDetailPage() {
                       items={[
                         ["Balance", <strong key="b">{peso(p.wallet.balanceCentavos)}</strong>],
                         ["Status", <StatusChip key="s" status={p.wallet.status} />],
-                        ["KYC tier", <StatusChip key="k" status={p.wallet.kycTier} />],
-                        ["EMI account", p.wallet.emiAccountRef],
+                        ["KYC Tier", <StatusChip key="k" status={p.wallet.kycTier} />],
+                        ["EMI Account", p.wallet.emiAccountRef],
                       ]}
                     />
                   ) : (
                     <EmptyNote>
-                      No wallet on file. Disbursements to this resident fall back to
-                      over-the-counter release.
+                      No wallet on file. Disbursements to this resident fall back to over-the-counter release.
                     </EmptyNote>
                   )}
                 </Panel>
               </div>
             </div>
 
-            <Panel title="Household" padded={false}>
+            <Panel title="Household Affiliation (BIMS Form A1)" padded={false}>
               {!p.householdId ? (
                 <EmptyNote>This resident is not attached to a household folder.</EmptyNote>
               ) : (
@@ -146,7 +208,7 @@ export default function InhabitantDetailPage() {
                     </Link>
                     <span className="adm-muted">
                       {" "}
-                      · Purok {household.data?.purok ?? p.household?.purok ?? "—"} ·{" "}
+                      · {household.data?.householdName ?? "Household"} · Purok {household.data?.purok ?? p.household?.purok ?? "—"} ·{" "}
                       {household.data?.addressLine ?? p.household?.addressLine ?? ""}
                     </span>
                   </div>
@@ -155,8 +217,8 @@ export default function InhabitantDetailPage() {
                       { key: "name", header: "Member", render: (m) => fullName(m) },
                       {
                         key: "rel",
-                        header: "Relation",
-                        render: (m) => titleize(m.relationToHead ?? ""),
+                        header: "DILG Relation Code",
+                        render: (m) => `Code ${m.relationToHead ?? "1"} · ${titleize(m.relationToHead ?? "")}`,
                       },
                       {
                         key: "age",
@@ -173,7 +235,7 @@ export default function InhabitantDetailPage() {
               )}
             </Panel>
 
-            <Panel title="Recent certificate requests" padded={false}>
+            <Panel title="Recent Certificate Requests (BIMS Form B2)" padded={false}>
               <DataTable
                 columns={[
                   { key: "referenceNo", header: "Reference" },
@@ -189,7 +251,7 @@ export default function InhabitantDetailPage() {
             </Panel>
 
             <div className="cbms-grid-2">
-              <Panel title="Consent records (RA 10173)" padded={false}>
+              <Panel title="Consent Records (RA 10173)" padded={false}>
                 <DataTable
                   columns={[
                     { key: "purpose", header: "Purpose", render: (c) => titleize(c.purpose) },
@@ -202,7 +264,7 @@ export default function InhabitantDetailPage() {
                 />
               </Panel>
 
-              <Panel title="Residency history" padded={false}>
+              <Panel title="Residency Movements & History" padded={false}>
                 <DataTable
                   columns={[
                     { key: "effectiveAt", header: "Effective", render: (r) => date(r.effectiveAt) },
@@ -214,22 +276,112 @@ export default function InhabitantDetailPage() {
                 />
               </Panel>
             </div>
-
-            <Panel title="Digital ID">
-              {p.digitalId ? (
-                <div className="adm-row">
-                  <Chip tone="green">Issued</Chip>
-                  <span className="adm-muted">
-                    Issued {p.digitalId.issuedAt ? dateTime(p.digitalId.issuedAt) : "—"}
-                  </span>
-                </div>
-              ) : (
-                <EmptyNote>No barangay digital ID issued yet.</EmptyNote>
-              )}
-            </Panel>
           </div>
         )}
       </Async>
+
+      {/* Deceased Modal Form A3 */}
+      {showDeceasedModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+          }}
+          onClick={() => setShowDeceasedModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "var(--color-bg-card, #ffffff)",
+              borderRadius: "0.5rem",
+              padding: "1.5rem",
+              maxWidth: "500px",
+              width: "100%",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 0.5rem 0", color: "#ef4444" }}>
+              ✝ Deceased Profile (BIMS Form A3)
+            </h3>
+            <p style={{ margin: "0 0 1rem 0", fontSize: "0.85rem", color: "#64748b" }}>
+              Record death certificate details for {p ? fullName(p) : "Inhabitant"} per DILG BIMS standard.
+            </p>
+
+            {deceasedError && <Alert tone="danger">{deceasedError}</Alert>}
+
+            <form onSubmit={submitDeceased} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Field label="Date of Death">
+                <input
+                  className="cbms-input"
+                  type="date"
+                  value={deceasedDate}
+                  onChange={(e) => setDeceasedDate(e.target.value)}
+                  required
+                />
+              </Field>
+
+              <Field label="Immediate Cause of Death" hint='As declared in death certificate (e.g. "Heart Attack")'>
+                <input
+                  className="cbms-input"
+                  value={immediateCause}
+                  onChange={(e) => setImmediateCause(e.target.value)}
+                  placeholder="e.g. Cardiopulmonary Arrest"
+                  required
+                />
+              </Field>
+
+              <Field label="Underlying Cause of Death (DILG Classification)">
+                <select
+                  className="cbms-select"
+                  value={underlyingCause}
+                  onChange={(e) => setUnderlyingCause(e.target.value)}
+                  required
+                >
+                  {DILG_CAUSE_OF_DEATH_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <div style={{ marginTop: 8 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={deceasedConsent}
+                    onChange={(e) => setDeceasedConsent(e.target.checked)}
+                    required
+                  />
+                  I certify that the above information is accurate and verified with civil registry records.
+                </label>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="cbms-btn"
+                  onClick={() => setShowDeceasedModal(false)}
+                >
+                  Cancel
+                </button>
+                <Button type="submit" variant="danger" disabled={deceasedBusy}>
+                  {deceasedBusy ? "Saving…" : "Confirm Deceased Record"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }
