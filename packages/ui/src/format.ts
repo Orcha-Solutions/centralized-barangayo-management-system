@@ -3,7 +3,17 @@
 /** Centavos (string|bigint|number) -> "₱1,234.56" */
 export function peso(centavos: string | bigint | number | null | undefined): string {
   if (centavos === null || centavos === undefined) return "₱0.00";
-  const c = typeof centavos === "bigint" ? centavos : BigInt(Math.round(Number(centavos)));
+  if (typeof centavos === "bigint") {
+    const neg = centavos < 0n;
+    const abs = neg ? -centavos : centavos;
+    const whole = (abs / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const frac = (abs % 100n).toString().padStart(2, "0");
+    return `${neg ? "-" : ""}₱${whole}.${frac}`;
+  }
+  const clean = typeof centavos === "string" ? centavos.replace(/n$/, "").trim() : centavos;
+  const n = Number(clean);
+  if (isNaN(n)) return "₱0.00";
+  const c = BigInt(Math.round(n));
   const neg = c < 0n;
   const abs = neg ? -c : c;
   const whole = (abs / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
