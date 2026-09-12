@@ -597,3 +597,170 @@ export const STATIC_SOS_ALERTS: StaticSosAlert[] = [
     createdAt: "2026-08-23T06:00:00.000Z",
   },
 ];
+
+// ============================================================================
+// DILG BIMS BIPS Standard Masterlists (DILG MC No. 2025-104 Annex B)
+// ============================================================================
+
+// Form 1.A: 70 Standard National Ethnicities
+export const DILG_ETHNICITIES: string[] = [
+  "Aeta", "Agta", "Ati", "Ayta Mag-antsi", "Ayta Magbukon", "Ayta Mag-indi", "Ayta Abellen", "Badjao", "Bagobo", "Bago",
+  "Balangao", "Batak", "B'laan", "Bugkalot", "Bukidnon", "Bontoc", "Dumagat", "Gaddang", "Hanunuo Mangyan", "Higaonon",
+  "Ilongot", "Ifugao", "Iraya Mangyan", "Isneg", "Itawis", "Ivatan", "Iwak", "Jama Mapun", "Kabihug", "Kalagan",
+  "Kalanguya", "Kalinga", "Kankanaey", "Kaolo", "Ke'ney", "Kinaray-a", "Kolibugan", "Kagayanen", "Lambangian", "Langilan Manobo",
+  "Maguindanao", "Mandaya", "Mamanwa", "Mansaka", "Manobo", "Mangyan", "Matigsalug", "Molbog", "Palawano", "Panay Bukidnon",
+  "Pala'wan", "Pankalis", "Remontado", "Sama Banguingui", "Sama Dilaut", "Subanon", "Tagbanwa", "Tagakaulo", "Teduray", "T'boli",
+  "Talaandig", "Tau't Batu", "Tingguian", "Tinggian", "Tumandok", "Ubo", "Yakan", "Other Local Ethnicity", "Other Foreign Ethnicity", "Not Reported"
+];
+
+// Form A1 Part 2: Relationship to Household Head (Codes 1 to 26)
+export const DILG_RELATIONSHIP_CODES: Array<{ code: string; label: string; group: string }> = [
+  { code: "1", label: "Household Head", group: "Head" },
+  { code: "2a", label: "Spouse", group: "Spouse/Partner" },
+  { code: "2b", label: "Common-law / Live-in Partner", group: "Spouse/Partner" },
+  { code: "3", label: "Son", group: "Children" },
+  { code: "4", label: "Daughter", group: "Children" },
+  { code: "5", label: "Stepson", group: "Children" },
+  { code: "6", label: "Stepdaughter", group: "Children" },
+  { code: "7", label: "Son-in-law", group: "In-laws" },
+  { code: "8", label: "Daughter-in-law", group: "In-laws" },
+  { code: "9", label: "Grandson", group: "Grandchildren" },
+  { code: "10", label: "Granddaughter", group: "Grandchildren" },
+  { code: "11", label: "Father", group: "Parents" },
+  { code: "12", label: "Mother", group: "Parents" },
+  { code: "13", label: "Father-in-law", group: "In-laws" },
+  { code: "14", label: "Mother-in-law", group: "In-laws" },
+  { code: "15", label: "Brother", group: "Siblings" },
+  { code: "16", label: "Sister", group: "Siblings" },
+  { code: "17", label: "Brother-in-law", group: "In-laws" },
+  { code: "18", label: "Sister-in-law", group: "In-laws" },
+  { code: "19", label: "Uncle", group: "Relatives" },
+  { code: "20", label: "Aunt", group: "Relatives" },
+  { code: "21", label: "Nephew", group: "Relatives" },
+  { code: "22", label: "Niece", group: "Relatives" },
+  { code: "23", label: "Other relative", group: "Relatives" },
+  { code: "24", label: "Boarder", group: "Non-relatives" },
+  { code: "25", label: "Domestic Helper", group: "Non-relatives" },
+  { code: "26", label: "Other non-relative", group: "Non-relatives" },
+];
+
+// Form A1 Part 2: Source of Income (Codes 1 to 8)
+export const DILG_INCOME_SOURCE_CODES: Array<{ code: string; label: string }> = [
+  { code: "1", label: "Employment (Salary/Wages)" },
+  { code: "2", label: "Business (Enterprise/Trade)" },
+  { code: "3", label: "Remittance (OFW/Domestic)" },
+  { code: "4", label: "Investments (Interest/Dividends)" },
+  { code: "5", label: "Pension (SSS/GSIS/Social Pension)" },
+  { code: "6", label: "Farming (Agriculture)" },
+  { code: "7", label: "Fishing (Aquaculture)" },
+  { code: "8", label: "Others" },
+];
+
+// Form A1 Part 3: Reasons for Leaving Previous Residence (Codes 1 to 16)
+export const DILG_REASONS_FOR_LEAVING: Array<{ code: string; label: string }> = [
+  { code: "1", label: "1 - Lack of employment" },
+  { code: "2", label: "2 - Perception of better income in other place" },
+  { code: "3", label: "3 - Schooling" },
+  { code: "4", label: "4 - Presence of relatives and friends in other place" },
+  { code: "5", label: "5 - Employment / Job relocation" },
+  { code: "6", label: "6 - Disaster-related relocation" },
+  { code: "7", label: "7 - Retirement" },
+  { code: "8", label: "8 - To live with parents" },
+  { code: "9", label: "9 - To live with children" },
+  { code: "10", label: "10 - Marriage" },
+  { code: "11", label: "11 - Annulment / Divorce / Separation" },
+  { code: "12", label: "12 - Commuting-related reasons" },
+  { code: "13", label: "13 - Health-related reasons" },
+  { code: "14", label: "14 - Peace and security" },
+  { code: "15", label: "15 - Climate-induced displacement" },
+  { code: "16", label: "16 - Other reasons" },
+];
+
+// Form A1 Part 3: Reasons for Transferring to Current Barangay (Codes 1 to 5)
+export const DILG_REASONS_FOR_TRANSFERRING: Array<{ code: string; label: string }> = [
+  { code: "1", label: "1 - Availability of jobs" },
+  { code: "2", label: "2 - Higher wage" },
+  { code: "3", label: "3 - Presence of schools or universities" },
+  { code: "4", label: "4 - Presence of relatives & friends in other place" },
+  { code: "5", label: "5 - Other reasons" },
+];
+
+// Form A2: Educational Attainment Taxonomy
+export const DILG_EDUCATIONAL_ATTAINMENTS: string[] = [
+  "No education",
+  "Pre-school",
+  "Elementary Level",
+  "Elementary Graduate",
+  "High School Level",
+  "High School Graduate",
+  "Junior HS",
+  "Junior HS Graduate",
+  "Senior HS Level",
+  "Senior HS Graduate",
+  "Vocational / Tech",
+  "College Level",
+  "College Graduate",
+  "Post-graduate"
+];
+
+// Form A2: Religion Taxonomy
+export const DILG_RELIGIONS: string[] = [
+  "Roman Catholic",
+  "Islam",
+  "Iglesia ni Cristo",
+  "Christian (Protestant/Evangelical)",
+  "Aglipayan Church (IFI)",
+  "Seventh-day Adventist",
+  "Bible Baptist Church",
+  "Jehovah's Witnesses",
+  "Church of Jesus Christ of Latter-day Saints",
+  "United Church of Christ in the Philippines (UCCP)",
+  "Others"
+];
+
+// Form A2: Government Assistance Programs
+export const DILG_GOV_ASSISTANCE_PROGRAMS: string[] = [
+  "4Ps (Pantawid Pamilyang Pilipino Program)",
+  "TUPAD (Tulong Panghanapbuhay sa Ating Disadvantaged/Displaced Workers)",
+  "SLP (Sustainable Livelihood Program)",
+  "Social Pension for Indigent Senior Citizens",
+  "AICS (Assistance to Individuals in Crisis Situation)",
+  "Others"
+];
+
+// Form A3: Underlying Cause of Death Taxonomy
+export const DILG_CAUSE_OF_DEATH_CATEGORIES: string[] = [
+  "Physical (Accident/Trauma)",
+  "Infectious Disease",
+  "Non-Infectious / Chronic",
+  "Degenerative",
+  "Deficiency / Malnutrition",
+  "Inherited / Genetic",
+  "Mental Health",
+  "Social / Violence",
+  "Self-Inflicted",
+  "Others"
+];
+
+// Form A4: Official Positions
+export const DILG_OFFICIAL_POSITIONS: Array<{ position: string; type: "elective" | "appointive" }> = [
+  { position: "Punong Barangay", type: "elective" },
+  { position: "Sangguniang Barangay Member", type: "elective" },
+  { position: "SK Chairperson", type: "elective" },
+  { position: "SK Member", type: "elective" },
+  { position: "Barangay Secretary", type: "appointive" },
+  { position: "Barangay Treasurer", type: "appointive" },
+  { position: "SK Secretary", type: "appointive" },
+  { position: "SK Treasurer", type: "appointive" },
+  { position: "Indigenous Peoples Mandatory Representative (IPMR)", type: "appointive" },
+  { position: "Barangay Tanod Executive Officer", type: "appointive" },
+  { position: "Barangay Tanod", type: "appointive" },
+  { position: "Barangay Health Worker (BHW)", type: "appointive" },
+  { position: "Barangay Nutrition Scholar (BNS)", type: "appointive" },
+  { position: "Day Care Worker", type: "appointive" },
+  { position: "VAW Desk Officer", type: "appointive" },
+  { position: "BADAC Duty Officer / Cluster Leader", type: "appointive" },
+  { position: "Kasambahay Desk Officer", type: "appointive" },
+  { position: "Lupong Tagapamayapa Member", type: "appointive" },
+];
+

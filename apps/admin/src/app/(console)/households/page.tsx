@@ -360,62 +360,88 @@ export default function HouseholdsPage() {
                   }}
                 >
                   {mayEncode && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForm({
-                          householdNo: `HH-2026-${Math.floor(Math.random() * 9000 + 1000)}`,
-                          houseNo: "",
-                          blockNo: "",
-                          lotNo: "",
-                          street: "",
-                          subdivision: "",
-                          buildingName: "",
-                          purok: "Purok 1",
-                          sitio: "",
-                          latitude: "",
-                          longitude: "",
-                          squareMeters: "",
-                          hasGarage: false,
-                          hazardZoneRisk: "low_risk",
-                          dwellingType: "single_house",
-                          roofMaterial: "galvanized_iron",
-                          wallMaterial: "concrete_brick",
-                          tenureStatus: "owner",
-                          landTenure: "owned",
-                          waterSource: "piped",
-                          toiletFacility: "flush_exclusive",
-                          electricitySource: "grid",
-                          cookingFuel: "lpg",
-                          wasteDisposal: "barangay_truck",
-                          internetAccess: "fiber_broadband",
-                          monthlyIncomeBand: "10k_to_20k",
-                          primaryIncomeSource: "employment",
-                          is4Ps: false,
-                          isIndigent: false,
-                          remarks: "",
-                        });
-                        setActionError(null);
-                        setOpenDrawer(true);
-                        setShowActionsDropdown(false);
-                      }}
-                      style={{
-                        padding: "0.6rem 1rem",
-                        textAlign: "left",
-                        border: "none",
-                        background: "none",
-                        fontSize: "0.85rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        color: "var(--color-text, #1b2430)"
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                    >
-                      🏠 New Household
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm({
+                            householdNo: `HH-2026-${Math.floor(Math.random() * 9000 + 1000)}`,
+                            houseNo: "",
+                            blockNo: "",
+                            lotNo: "",
+                            street: "",
+                            subdivision: "",
+                            buildingName: "",
+                            purok: "Purok 1",
+                            sitio: "",
+                            latitude: "",
+                            longitude: "",
+                            squareMeters: "",
+                            hasGarage: false,
+                            hazardZoneRisk: "low_risk",
+                            dwellingType: "single_house",
+                            roofMaterial: "galvanized_iron",
+                            wallMaterial: "concrete_brick",
+                            tenureStatus: "owner",
+                            landTenure: "owned",
+                            waterSource: "piped",
+                            toiletFacility: "flush_exclusive",
+                            electricitySource: "grid",
+                            cookingFuel: "lpg",
+                            wasteDisposal: "barangay_truck",
+                            internetAccess: "fiber_broadband",
+                            monthlyIncomeBand: "10k_to_20k",
+                            primaryIncomeSource: "employment",
+                            is4Ps: false,
+                            isIndigent: false,
+                            remarks: "",
+                          });
+                          setActionError(null);
+                          setOpenDrawer(true);
+                          setShowActionsDropdown(false);
+                        }}
+                        style={{
+                          padding: "0.6rem 1rem",
+                          textAlign: "left",
+                          border: "none",
+                          background: "none",
+                          fontSize: "0.85rem",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          color: "var(--color-text, #1b2430)"
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                      >
+                        ⚡ Quick Household Drawer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          router.push("/households/new");
+                          setShowActionsDropdown(false);
+                        }}
+                        style={{
+                          padding: "0.6rem 1rem",
+                          textAlign: "left",
+                          border: "none",
+                          background: "none",
+                          fontSize: "0.85rem",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          color: "var(--color-text, #1b2430)",
+                          fontWeight: 600,
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                      >
+                        🏠 New Household (BIMS Form A1)
+                      </button>
+                    </>
                   )}
                   <button
                     type="button"
