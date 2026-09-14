@@ -107,6 +107,16 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/tickets", label: "Tickets", icon: "🎫", perm: "admin:view" },
     ],
   },
+  {
+    label: "City / LGU Hub",
+    items: [
+      { href: "/hub", label: "City Overview", icon: "🏙️" },
+      { href: "/hub/scorecard", label: "Adoption Scorecard", icon: "◎" },
+      { href: "/hub/barangays", label: "Barangays Roll-up", icon: "🏘️" },
+      { href: "/hub/quarterly", label: "Quarterly Report", icon: "🗎" },
+      { href: "/hub/about", label: "About & BIMS Parity", icon: "ⓘ" },
+    ],
+  },
 ];
 
 /** Longest matching nav href for the current pathname. */

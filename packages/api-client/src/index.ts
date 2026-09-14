@@ -1418,11 +1418,66 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
   }
 
   if (cleanPath === "/hub/scorecard" && method === "GET") {
+    const rawBarangays = store.Barangay && store.Barangay.length > 0 ? store.Barangay : [
+      { id: "barangka", name: "Barangka", psgcCode: "137404001", mode: "companion" },
+      { id: "calumpang", name: "Calumpang", psgcCode: "137404002", mode: "companion" },
+      { id: "concepcion_uno", name: "Concepcion Uno", psgcCode: "137404003", mode: "companion" },
+      { id: "concepcion_dos", name: "Concepcion Dos", psgcCode: "137404004", mode: "standalone" },
+      { id: "fortune", name: "Fortune", psgcCode: "137404005", mode: "companion" },
+      { id: "industrial_valley", name: "Industrial Valley", psgcCode: "137404006", mode: "companion" },
+      { id: "jesus_dela_pena", name: "Jesus Dela Peña", psgcCode: "137404007", mode: "companion" },
+      { id: "malanday", name: "Malanday", psgcCode: "137404008", mode: "standalone" },
+      { id: "marikina_heights", name: "Marikina Heights", psgcCode: "137404009", mode: "companion" },
+      { id: "nangka", name: "Nangka", psgcCode: "137404010", mode: "companion" },
+      { id: "parang", name: "Parang", psgcCode: "137404011", mode: "companion" },
+      { id: "san_roque", name: "San Roque", psgcCode: "137404012", mode: "companion" },
+      { id: "santa_elena", name: "Santa Elena", psgcCode: "137404013", mode: "companion" },
+      { id: "santo_nino", name: "Santo Niño", psgcCode: "137404014", mode: "companion" },
+      { id: "tañong", name: "Tañong", psgcCode: "137404015", mode: "companion" },
+      { id: "tumana", name: "Tumana", psgcCode: "137404016", mode: "companion" }
+    ];
+
+    const rows = rawBarangays.map((b: any, index: number) => {
+      const pop = store.Inhabitant?.filter(x => x.barangayId === b.id).length || (2400 + (index * 175));
+      const wallets = Math.round(pop * (0.62 + (index % 5) * 0.06));
+      const rate = Math.min(98.5, Math.round((wallets / (pop * 0.65 || 1)) * 1000) / 10);
+      return {
+        barangayId: b.id,
+        name: b.name,
+        psgcCode: b.psgcCode || `1374040${(index + 1).toString().padStart(2, "0")}`,
+        status: b.status || "active",
+        mode: b.mode || "companion",
+        population: pop,
+        registeredWallets: wallets,
+        registrationRate: rate,
+        merchants: 16 + (index * 3),
+        cashPoints: 4 + (index % 3),
+        transactions30d: 380 + (index * 45),
+        volume30dCentavos: (BigInt(52000000) + BigInt(index * 4200000)).toString(),
+        certificates: store.CertificateRequest?.filter(x => x.barangayId === b.id && x.status === "signed").length || (35 + index * 6),
+        satisfaction: Number((4.85 - (index * 0.04)).toFixed(2))
+      };
+    });
+
+    const totals = {
+      population: rows.reduce((s: number, r: any) => s + r.population, 0),
+      registeredWallets: rows.reduce((s: number, r: any) => s + r.registeredWallets, 0),
+      merchants: rows.reduce((s: number, r: any) => s + r.merchants, 0),
+      transactions30d: rows.reduce((s: number, r: any) => s + r.transactions30d, 0),
+      certificates: rows.reduce((s: number, r: any) => s + r.certificates, 0)
+    };
+
     return {
-      totalBarangays: store.Barangay?.length || 20,
-      totalInhabitants: store.Inhabitant?.length || 2225,
-      totalHouseholds: store.Household?.length || 546,
-      totalCertificatesIssued: store.CertificateRequest?.filter(x => x.status === "signed").length || 150
+      scope: "City of Marikina",
+      barangayCount: rows.length,
+      totals,
+      targets: {
+        registrationRate: "≥ 80%",
+        activeRate: "≥ 50%",
+        merchants: "25 per barangay",
+        cashPointCoverage: "100%"
+      },
+      rows
     };
   }
 
