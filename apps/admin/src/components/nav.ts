@@ -17,6 +17,8 @@ export interface NavItem {
 
 export interface NavGroup {
   label: string;
+  /** Role keys allowed to view this group. If omitted, all authenticated roles may view. */
+  roles?: string[];
   items: NavItem[];
 }
 
@@ -109,6 +111,7 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: "City / LGU Hub",
+    roles: ["LGU_ADMIN", "DILG_VIEWER", "SYSTEM_ADMIN", "PUNONG_BARANGAY"],
     items: [
       { href: "/hub", label: "City Overview", icon: "🏙️" },
       { href: "/hub/scorecard", label: "Adoption Scorecard", icon: "◎" },
