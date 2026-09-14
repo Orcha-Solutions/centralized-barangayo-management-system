@@ -239,6 +239,7 @@ html.dark .cbms-panel__title { color: var(--cbms-gold); }
 .cbms-btn--primary:hover:not(:disabled) { background: var(--cbms-navy-2); border-color: var(--cbms-navy-2); }
 .cbms-btn--gold { background: var(--cbms-gold); border-color: var(--cbms-gold); color: var(--cbms-navy); }
 .cbms-btn--danger { background: var(--cbms-red); border-color: var(--cbms-red); color: #fff; }
+.cbms-btn--secondary { background: var(--cbms-card-bg); border-color: #cbd5e1; }
 .cbms-btn--sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
 
 .cbms-table-wrap { overflow-x: auto; }

@@ -1,0 +1,100 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # ==========================================
+  # CI: Lint, Typecheck, Test, and Build
+  # ==========================================
+  ci:
+    name: CI (Test & Build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NODE_ENV: production
+      DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/cbms_test' }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-secret-for-testing-only-1234567890' }}
+      API_URL: ${{ secrets.API_URL || 'http://localhost:4000' }}
+      NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:4000' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.1
+          run_install: false
+
+      - name: Setup Node.js (v20)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Unit Tests
+        run: pnpm test
+
+      - name: Run Typecheck
+        run: pnpm typecheck
+
+      - name: Run Linter
+        run: pnpm lint
+
+      - name: Build Monorepo
+        run: pnpm build
+
+  # ==========================================
+  # CD: Deploy to Production (Vercel)
+  # ==========================================
+  cd:
+    name: CD (Deploy to Vercel)
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy via Vercel CLI (if credentials provided)
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: ./apps/admin
+
+      - name: Native Vercel Integration Notice
+        if: ${{ secrets.VERCEL_TOKEN == '' }}
+        run: |
+          echo "=========================================================================="
+          echo "Notice: VERCEL_TOKEN secret is not set in GitHub repository settings."
+          echo "If your repository is directly connected to Vercel via GitHub integration,"
+          echo "Vercel automatically deploys commits to 'main' once CI checks pass."
+          echo "To enable direct deployment via this GitHub Action, add the following secrets:"
+          echo "  - VERCEL_TOKEN"
+          echo "  - VERCEL_ORG_ID"
+          echo "  - VERCEL_PROJECT_ID"
+          echo "=========================================================================="

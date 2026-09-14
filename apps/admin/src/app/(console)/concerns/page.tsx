@@ -769,11 +769,11 @@ export default function ConcernsPage() {
                     </Button>
                   )}
                   {!isRejecting && selectedConcern.status !== "in_progress" && (
-                    <Button variant="secondary" onClick={() => setIsRejecting(true)}>
+                    <Button variant="default" onClick={() => setIsRejecting(true)}>
                       Reject…
                     </Button>
                   )}
-                  <Button variant="secondary" onClick={() => deleteConcern(selectedConcern.id)} disabled={busy}>
+                  <Button variant="danger" onClick={() => deleteConcern(selectedConcern.id)} disabled={busy}>
                     🗑️ Delete
                   </Button>
                 </div>
