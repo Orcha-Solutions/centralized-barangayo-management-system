@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { ApiError, clearSession, getToken, login } from "@cbms/api-client";
 import { Alert, Button, Field, Spinner } from "@cbms/ui";
 
@@ -52,7 +53,7 @@ export default function LoginPage() {
     try {
       const res = await login(email.trim(), password, totp.trim() || undefined);
       if (res.token) {
-        window.location.href = "/";
+        window.location.href = "/dashboard";
         return;
       }
       if (res.mfaEnrollmentRequired) {
@@ -90,14 +91,123 @@ export default function LoginPage() {
   const needsTotp = stage === "mfa" || stage === "enroll";
 
   return (
-    <div className="cbms-auth">
-      <div className="cbms-auth__card" style={{ maxWidth: 480 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 6 }}>
-          <div className="cbms-sidebar__logo">CB</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: "var(--cbms-navy)" }}>
-              Barangay Console
-            </div>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "linear-gradient(135deg, var(--cbms-navy) 0%, var(--cbms-navy-ink) 100%)",
+      }}
+    >
+      {/* Website Government Strip & Public Portal Header */}
+      <header
+        style={{
+          background: "rgba(7, 26, 71, 0.88)",
+          backdropFilter: "blur(8px)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+          padding: "10px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          color: "#fff",
+          fontSize: 13,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              width: 20,
+              height: 13,
+              borderRadius: 2,
+              overflow: "hidden",
+              flexDirection: "column",
+              border: "1px solid rgba(255,255,255,0.3)",
+              flexShrink: 0,
+            }}
+          >
+            <i style={{ background: "#0038a8", height: "50%", display: "block" }} />
+            <i style={{ background: "#ce1126", height: "50%", display: "block" }} />
+          </span>
+          <strong style={{ letterSpacing: "0.02em" }}>Republic of the Philippines</strong>
+          <span style={{ color: "rgba(255,255,255,0.35)" }}>|</span>
+          <span style={{ color: "#9fb3dd", fontSize: 12 }}>Published under DILG Full Disclosure Policy</span>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 12.5 }}>Citizen Portal:</span>
+          <Link
+            href="/"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "var(--cbms-gold, #fdb913)",
+              color: "var(--cbms-navy, #0a2463)",
+              fontWeight: 700,
+              fontSize: 12.5,
+              padding: "6px 14px",
+              borderRadius: 8,
+              textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            }}
+          >
+            🏛️ Barangay Public Portal →
+          </Link>
+          <Link
+            href="/portal/verify"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "rgba(255,255,255,0.12)",
+              color: "#fff",
+              fontWeight: 600,
+              fontSize: 12.5,
+              padding: "6px 12px",
+              borderRadius: 8,
+              textDecoration: "none",
+              border: "1px solid rgba(255,255,255,0.2)",
+            }}
+          >
+            🔍 Verify Certificate
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Login Area */}
+      <div style={{ flex: 1, display: "grid", placeItems: "center", padding: "30px 20px" }}>
+        <div className="cbms-auth__card" style={{ maxWidth: 480 }}>
+          <div
+            style={{
+              background: "#eef3fc",
+              border: "1px solid #c9d8f3",
+              borderRadius: 8,
+              padding: "8px 12px",
+              marginBottom: 16,
+              fontSize: 12,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span style={{ color: "var(--cbms-muted)" }}>Looking for citizen services?</span>
+            <Link
+              href="/"
+              style={{ fontWeight: 700, color: "var(--cbms-navy)", textDecoration: "underline" }}
+            >
+              Go to Public Portal →
+            </Link>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 6 }}>
+            <div className="cbms-sidebar__logo">CB</div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "var(--cbms-navy)" }}>
+                Barangay Console
+              </div>
             <div style={{ fontSize: 11.5, color: "var(--cbms-muted)" }}>
               Centralized Barangay Management System
             </div>
@@ -214,5 +324,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  </div>
   );
 }

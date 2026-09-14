@@ -19,8 +19,8 @@ import {
   titleize,
   type ChipTone,
 } from "@cbms/ui";
-import { useConsole } from "../../components/Shell";
-import { Async, DeadlineCell, EmptyNote, Progress } from "../../components/common";
+import { useConsole } from "../../../components/Shell";
+import { Async, DeadlineCell, EmptyNote, Progress } from "../../../components/common";
 import type {
   Bag,
   Concern,
@@ -28,9 +28,9 @@ import type {
   DisbursementBatch,
   Paged,
   SosAlert,
-} from "../../lib/types";
-import { useDevPlanStore } from "../../store/devPlanStore";
-import { useInstitutionStore } from "../../store/institutionStore";
+} from "../../../lib/types";
+import { useDevPlanStore } from "../../../store/devPlanStore";
+import { useInstitutionStore } from "../../../store/institutionStore";
 
 const SECTOR_TONE: Record<string, ChipTone> = {
   infrastructure: "navy",

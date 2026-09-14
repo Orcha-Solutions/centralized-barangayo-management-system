@@ -162,16 +162,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 // Strict functionary role rules:
                 if (isVawUser) {
                   // VAW Desk Officer strictly sees only Dashboard and Blotter (NO KP cases, NO GAD, NO institutions)
-                  return i.href === "/" || i.href === "/blotter";
+                  return i.href === "/dashboard" || i.href === "/blotter";
                 }
                 if (isLuponUser) {
                   // Lupon Secretary strictly sees Dashboard, Blotter, and KP Cases
-                  return i.href === "/" || i.href === "/blotter" || i.href === "/kp";
+                  return i.href === "/dashboard" || i.href === "/blotter" || i.href === "/kp";
                 }
                 if (isBdcUser) {
                   // BDC Officer strictly sees Dashboard, Dev Plan, Institutions, and Reports
                   return (
-                    i.href === "/" ||
+                    i.href === "/dashboard" ||
                     i.href === "/devplan" ||
                     i.href === "/institutions" ||
                     i.href === "/reports"
@@ -392,7 +392,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                             onClick={async () => {
                               setUserMenuOpen(false);
                               await login(r.email, "Cbms#2026");
-                              window.location.href = "/";
+                              window.location.href = "/dashboard";
                             }}
                             style={{
                               display: "flex",

@@ -22,7 +22,7 @@ import type { Paged, SitePage, SitePost } from "../../../lib/types";
 
 type Tab = "pages" | "posts";
 
-const PUBLIC_SITE = "http://localhost:4104";
+const PUBLIC_SITE = "/portal";
 
 /** "About the Barangay" -> "about-the-barangay" */
 function slugify(s: string): string {
