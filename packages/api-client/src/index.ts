@@ -83,6 +83,7 @@ import {
   STATIC_DISBURSEMENT_ITEMS,
   STATIC_PROPERTIES,
   STATIC_MATERIALS,
+  STATIC_CONCERNS,
 } from "./staticData";
 
 export * from "./staticData";
@@ -175,6 +176,10 @@ function getStore(): Record<string, any[]> {
       ...STATIC_MATERIALS,
       ...(initializedStore.Material || []).filter(x => !STATIC_MATERIALS.some(s => s.id === x.id))
     ];
+    initializedStore.Concern = [
+      ...STATIC_CONCERNS,
+      ...(initializedStore.Concern || []).filter(x => !STATIC_CONCERNS.some(s => s.id === x.id))
+    ];
 
     _inMemoryStore = initializedStore;
   }
@@ -204,8 +209,8 @@ function saveStore(store: Record<string, any[]>) {
 const ROLE_PERMISSIONS_MOCK: Record<string, string[]> = {
   SYSTEM_ADMIN: ["*"],
   PUNONG_BARANGAY: ["*"],
-  LGU_ADMIN: ["inhabitants:view", "issuance:view", "kp:view", "property:view", "property:encode", "disaster:view", "gad:view", "legislation:view", "devplan:view", "institutions:view", "finance:view", "wallet:manage", "concerns:view", "feedback:view", "reports:view", "admin:view", "admin:approve", "admin:configure", "ai:view"],
-  BARANGAY_SECRETARY: ["inhabitants:view", "inhabitants:create", "inhabitants:edit", "issuance:view", "issuance:create", "issuance:edit", "appointments:view", "concerns:view", "legislation:view", "announcements:view", "reports:view", "kp:view", "blotter:view", "property:view", "property:encode"],
+  LGU_ADMIN: ["inhabitants:view", "issuance:view", "kp:view", "property:view", "property:encode", "disaster:view", "gad:view", "legislation:view", "devplan:view", "institutions:view", "finance:view", "wallet:manage", "concerns:view", "concerns:encode", "feedback:view", "reports:view", "admin:view", "admin:approve", "admin:configure", "ai:view"],
+  BARANGAY_SECRETARY: ["inhabitants:view", "inhabitants:create", "inhabitants:edit", "issuance:view", "issuance:create", "issuance:edit", "appointments:view", "concerns:view", "concerns:encode", "legislation:view", "announcements:view", "reports:view", "kp:view", "blotter:view", "property:view", "property:encode"],
   BDC_OFFICER: ["devplan:view", "devplan:create", "devplan:edit", "institutions:view", "reports:view"],
   BDRRMC_OFFICER: ["disaster:view", "disaster:create", "sos:view", "property:view", "property:encode"],
   VAW_DESK_OFFICER: [
@@ -217,8 +222,8 @@ const ROLE_PERMISSIONS_MOCK: Record<string, string[]> = {
   ],
   LUPON_SECRETARY: ["kp:view", "kp:create", "kp:edit", "blotter:view"],
   BARANGAY_TREASURER: ["finance:view", "wallet:manage", "property:view", "property:encode", "issuance:view"],
-  TANOD: ["sos:view", "sos:respond", "kp:view", "blotter:view", "concerns:view"],
-  BHW: ["inhabitants:view", "health:view"],
+  TANOD: ["sos:view", "sos:respond", "kp:view", "blotter:view", "concerns:view", "concerns:encode"],
+  BHW: ["inhabitants:view", "health:view", "concerns:view", "concerns:encode"],
   SK_OFFICIAL: ["devplan:view", "institutions:view", "announcements:view"],
   BADAC_OFFICER: ["kp:view", "blotter:view", "institutions:view"],
   DILG_VIEWER: ["reports:view"],
@@ -836,12 +841,82 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
     };
   }
 
-  if (cleanPath === "/concerns" && method === "GET") {
-    let list = store.Concern || [];
-    if (currentUser.barangayId) {
-      list = list.filter(x => x.barangayId === currentUser.barangayId);
+  // 7.5 Resident Concerns (311 Citizen Reports)
+  const concernSingleMatch = cleanPath.match(/^\/concerns\/([^/]+)$/);
+  if (concernSingleMatch && method === "GET") {
+    const id = concernSingleMatch[1];
+    const list = store.Concern || STATIC_CONCERNS;
+    const c = list.find((x: any) => x.id === id || x.referenceNo === id);
+    if (!c) return null;
+    const now = Date.now();
+    const isOverdue = c.slaDueAt && new Date(c.slaDueAt).getTime() < now && c.status !== "resolved" && c.status !== "rejected";
+    let inh = c.inhabitant;
+    if (!inh && c.inhabitantId && store.Inhabitant) {
+      const foundInh = store.Inhabitant.find((i: any) => i.id === c.inhabitantId);
+      if (foundInh) inh = { firstName: foundInh.firstName, lastName: foundInh.lastName, contactNo: foundInh.contactNumber || foundInh.contactNo };
     }
-    return list;
+    return {
+      ...c,
+      slaBreached: Boolean(c.slaBreached || isOverdue),
+      inhabitant: inh || null,
+    };
+  }
+
+  if (cleanPath === "/concerns" && method === "GET") {
+    const queryString = path.includes("?") ? path.split("?")[1] : "";
+    const queryParams = new URLSearchParams(queryString);
+    const q = (queryParams.get("q") || "").toLowerCase().trim();
+    const status = queryParams.get("status") || "all";
+    const category = queryParams.get("category") || "all";
+    const page = parseInt(queryParams.get("page") || "1", 10);
+    const pageSize = parseInt(queryParams.get("pageSize") || "25", 10);
+
+    let list = (store.Concern || STATIC_CONCERNS) as any[];
+    if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
+      const filteredByBrgy = list.filter(x => !x.barangayId || x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID);
+      if (filteredByBrgy.length > 0) list = filteredByBrgy;
+    }
+
+    const now = Date.now();
+    list = list.map(c => {
+      const isOverdue = c.slaDueAt && new Date(c.slaDueAt).getTime() < now && c.status !== "resolved" && c.status !== "rejected";
+      let inh = c.inhabitant;
+      if (!inh && c.inhabitantId && store.Inhabitant) {
+        const foundInh = store.Inhabitant.find((i: any) => i.id === c.inhabitantId);
+        if (foundInh) inh = { firstName: foundInh.firstName, lastName: foundInh.lastName, contactNo: foundInh.contactNumber || foundInh.contactNo };
+      }
+      return {
+        ...c,
+        slaBreached: Boolean(c.slaBreached || isOverdue),
+        inhabitant: inh || null,
+      };
+    });
+
+    if (status !== "all") {
+      list = list.filter(x => x.status === status);
+    }
+    if (category !== "all") {
+      list = list.filter(x => x.category === category);
+    }
+    if (q) {
+      list = list.filter(x =>
+        (x.referenceNo && x.referenceNo.toLowerCase().includes(q)) ||
+        (x.description && x.description.toLowerCase().includes(q)) ||
+        (x.purok && x.purok.toLowerCase().includes(q)) ||
+        (x.inhabitant && `${x.inhabitant.firstName} ${x.inhabitant.lastName}`.toLowerCase().includes(q))
+      );
+    }
+
+    const total = list.length;
+    const startIndex = (page - 1) * pageSize;
+    const items = list.slice(startIndex, startIndex + pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   // 8. Wallets & Transactions
@@ -1726,6 +1801,16 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       saveStore(store);
       return { success: true };
     }
+
+    const concernDelMatch = cleanPath.match(/\/concerns\/([^\/]+)/);
+    if (concernDelMatch) {
+      const id = concernDelMatch[1];
+      if (store.Concern) {
+        store.Concern = store.Concern.filter(x => x.id !== id && x.referenceNo !== id);
+        saveStore(store);
+      }
+      return { success: true };
+    }
   }
 
   // Mutations / PATCH requests
@@ -1743,6 +1828,26 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
         saveStore(store);
       }
       return inh || {};
+    }
+
+    // Concerns PATCH (311 Handling by Tanod & Desk Officers)
+    const concernMatch = cleanPath.match(/\/concerns\/([^\/]+)/);
+    if (concernMatch) {
+      const id = concernMatch[1];
+      const c = store.Concern?.find(x => x.id === id || x.referenceNo === id);
+      if (c) {
+        Object.assign(c, body);
+        if (body.status === "acknowledged" && !c.acknowledgedAt) {
+          c.acknowledgedAt = new Date().toISOString();
+        }
+        if (body.status === "resolved") {
+          c.resolvedAt = new Date().toISOString();
+          if (body.resolutionNote) c.resolutionNote = body.resolutionNote;
+        }
+        c.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return c || {};
     }
 
     // Properties PATCH
@@ -2216,18 +2321,26 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
     }
 
     if (cleanPath === "/concerns") {
+      const concerns = store.Concern || [];
+      const nextNo = (concerns.length + 1).toString().padStart(5, "0");
+      const slaClock = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
       const newConcern = {
-        id: "con-" + Math.random().toString(36).substring(2, 9),
-        title: body.title,
-        description: body.description,
-        status: "open",
-        category: body.category,
-        barangayId: currentUser.barangayId || "barangka",
-        userId: currentUser.id,
-        createdAt: new Date().toISOString()
+        id: "cn-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+        referenceNo: body.referenceNo || `CN-2026-${nextNo}`,
+        category: body.category || "other",
+        description: body.description || "",
+        purok: body.purok || "Purok 1",
+        status: body.status || "submitted",
+        slaDueAt: slaClock,
+        slaBreached: false,
+        inhabitantId: body.inhabitantId || currentUser.inhabitantId || null,
+        inhabitant: body.inhabitant || (currentUser.fullName ? { firstName: currentUser.fullName.split(" ")[0], lastName: currentUser.fullName.split(" ").slice(1).join(" ") } : null),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
       if (!store.Concern) store.Concern = [];
-      store.Concern.push(newConcern);
+      store.Concern.unshift(newConcern);
       saveStore(store);
       return newConcern;
     }

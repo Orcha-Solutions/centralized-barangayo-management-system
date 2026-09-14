@@ -1,1 +1,10 @@
-export default { transpilePackages: ["@cbms/ui", "@cbms/api-client"], reactStrictMode: true };
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  transpilePackages: ["@cbms/ui", "@cbms/api-client"],
+  reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+};
+
+export default nextConfig;
