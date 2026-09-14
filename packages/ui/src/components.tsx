@@ -140,7 +140,7 @@ export function Toolbar({ children }: { children: React.ReactNode }) {
 
 export function Button(
   props: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: "default" | "primary" | "gold" | "danger";
+    variant?: "default" | "primary" | "gold" | "danger" | "secondary";
     size?: "sm" | "md";
   },
 ) {

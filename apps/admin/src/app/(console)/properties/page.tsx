@@ -540,7 +540,7 @@ export default function PropertiesPage() {
                     {mayEncode && (
                       <Button
                         size="sm"
-                        variant="secondary"
+                        variant="default"
                         onClick={(e) => {
                           e.stopPropagation();
                           openEdit(p);
@@ -820,7 +820,7 @@ export default function PropertiesPage() {
                   <Button variant="primary" onClick={() => setPropertyDrawerMode("edit")}>
                     ✏️ Edit Asset
                   </Button>
-                  <Button variant="secondary" onClick={() => deleteProperty(selectedProperty.id)} disabled={busy}>
+                  <Button variant="danger" onClick={() => deleteProperty(selectedProperty.id)} disabled={busy}>
                     🗑️ Decommission
                   </Button>
                 </div>
@@ -1416,7 +1416,7 @@ export default function PropertiesPage() {
                 {mayEncode ? (
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="danger"
                     onClick={() => deleteMaterial(selectedMaterial.id)}
                     disabled={busy}
                   >
