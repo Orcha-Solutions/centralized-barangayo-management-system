@@ -155,6 +155,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
           <nav className="cbms-nav">
             {NAV_GROUPS.map((group) => {
+              if (group.roles && !group.roles.some((r) => session.hasRole(r))) {
+                return null;
+              }
               const items = group.items.filter((i) => {
                 // Strict functionary role rules:
                 if (isVawUser) {
