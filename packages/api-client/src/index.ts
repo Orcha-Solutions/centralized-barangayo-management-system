@@ -2656,10 +2656,10 @@ export async function login(email: string, password: string, totp?: string) {
   };
 }
 
-export async function logout() {
+export async function logout(redirectTo: string | false = "/login") {
   await mockApiRouter("/auth/logout", { method: "POST" });
   clearSession();
-  if (typeof window !== "undefined") window.location.href = "/login";
+  if (redirectTo && typeof window !== "undefined") window.location.href = redirectTo;
 }
 
 /** Query-string builder that drops empty values. */

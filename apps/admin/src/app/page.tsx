@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SiteHeader } from "./portal/components/SiteHeader";
 import { SiteFooter } from "./portal/components/SiteFooter";
 import { VerifySearch } from "./portal/components/VerifySearch";
@@ -37,6 +38,15 @@ export default function RootLandingPage() {
                 <div className="site-hero__meta">
                   <span>🏛️ Published under the DILG Full Disclosure Policy</span>
                   <span>🔓 No login required</span>
+                  <span>
+                    👥{" "}
+                    <Link
+                      href="/citizen"
+                      style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}
+                    >
+                      Inhabitant Hub Portal →
+                    </Link>
+                  </span>
                 </div>
               </div>
 
@@ -85,6 +95,56 @@ export default function RootLandingPage() {
               </div>
             </div>
             <div className="site-cards">
+              <Link
+                href="/citizen"
+                className="site-card"
+                style={{
+                  textDecoration: "none",
+                  color: "inherit",
+                  border: "2px solid #2563eb",
+                  background: "#f0f6ff",
+                  position: "relative",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      background: "#2563eb",
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      padding: "2px 7px",
+                      borderRadius: 4,
+                      marginBottom: 8,
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    FOR INHABITANTS
+                  </span>
+                  <p className="site-card__name" style={{ color: "#1d4ed8" }}>
+                    👥 Inhabitant Hub (Resident Portal)
+                  </p>
+                  <p className="site-card__city" style={{ marginTop: 8 }}>
+                    Official resident mobile portal: request clearances, submit 311 concerns,
+                    access emergency SOS, and view community assistance disbursements.
+                  </p>
+                </div>
+                <span
+                  style={{
+                    display: "inline-block",
+                    marginTop: 12,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "#1d4ed8",
+                  }}
+                >
+                  Open Inhabitant Hub ↗
+                </span>
+              </Link>
               <div className="site-card">
                 <p className="site-card__name">✅ Verify a certificate</p>
                 <p className="site-card__city" style={{ marginTop: 8 }}>

@@ -1,0 +1,254 @@
+/* ------------------------------------------------------------------
+   Adaptive Inhabitant Hub CSS
+   Responsive Website on Desktop (>= 769px)
+   Native Mobile App UI on Mobile (<= 768px)
+   ------------------------------------------------------------------ */
+
+.hub-root {
+  min-height: 100vh;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  color: #1e293b;
+  font-family: var(--cbms-font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- DESKTOP SPECIFIC (>= 769px) ---------- */
+@media (min-width: 769px) {
+  .hub-mobile-header {
+    display: none !important;
+  }
+  .hub-mobile-tabbar {
+    display: none !important;
+  }
+  .hub-mobile-sos {
+    display: none !important;
+  }
+  .hub-mobile-announcements {
+    display: none !important;
+  }
+  .hub-mobile-pwa-bar {
+    display: none !important;
+  }
+
+  .hub-desktop-header {
+    display: block;
+  }
+  .hub-desktop-tabs {
+    display: block;
+  }
+  .hub-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .hub-main-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .hub-content-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 24px 48px;
+  }
+  .hub-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+  }
+  .hub-services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+}
+
+/* ---------- MOBILE APP UI (<= 768px) ---------- */
+@media (max-width: 768px) {
+  .hub-desktop-header {
+    display: none !important;
+  }
+  .hub-desktop-tabs {
+    display: none !important;
+  }
+  .hub-sidebar {
+    display: none !important;
+  }
+  .hub-desktop-footer-links {
+    display: none !important;
+  }
+
+  .hub-mobile-header {
+    display: flex !important;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(10, 36, 99, 0.97);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #fff;
+    padding: 12px 16px;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  .hub-mobile-tabbar {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.07);
+    padding-bottom: env(safe-area-inset-bottom, 6px);
+  }
+
+  .hub-mobile-tab {
+    padding: 8px 2px 6px;
+    text-align: center;
+    font-size: 10px;
+    color: #64748b;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .hub-mobile-tab--active {
+    color: var(--cbms-navy, #0a2463) !important;
+    font-weight: 800;
+  }
+
+  .hub-mobile-tab__icon {
+    font-size: 20px;
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+
+  .hub-content-container {
+    max-width: 100% !important;
+    padding: 14px 14px 88px 14px !important;
+  }
+
+  .hub-main-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  .hub-stats-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .hub-services-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .hub-mobile-sos {
+    display: block !important;
+    margin-bottom: 14px;
+  }
+
+  .hub-mobile-announcements {
+    display: block !important;
+    margin-top: 16px;
+  }
+
+  .hub-mobile-pwa-bar {
+    display: flex !important;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+
+  .hub-card-interactive:active {
+    transform: scale(0.98);
+    background: #f1f5f9 !important;
+  }
+
+  .hub-mobile-hide {
+    display: none !important;
+  }
+}
+
+/* ---------- INHABITANT HUB LOGIN SCREEN STYLES ---------- */
+.hub-login-root {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #071a47 0%, #0a2463 50%, #0f3587 100%);
+  display: flex;
+  flex-direction: column;
+  color: #1e293b;
+  font-family: var(--cbms-font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+}
+
+.hub-login-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px 48px;
+}
+
+.hub-login-card {
+  max-width: 480px;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  padding: 32px 26px;
+  box-sizing: border-box;
+}
+
+.hub-login-demo-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.hub-login-demo-card:hover {
+  background: #eff6ff;
+  border-color: #60a5fa;
+  transform: translateY(-1px);
+}
+
+.hub-login-demo-card:active {
+  transform: scale(0.99);
+}
+
+@media (max-width: 768px) {
+  .hub-login-content {
+    padding: 16px 12px 32px;
+  }
+  .hub-login-card {
+    padding: 24px 18px;
+    border-radius: 16px;
+  }
+}

@@ -55,10 +55,45 @@ export function Shell(props: {
   back?: string;
   /** Group B modules are CBMS-exclusive — say so out loud. */
   exclusive?: boolean;
+  /** Optional action element on the right of the header. */
+  headerAction?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="cbms-mobile">
+      <div
+        style={{
+          background: "#071a47",
+          color: "#fff",
+          padding: "6px 14px",
+          fontSize: 11,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid rgba(255,255,255,0.12)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span
+            style={{
+              display: "inline-flex",
+              width: 14,
+              height: 9,
+              borderRadius: 1,
+              overflow: "hidden",
+              flexDirection: "column",
+              border: "1px solid rgba(255,255,255,0.3)",
+              flexShrink: 0,
+            }}
+          >
+            <i style={{ background: "#0038a8", height: "50%", display: "block" }} />
+            <i style={{ background: "#ce1126", height: "50%", display: "block" }} />
+          </span>
+          <strong style={{ fontSize: 10.5, letterSpacing: "0.02em" }}>Republika ng Pilipinas</strong>
+        </div>
+        <span style={{ color: "#9fb3dd", fontSize: 10 }}>Citizen Services</span>
+      </div>
+
       <header className="cbms-mobile__header">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {props.back && (
@@ -80,6 +115,7 @@ export function Shell(props: {
               </div>
             )}
           </div>
+          {props.headerAction}
         </div>
       </header>
 

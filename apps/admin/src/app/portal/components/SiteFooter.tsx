@@ -48,6 +48,9 @@ export function SiteFooter({
             <h2>Services & Transparency</h2>
             <ul>
               <li>
+                <Link href="/citizen">Inhabitant Hub 👥</Link>
+              </li>
+              <li>
                 <Link href="/portal/verify">Certificate QR Verification</Link>
               </li>
               <li>
