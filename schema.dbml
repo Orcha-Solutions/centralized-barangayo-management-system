@@ -125,6 +125,14 @@ Table User {
   email String [unique]
   emailVerified Boolean [default: false]
   image String
+  role String [default: 'resident']
+  banned Boolean [default: false]
+  banReason String
+  banExpires DateTime
+  phoneNumber String [unique]
+  phoneNumberVerified Boolean [default: false]
+  twoFactorEnabled Boolean [default: false]
+  twoFactorSecret String
   phone String [unique]
   passwordHash String
   fullName String
@@ -152,6 +160,8 @@ Table Session {
   expiresAt DateTime
   ipAddress String
   userAgent String
+  impersonatedBy String
+  activeOrganizationId String
   mfaPassed Boolean [default: false]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
@@ -180,6 +190,40 @@ Table Verification {
   expiresAt DateTime
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
+}
+
+Table TwoFactor {
+  id String [pk, default: `cuid()`]
+  secret String
+  backupCodes String
+  userId String
+}
+
+Table Passkey {
+  id String [pk, default: `cuid()`]
+  name String
+  publicKey String
+  userId String
+  credentialID String
+  counter Int [default: 0]
+  deviceType String
+  backedUp Boolean [default: false]
+  transports String
+  createdAt DateTime [default: `now()`]
+}
+
+Table Jwks {
+  id String [pk, default: `cuid()`]
+  publicKey String
+  privateKey String
+  createdAt DateTime [default: `now()`]
+}
+
+Table RateLimit {
+  id String [pk, default: `cuid()`]
+  key String [unique]
+  count Int [default: 0]
+  lastRequest BigInt
 }
 
 Table AuditLog {
@@ -950,6 +994,10 @@ Table OfficialReceipt {
   payorName String
   amount Decimal
   particulars String
+  status String [default: 'active'] // 'active' | 'cancelled'
+  cancellationReason String
+  cancelledAt DateTime
+  cancelledById String
   issuedAt DateTime [default: `now()`]
   issuedById String
   refType String
@@ -1154,6 +1202,7 @@ Table DisbursementBatch {
   id String [pk, default: `cuid()`]
   barangayId String
   batchNo String
+  dvNumber String // Disbursement Voucher No (COA compliance)
   kind BatchKind
   title String
   fund FundType [default: 'general']
@@ -1324,6 +1373,8 @@ Table Concern {
   referenceNo String [unique]
   category String
   description String
+  reporterName String
+  reporterContact String
   photoUrl String
   resolutionPhotoUrl String
   latitude Float
@@ -1638,6 +1689,8 @@ Table RptProperty {
   marketValue Decimal
   addressLine String
   purok String
+  lotNo String
+  blockNo String
   isActive Boolean [default: true]
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
@@ -1650,6 +1703,7 @@ Table RptTaxDue {
   basicTaxAmount Decimal
   sefTaxAmount Decimal
   penaltyAmount Decimal [default: 0.0]
+  discountAmount Decimal [default: 0.0]
   totalAmount Decimal
   paymentStatus RptPaymentStatus [default: 'unpaid']
   paidAt DateTime
@@ -1884,3 +1938,9 @@ Ref: DeceasedRecord.barangayId > Barangay.id
 Ref: DeceasedRecord.inhabitantId > Inhabitant.id
 Ref: BarangayOfficial.barangayId > Barangay.id
 Ref: BarangayOfficial.inhabitantId > Inhabitant.id
+Ref: TwoFactor.userId > User.id
+Ref: Passkey.userId > User.id
+Ref: OfficialReceipt.cancelledById > User.id
+Ref: DisbursementBatch.preparedById > User.id
+Ref: DisbursementBatch.approvedById > User.id
+
