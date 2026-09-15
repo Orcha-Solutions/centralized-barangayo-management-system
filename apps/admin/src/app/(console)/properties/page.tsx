@@ -26,6 +26,7 @@ import { useConsole } from "../../../components/Shell";
 import { PROPERTY_STATUSES, PROPERTY_TYPES } from "../../../lib/labels";
 import { downloadText, toCsv } from "../../../lib/download";
 import type { Material, Paged, Property } from "../../../lib/types";
+import { AssetsTourGuide, AssetsGuideToggle } from "./AssetsTourGuide";
 
 /** DILG governance areas an asset is booked against (mirrors the BAMS category list). */
 const GOVERNANCE_AREAS = [
@@ -124,6 +125,31 @@ export default function PropertiesPage() {
   const [selectedProperty, setSelectedProperty] = React.useState<Property | null>(null);
   const [propertyDrawerMode, setPropertyDrawerMode] = React.useState<"view" | "edit">("view");
   const [showNewPropertyDrawer, setShowNewPropertyDrawer] = React.useState(false);
+
+  // Guide State (defaults to true on first visit, persisted in localStorage)
+  const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cbms.assets_guide_enabled");
+      if (stored === null) {
+        setTourEnabled(true);
+      } else {
+        setTourEnabled(stored === "true");
+      }
+    } catch {
+      setTourEnabled(true);
+    }
+  }, []);
+
+  const handleToggleTour = (next: boolean) => {
+    setTourEnabled(next);
+    try {
+      localStorage.setItem("cbms.assets_guide_enabled", String(next));
+    } catch {
+      // ignore
+    }
+  };
 
   const [selectedMaterial, setSelectedMaterial] = React.useState<Material | null>(null);
   const [showNewMaterialDrawer, setShowNewMaterialDrawer] = React.useState(false);
@@ -368,105 +394,111 @@ export default function PropertiesPage() {
 
       <ActionResult error={error} success={ok} />
 
-      <StatGrid>
-        <StatCard
-          label="Total properties"
-          value={num(list.data?.total)}
-          hint="Across every page of this filter"
-          icon="🏢"
-        />
-        <StatCard
-          label="Infrastructures"
-          value={num(infrastructures)}
-          hint="On this page — halls, courts, roads, facilities"
-          icon="🏗"
-        />
-        <StatCard
-          label="Non-infrastructures"
-          value={num(nonInfrastructures)}
-          hint="On this page — equipment, vehicles, furniture"
-          icon="📦"
-          tone="gold"
-        />
-        <StatCard
-          label="Available / operational"
-          value={num(operational)}
-          hint="On this page — serviceable and in use"
-          icon="✅"
-          tone={operational > 0 ? "green" : "gold"}
-        />
-      </StatGrid>
+      <div id="tour-assets-stats">
+        <StatGrid>
+          <StatCard
+            label="Total properties"
+            value={num(list.data?.total)}
+            hint="Across every page of this filter"
+            icon="🏢"
+          />
+          <StatCard
+            label="Infrastructures"
+            value={num(infrastructures)}
+            hint="On this page — halls, courts, roads, facilities"
+            icon="🏗"
+          />
+          <StatCard
+            label="Non-infrastructures"
+            value={num(nonInfrastructures)}
+            hint="On this page — equipment, vehicles, furniture"
+            icon="📦"
+            tone="gold"
+          />
+          <StatCard
+            label="Available / operational"
+            value={num(operational)}
+            hint="On this page — serviceable and in use"
+            icon="✅"
+            tone={operational > 0 ? "green" : "gold"}
+          />
+        </StatGrid>
+      </div>
 
       <Panel padded={false}>
-        <Toolbar>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setPage(1);
-              setSearch(q.trim());
-            }}
-            style={{ display: "flex", gap: 8 }}
-          >
-            <input
-              className="cbms-input cbms-input--search"
-              placeholder="Search name, governance area or custodian…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <Button type="submit">Search</Button>
-          </form>
-          <select
-            className="cbms-select"
-            value={type}
-            onChange={(e) => {
-              setType(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All types</option>
-            {PROPERTY_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {titleize(t)}
-              </option>
-            ))}
-          </select>
-          <select
-            className="cbms-select"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All statuses</option>
-            {PROPERTY_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {titleize(s)}
-              </option>
-            ))}
-          </select>
-          <div className="cbms-toolbar__spacer" />
-          <span className="adm-muted">{num(list.data?.total)} propert(ies)</span>
-          <Button onClick={exportCsv} disabled={rows.length === 0}>
-            ⬇ Export CSV
-          </Button>
-          {mayEncode && (
-            <Button
-              variant="primary"
-              onClick={() => {
-                setShowNewPropertyDrawer(true);
-                setSelectedProperty(null);
-                setForm(EMPTY_FORM);
+        <div id="tour-assets-toolbar">
+          <Toolbar>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setPage(1);
+                setSearch(q.trim());
+              }}
+              style={{ display: "flex", gap: 8 }}
+            >
+              <input
+                className="cbms-input cbms-input--search"
+                placeholder="Search name, governance area or custodian…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              <Button type="submit">Search</Button>
+            </form>
+            <select
+              className="cbms-select"
+              value={type}
+              onChange={(e) => {
+                setType(e.target.value);
+                setPage(1);
               }}
             >
-              + New property
+              <option value="all">All types</option>
+              {PROPERTY_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {titleize(t)}
+                </option>
+              ))}
+            </select>
+            <select
+              className="cbms-select"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All statuses</option>
+              {PROPERTY_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {titleize(s)}
+                </option>
+              ))}
+            </select>
+            <div className="cbms-toolbar__spacer" />
+            <span className="adm-muted">{num(list.data?.total)} propert(ies)</span>
+            <Button id="tour-assets-export-btn" onClick={exportCsv} disabled={rows.length === 0}>
+              ⬇ Export CSV
             </Button>
-          )}
-        </Toolbar>
+            {mayEncode && (
+              <Button
+                id="tour-assets-new-btn"
+                variant="primary"
+                onClick={() => {
+                  setShowNewPropertyDrawer(true);
+                  setSelectedProperty(null);
+                  setForm(EMPTY_FORM);
+                }}
+              >
+                + New property
+              </Button>
+            )}
+          </Toolbar>
+        </div>
 
-        <Async loading={list.loading} error={list.error}>
-          <DataTable
-            onRowClick={(p) => openView(p)}
+        <div id="tour-assets-table">
+          <Async loading={list.loading} error={list.error}>
+            <DataTable
+              onRowClick={(p) => openView(p)}
             columns={[
               {
                 key: "name",
@@ -558,89 +590,92 @@ export default function PropertiesPage() {
           />
         </Async>
 
-        <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
+          <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
+        </div>
       </Panel>
 
       <div style={{ height: 16 }} />
 
-      <Panel
-        title="Materials & supplies"
-        padded={false}
-        actions={
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <Chip tone={lowStock > 0 ? "red" : "green"}>
-              {lowStock > 0 ? `${num(lowStock)} at or below reorder level` : "Stock levels healthy"}
-            </Chip>
-            {mayEncode && (
-              <Button size="sm" onClick={() => setShowNewMaterialDrawer(true)}>
-                + New supply item
-              </Button>
-            )}
-          </div>
-        }
-      >
-        <Async loading={materials.loading} error={materials.error}>
-          <DataTable
-            onRowClick={(m) => openMaterial(m)}
-            columns={[
-              {
-                key: "name",
-                header: "Item",
-                render: (m) => (
-                  <span className="adm-chiprow">
-                    <span className="cbms-table__primary" style={{ fontWeight: 600 }}>{m.name}</span>
-                    {m.quantity <= m.reorderLevel && <Chip tone="red">Reorder</Chip>}
-                  </span>
-                ),
-              },
-              { key: "unit", header: "Unit" },
-              {
-                key: "quantity",
-                header: "On hand",
-                align: "right",
-                render: (m) => (
-                  <strong style={{ color: m.quantity <= m.reorderLevel ? "var(--cbms-red)" : undefined }}>
-                    {num(m.quantity)}
-                  </strong>
-                ),
-              },
-              {
-                key: "reorderLevel",
-                header: "Reorder level",
-                align: "right",
-                render: (m) => num(m.reorderLevel),
-              },
-              {
-                key: "location",
-                header: "Storage location",
-                render: (m) => m.location ?? <span className="cbms-table__muted">—</span>,
-              },
-              {
-                key: "updatedAt",
-                header: "Updated",
-                render: (m) => <span title={dateTime(m.updatedAt)}>{relative(m.updatedAt)}</span>,
-              },
-              {
-                key: "action",
-                header: "Action",
-                render: (m) => (
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openMaterial(m);
-                    }}
-                  >
-                    Adjust
-                  </Button>
-                ),
-              },
-            ]}
-            rows={stock}
-            empty="No supplies recorded yet."
-          />
-        </Async>
-      </Panel>
+      <div id="tour-assets-materials">
+        <Panel
+          title="Materials & supplies"
+          padded={false}
+          actions={
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <Chip tone={lowStock > 0 ? "red" : "green"}>
+                {lowStock > 0 ? `${num(lowStock)} at or below reorder level` : "Stock levels healthy"}
+              </Chip>
+              {mayEncode && (
+                <Button size="sm" onClick={() => setShowNewMaterialDrawer(true)}>
+                  + New supply item
+                </Button>
+              )}
+            </div>
+          }
+        >
+          <Async loading={materials.loading} error={materials.error}>
+            <DataTable
+              onRowClick={(m) => openMaterial(m)}
+              columns={[
+                {
+                  key: "name",
+                  header: "Item",
+                  render: (m) => (
+                    <span className="adm-chiprow">
+                      <span className="cbms-table__primary" style={{ fontWeight: 600 }}>{m.name}</span>
+                      {m.quantity <= m.reorderLevel && <Chip tone="red">Reorder</Chip>}
+                    </span>
+                  ),
+                },
+                { key: "unit", header: "Unit" },
+                {
+                  key: "quantity",
+                  header: "On hand",
+                  align: "right",
+                  render: (m) => (
+                    <strong style={{ color: m.quantity <= m.reorderLevel ? "var(--cbms-red)" : undefined }}>
+                      {num(m.quantity)}
+                    </strong>
+                  ),
+                },
+                {
+                  key: "reorderLevel",
+                  header: "Reorder level",
+                  align: "right",
+                  render: (m) => num(m.reorderLevel),
+                },
+                {
+                  key: "location",
+                  header: "Storage location",
+                  render: (m) => m.location ?? <span className="cbms-table__muted">—</span>,
+                },
+                {
+                  key: "updatedAt",
+                  header: "Updated",
+                  render: (m) => <span title={dateTime(m.updatedAt)}>{relative(m.updatedAt)}</span>,
+                },
+                {
+                  key: "action",
+                  header: "Action",
+                  render: (m) => (
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openMaterial(m);
+                      }}
+                    >
+                      Adjust
+                    </Button>
+                  ),
+                },
+              ]}
+              rows={stock}
+              empty="No supplies recorded yet."
+            />
+          </Async>
+        </Panel>
+      </div>
 
       {/* ========================================================================= */}
       {/* 1. CONTENT DRAWER: VIEW / INSPECT BARANGAY ASSET (APPEARING ON THE RIGHT) */}
@@ -1070,6 +1105,7 @@ export default function PropertiesPage() {
           onClick={() => setShowNewPropertyDrawer(false)}
         >
           <div
+            id="tour-assets-new-drawer"
             style={{
               width: "100%",
               maxWidth: "580px",
@@ -1585,6 +1621,23 @@ export default function PropertiesPage() {
           </div>
         </div>
       )}
+
+      {/* Interactive Tour Guide & Static Floating Toggle */}
+      <AssetsTourGuide
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+        onOpenNew={() => {
+          setShowNewPropertyDrawer(true);
+          setSelectedProperty(null);
+          setForm(EMPTY_FORM);
+        }}
+        onCloseNew={() => setShowNewPropertyDrawer(false)}
+        isNewOpen={showNewPropertyDrawer}
+      />
+      <AssetsGuideToggle
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+      />
     </>
   );
 }

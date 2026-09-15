@@ -23,6 +23,7 @@ import { ActionResult, Async } from "../../../components/common";
 import { useConsole } from "../../../components/Shell";
 import { BLOTTER_CATEGORIES } from "../../../lib/labels";
 import type { BlotterEntry, Paged } from "../../../lib/types";
+import { BlotterTourGuide, BlotterGuideToggle } from "./BlotterTourGuide";
 
 export default function BlotterPage() {
   const router = useRouter();
@@ -33,6 +34,31 @@ export default function BlotterPage() {
   const [page, setPage] = React.useState(1);
   const [showNew, setShowNew] = React.useState(false);
   const pageSize = 25;
+
+  // Guide State (defaults to true on first visit, persisted in localStorage)
+  const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cbms.blotter_guide_enabled");
+      if (stored === null) {
+        setTourEnabled(true);
+      } else {
+        setTourEnabled(stored === "true");
+      }
+    } catch {
+      setTourEnabled(true);
+    }
+  }, []);
+
+  const handleToggleTour = (next: boolean) => {
+    setTourEnabled(next);
+    try {
+      localStorage.setItem("cbms.blotter_guide_enabled", String(next));
+    } catch {
+      // ignore
+    }
+  };
 
   const list = useApi<Paged<BlotterEntry>>(
     `/blotter${qs({ q: search, category, page, pageSize })}`,
@@ -93,24 +119,26 @@ export default function BlotterPage() {
 
   return (
     <>
-      <PageHead
-        title="Blotter"
-        subtitle="Incident record book. VAWC/VAC entries are confidential — narratives are redacted in the list and are visible only to the VAW desk and the Punong Barangay."
-        breadcrumb="Justice & Safety"
-        parity="KPISBH"
-        actions={
-          mayEncode ? (
-            <Button variant="primary" onClick={() => setShowNew((v) => !v)}>
-              {showNew ? "Close" : "+ New blotter entry"}
-            </Button>
-          ) : undefined
-        }
-      />
+      <div id="tour-blotter-head">
+        <PageHead
+          title="Blotter"
+          subtitle="Incident record book. VAWC/VAC entries are confidential — narratives are redacted in the list and are visible only to the VAW desk and the Punong Barangay."
+          breadcrumb="Justice & Safety"
+          parity="KPISBH"
+          actions={
+            mayEncode ? (
+              <Button id="tour-blotter-new-btn" variant="primary" onClick={() => setShowNew((v) => !v)}>
+                {showNew ? "Close" : "+ New blotter entry"}
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
 
       <ActionResult error={error} success={ok} />
 
       {showNew && mayEncode && (
-        <>
+        <div id="tour-blotter-encode-panel">
           <Panel title="New blotter entry">
             <form onSubmit={submit}>
               <div className="adm-form-grid">
@@ -190,120 +218,137 @@ export default function BlotterPage() {
             </form>
           </Panel>
           <div style={{ height: 16 }} />
-        </>
+        </div>
       )}
 
       <Panel padded={false}>
-        <Toolbar>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setPage(1);
-              setSearch(q.trim());
-            }}
-            style={{ display: "flex", gap: 8 }}
-          >
-            <input
-              className="cbms-input cbms-input--search"
-              placeholder="Search entry no., location or reporter…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <Button type="submit">Search</Button>
-          </form>
-          <select
-            className="cbms-select"
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All categories</option>
-            {BLOTTER_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {titleize(c)}
-              </option>
-            ))}
-          </select>
-          <div className="cbms-toolbar__spacer" />
-          <span className="adm-muted">{num(list.data?.total)} entr(ies)</span>
-        </Toolbar>
+        <div id="tour-blotter-toolbar">
+          <Toolbar>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setPage(1);
+                setSearch(q.trim());
+              }}
+              style={{ display: "flex", gap: 8 }}
+            >
+              <input
+                className="cbms-input cbms-input--search"
+                placeholder="Search entry no., location or reporter…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              <Button type="submit">Search</Button>
+            </form>
+            <select
+              className="cbms-select"
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All categories</option>
+              {BLOTTER_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {titleize(c)}
+                </option>
+              ))}
+            </select>
+            <div className="cbms-toolbar__spacer" />
+            <span className="adm-muted">{num(list.data?.total)} entr(ies)</span>
+          </Toolbar>
+        </div>
 
-        <Async loading={list.loading} error={list.error}>
-          <DataTable
-            columns={[
-              {
-                key: "entryNo",
-                header: "Entry",
-                render: (b) => (
-                  <span className="adm-chiprow">
-                    {b.isConfidential && <span title="Restricted record">🔒</span>}
-                    <Link
-                      href={`/blotter/${b.id}`}
-                      className="cbms-table__primary"
-                      style={{ fontWeight: 600, textDecoration: "underline" }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {b.entryNo}
-                    </Link>
-                  </span>
-                ),
-              },
-              {
-                key: "category",
-                header: "Category",
-                render: (b) => (
-                  <span className="adm-chiprow">
-                    <StatusChip status={b.category} />
-                    {b.isConfidential && <Chip tone="red">Restricted</Chip>}
-                  </span>
-                ),
-              },
-              { key: "incidentAt", header: "Incident", render: (b) => dateTime(b.incidentAt) },
-              { key: "location", header: "Location" },
-              {
-                key: "narrative",
-                header: "Narrative",
-                render: (b) =>
-                  b.isConfidential ? (
-                    <span className="adm-muted">[RESTRICTED — open the case to view]</span>
-                  ) : (
-                    <span className="cbms-table__muted">
-                      {b.narrative.length > 90 ? `${b.narrative.slice(0, 90)}…` : b.narrative}
+        <div id="tour-blotter-table">
+          <Async loading={list.loading} error={list.error}>
+            <DataTable
+              columns={[
+                {
+                  key: "entryNo",
+                  header: "Entry",
+                  render: (b) => (
+                    <span className="adm-chiprow">
+                      {b.isConfidential && <span title="Restricted record">🔒</span>}
+                      <Link
+                        href={`/blotter/${b.id}`}
+                        className="cbms-table__primary"
+                        style={{ fontWeight: 600, textDecoration: "underline" }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {b.entryNo}
+                      </Link>
                     </span>
                   ),
-              },
-              { key: "reportedBy", header: "Reported by" },
-              {
-                key: "kpCase",
-                header: "KP case",
-                render: (b) =>
-                  b.kpCase ? (
-                    <a
-                      href={`/kp/${b.kpCase.id}`}
-                      className="adm-strong"
-                      style={{ textDecoration: "underline" }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {b.kpCase.caseNo}
-                    </a>
-                  ) : (
-                    <span className="cbms-table__muted">—</span>
+                },
+                {
+                  key: "category",
+                  header: "Category",
+                  render: (b) => (
+                    <span className="adm-chiprow">
+                      <StatusChip status={b.category} />
+                      {b.isConfidential && <Chip tone="red">Restricted</Chip>}
+                    </span>
                   ),
-              },
-            ]}
-            rows={list.data?.items ?? []}
-            rowKey={(b) => b.id}
-            onRowClick={(b) => {
-              router.push(`/blotter/${b.id}`);
-            }}
-            empty="No blotter entries match this filter."
-          />
-        </Async>
+                },
+                { key: "incidentAt", header: "Incident", render: (b) => dateTime(b.incidentAt) },
+                { key: "location", header: "Location" },
+                {
+                  key: "narrative",
+                  header: "Narrative",
+                  render: (b) =>
+                    b.isConfidential ? (
+                      <span className="adm-muted">[RESTRICTED — open the case to view]</span>
+                    ) : (
+                      <span className="cbms-table__muted">
+                        {b.narrative.length > 90 ? `${b.narrative.slice(0, 90)}…` : b.narrative}
+                      </span>
+                    ),
+                },
+                { key: "reportedBy", header: "Reported by" },
+                {
+                  key: "kpCase",
+                  header: "KP case",
+                  render: (b) =>
+                    b.kpCase ? (
+                      <a
+                        href={`/kp/${b.kpCase.id}`}
+                        className="adm-strong"
+                        style={{ textDecoration: "underline" }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {b.kpCase.caseNo}
+                      </a>
+                    ) : (
+                      <span className="cbms-table__muted">—</span>
+                    ),
+                },
+              ]}
+              rows={list.data?.items ?? []}
+              rowKey={(b) => b.id}
+              onRowClick={(b) => {
+                router.push(`/blotter/${b.id}`);
+              }}
+              empty="No blotter entries match this filter."
+            />
+          </Async>
 
-        <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
+          <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
+        </div>
       </Panel>
+
+      {/* Interactive Tour Guide & Static Floating Toggle */}
+      <BlotterTourGuide
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+        onOpenNew={() => setShowNew(true)}
+        onCloseNew={() => setShowNew(false)}
+        isNewOpen={showNew}
+      />
+      <BlotterGuideToggle
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+      />
     </>
   );
 }

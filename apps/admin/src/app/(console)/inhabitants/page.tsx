@@ -24,6 +24,7 @@ import { useConsole } from "../../../components/Shell";
 import { downloadFromApi } from "../../../lib/download";
 import { SECTORS } from "../../../lib/labels";
 import type { Inhabitant } from "../../../lib/types";
+import { InhabitantsTourGuide, InhabitantsGuideToggle } from "./InhabitantsTourGuide";
 
 export default function InhabitantsPage() {
   const router = useRouter();
@@ -88,6 +89,60 @@ export default function InhabitantsPage() {
 
   const [exporting, setExporting] = React.useState(false);
   const [exportError, setExportError] = React.useState<string | null>(null);
+
+  // Guide State (defaults to true on first visit, persisted in localStorage)
+  const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cbms.inhabitants_guide_enabled");
+      if (stored === null) {
+        setTourEnabled(true);
+      } else {
+        setTourEnabled(stored === "true");
+      }
+    } catch {
+      setTourEnabled(true);
+    }
+  }, []);
+
+  const handleToggleTour = (next: boolean) => {
+    setTourEnabled(next);
+    try {
+      localStorage.setItem("cbms.inhabitants_guide_enabled", String(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleOpenDrawer = () => {
+    setForm({
+      firstName: "",
+      middleName: "",
+      lastName: "",
+      suffix: "",
+      sex: "male",
+      birthDate: "",
+      civilStatus: "single",
+      citizenship: "Filipino",
+      philsysNo: "",
+      contactPhone: "",
+      contactEmail: "",
+      occupation: "",
+      educationLevel: "",
+      householdId: "",
+      relationToHead: "Head",
+      isSenior: false,
+      isPwd: false,
+      isSoloParent: false,
+      is4Ps: false,
+      isDeceased: false,
+    });
+    setHouseholdSearch("");
+    setIsSearchingHousehold(false);
+    setActionError(null);
+    setOpenDrawer(true);
+  };
 
   React.useEffect(() => {
     fetchInhabitants();
@@ -204,101 +259,126 @@ export default function InhabitantsPage() {
       {storeError && <Alert tone="danger">{storeError}</Alert>}
       {exportError && <Alert tone="danger">{exportError}</Alert>}
 
-      <StatGrid>
-        <StatCard label="Total inhabitants" value={num(inhabitants.length)} icon="👥" />
-        <StatCard
-          label="Senior citizens"
-          value={num(inhabitants.filter((i) => i.isSenior).length)}
-          icon="🧓"
-          tone="green"
-        />
-        <StatCard
-          label="PWD"
-          value={num(inhabitants.filter((i) => i.isPwd).length)}
-          icon="♿"
-          tone="navy"
-        />
-        <StatCard
-          label="4Ps beneficiaries"
-          value={num(inhabitants.filter((i) => i.is4Ps).length)}
-          icon="🤝"
-          tone="gold"
-        />
-      </StatGrid>
+      <div id="tour-inhabitants-stats">
+        <StatGrid>
+          <StatCard label="Total inhabitants" value={num(inhabitants.length)} icon="👥" />
+          <StatCard
+            label="Senior citizens"
+            value={num(inhabitants.filter((i) => i.isSenior).length)}
+            icon="🧓"
+            tone="green"
+          />
+          <StatCard
+            label="PWD"
+            value={num(inhabitants.filter((i) => i.isPwd).length)}
+            icon="♿"
+            tone="navy"
+          />
+          <StatCard
+            label="4Ps beneficiaries"
+            value={num(inhabitants.filter((i) => i.is4Ps).length)}
+            icon="🤝"
+            tone="gold"
+          />
+        </StatGrid>
+      </div>
 
       <Panel padded={false}>
-        <Toolbar>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setPage(1);
-              setSearch(q.trim());
-            }}
-            style={{ display: "flex", gap: 8 }}
-          >
-            <input
-              className="cbms-input cbms-input--search"
-              placeholder="Search name, PCN, or household…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <Button type="submit">Search</Button>
-          </form>
+        <div id="tour-inhabitants-toolbar">
+          <Toolbar>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setPage(1);
+                setSearch(q.trim());
+              }}
+              style={{ display: "flex", gap: 8 }}
+            >
+              <input
+                className="cbms-input cbms-input--search"
+                placeholder="Search name, PCN, or household…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              <Button type="submit">Search</Button>
+            </form>
 
-          <select
-            className="cbms-select"
-            value={purok}
-            onChange={(e) => {
-              setPurok(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All puroks</option>
-            {puroks.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="cbms-select"
-            value={sector}
-            onChange={(e) => {
-              setSector(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All sectors</option>
-            {SECTORS.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-
-          <div className="cbms-toolbar__spacer" />
-          <span className="adm-muted" style={{ marginRight: "1rem" }}>{num(filtered.length)} resident(s)</span>
-
-          <div style={{ position: "relative" }}>
-            <button
-              type="button"
-              onClick={() => setShowActionsDropdown(!showActionsDropdown)}
-              className="cbms-btn"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.25rem",
-                padding: "0.5rem 1rem",
-                fontSize: "0.875rem",
-                backgroundColor: "var(--color-bg-card, #fff)",
-                border: "1px solid var(--color-border, #e2e8f0)",
-                borderRadius: "0.375rem",
-                cursor: "pointer"
+            <select
+              className="cbms-select"
+              value={purok}
+              onChange={(e) => {
+                setPurok(e.target.value);
+                setPage(1);
               }}
             >
-              ⚙️ Actions ▾
-            </button>
+              <option value="all">All puroks</option>
+              {puroks.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="cbms-select"
+              value={sector}
+              onChange={(e) => {
+                setSector(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All sectors</option>
+              {SECTORS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+
+            <div className="cbms-toolbar__spacer" />
+            <span className="adm-muted" style={{ marginRight: "1rem" }}>{num(filtered.length)} resident(s)</span>
+
+            {mayEncode && (
+              <button
+                id="tour-encode-btn"
+                type="button"
+                onClick={handleOpenDrawer}
+                className="cbms-btn cbms-btn--primary"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  padding: "0.5rem 0.9rem",
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  marginRight: "0.5rem",
+                }}
+              >
+                ➕ New Inhabitant
+              </button>
+            )}
+
+            <div style={{ position: "relative" }}>
+              <button
+                id="tour-export-actions"
+                type="button"
+                onClick={() => setShowActionsDropdown(!showActionsDropdown)}
+                className="cbms-btn"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                  padding: "0.5rem 1rem",
+                  fontSize: "0.875rem",
+                  backgroundColor: "var(--color-bg-card, #fff)",
+                  border: "1px solid var(--color-border, #e2e8f0)",
+                  borderRadius: "0.375rem",
+                  cursor: "pointer"
+                }}
+              >
+                ⚙️ Actions ▾
+              </button>
             {showActionsDropdown && (
               <>
                 <div 
@@ -401,53 +481,56 @@ export default function InhabitantsPage() {
             )}
           </div>
         </Toolbar>
+        </div>
 
-        <DataTable
-          columns={[
-            {
-              key: "name",
-              header: "Citizen",
-              render: (r) => (
-                <>
-                  <div className="cbms-table__primary">{fullName(r)}</div>
-                  <div className="cbms-table__muted">
-                    {r.philsysNo ? `PCN ${r.philsysNo}` : "No PhilSys on file"}
-                  </div>
-                </>
-              ),
-            },
-            {
-              key: "sexAge",
-              header: "Sex / Age",
-              render: (r) => `${r.sex === "male" ? "M" : "F"} · ${age(r.birthDate) ?? "—"} y/o`,
-            },
-            {
-              key: "household",
-              header: "Household / Address",
-              render: (r) =>
-                r.household ? (
+        <div id="tour-inhabitants-table">
+          <DataTable
+            columns={[
+              {
+                key: "name",
+                header: "Citizen",
+                render: (r) => (
                   <>
-                    <div>{r.household.householdNo}</div>
-                    <div className="cbms-table__muted">{r.household.addressLine ?? ""}</div>
+                    <div className="cbms-table__primary">{fullName(r)}</div>
+                    <div className="cbms-table__muted">
+                      {r.philsysNo ? `PCN ${r.philsysNo}` : "No PhilSys on file"}
+                    </div>
                   </>
-                ) : (
-                  <span className="cbms-table__muted">Unassigned</span>
                 ),
-            },
-            { key: "sectors", header: "Sectoral", render: (r) => <SectorChips row={r} /> },
-            { key: "source", header: "Source", render: (r) => <SourceChip source={r.source} /> },
-          ]}
-          rows={paginated}
-          empty={loading ? "Loading inhabitants..." : "No inhabitants match this filter."}
-          onRowClick={(r) => router.push(`/inhabitants/${r.id}/edit`)}
-        />
+              },
+              {
+                key: "sexAge",
+                header: "Sex / Age",
+                render: (r) => `${r.sex === "male" ? "M" : "F"} · ${age(r.birthDate) ?? "—"} y/o`,
+              },
+              {
+                key: "household",
+                header: "Household / Address",
+                render: (r) =>
+                  r.household ? (
+                    <>
+                      <div>{r.household.householdNo}</div>
+                      <div className="cbms-table__muted">{r.household.addressLine ?? ""}</div>
+                    </>
+                  ) : (
+                    <span className="cbms-table__muted">Unassigned</span>
+                  ),
+              },
+              { key: "sectors", header: "Sectoral", render: (r) => <SectorChips row={r} /> },
+              { key: "source", header: "Source", render: (r) => <SourceChip source={r.source} /> },
+            ]}
+            rows={paginated}
+            empty={loading ? "Loading inhabitants..." : "No inhabitants match this filter."}
+            onRowClick={(r) => router.push(`/inhabitants/${r.id}/edit`)}
+          />
 
-        <Pagination
-          page={page}
-          pageSize={pageSize}
-          total={filtered.length}
-          onPage={setPage}
-        />
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPage={setPage}
+          />
+        </div>
       </Panel>
 
       {/* Side Slide-Over Content Drawer */}
@@ -467,6 +550,7 @@ export default function InhabitantsPage() {
           onClick={() => setOpenDrawer(false)}
         >
           <div
+            id="tour-encoding-drawer"
             style={{
               width: "100%",
               maxWidth: "520px",
@@ -893,6 +977,19 @@ export default function InhabitantsPage() {
           </div>
         </div>
       )}
+
+      {/* Interactive Tour Guide & Static Floating Toggle */}
+      <InhabitantsTourGuide
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+        onOpenDrawer={handleOpenDrawer}
+        onCloseDrawer={() => setOpenDrawer(false)}
+        isDrawerOpen={openDrawer}
+      />
+      <InhabitantsGuideToggle
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+      />
     </>
   );
 }

@@ -26,6 +26,7 @@ import { useConsole } from "../../../components/Shell";
 import { CONCERN_CATEGORIES, CONCERN_STATUSES } from "../../../lib/labels";
 import { downloadText, toCsv } from "../../../lib/download";
 import type { Concern, Paged } from "../../../lib/types";
+import { ConcernsTourGuide, ConcernsGuideToggle } from "./ConcernsTourGuide";
 
 const OPEN_STATUSES = ["submitted", "acknowledged", "in_progress"];
 
@@ -89,6 +90,31 @@ export default function ConcernsPage() {
   // Content Drawers State
   const [selectedConcern, setSelectedConcern] = React.useState<Concern | null>(null);
   const [showNewDrawer, setShowNewDrawer] = React.useState(false);
+
+  // Guide State (defaults to true on first visit, persisted in localStorage)
+  const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cbms.concerns_guide_enabled");
+      if (stored === null) {
+        setTourEnabled(true);
+      } else {
+        setTourEnabled(stored === "true");
+      }
+    } catch {
+      setTourEnabled(true);
+    }
+  }, []);
+
+  const handleToggleTour = (next: boolean) => {
+    setTourEnabled(next);
+    try {
+      localStorage.setItem("cbms.concerns_guide_enabled", String(next));
+    } catch {
+      // ignore
+    }
+  };
 
   // Resolution and form states
   const [newForm, setNewForm] = React.useState<NewConcernForm>(EMPTY_CONCERN_FORM);
@@ -231,34 +257,36 @@ export default function ConcernsPage() {
 
       <ActionResult error={error} success={ok} />
 
-      <StatGrid>
-        <StatCard
-          label="Open on this page"
-          value={num(openCount)}
-          hint="Submitted, acknowledged or in progress"
-          icon="📣"
-        />
-        <StatCard
-          label="SLA breached"
-          value={num(breached)}
-          hint="Past the RA 11032 clock"
-          icon="⏰"
-          tone={breached > 0 ? "red" : "green"}
-        />
-        <StatCard
-          label="Resolved on this page"
-          value={num(resolved)}
-          hint="Closed with a resolution note"
-          icon="✅"
-          tone="green"
-        />
-        <StatCard
-          label="Total matching"
-          value={num(list.data?.total)}
-          hint="Across every page of this filter"
-          icon="🗂"
-        />
-      </StatGrid>
+      <div id="tour-concerns-stats">
+        <StatGrid>
+          <StatCard
+            label="Open on this page"
+            value={num(openCount)}
+            hint="Submitted, acknowledged or in progress"
+            icon="📣"
+          />
+          <StatCard
+            label="SLA breached"
+            value={num(breached)}
+            hint="Past the RA 11032 clock"
+            icon="⏰"
+            tone={breached > 0 ? "red" : "green"}
+          />
+          <StatCard
+            label="Resolved on this page"
+            value={num(resolved)}
+            hint="Closed with a resolution note"
+            icon="✅"
+            tone="green"
+          />
+          <StatCard
+            label="Total matching"
+            value={num(list.data?.total)}
+            hint="Across every page of this filter"
+            icon="🗂"
+          />
+        </StatGrid>
+      </div>
 
       {breached > 0 && (
         <Alert tone="warn">
@@ -269,168 +297,173 @@ export default function ConcernsPage() {
       )}
 
       <Panel padded={false}>
-        <Toolbar>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setPage(1);
-              setSearch(q.trim());
-            }}
-            style={{ display: "flex", gap: 8 }}
-          >
-            <input
-              className="cbms-input cbms-input--search"
-              placeholder="Search reference, description, purok, or reporter…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-            <Button type="submit">Search</Button>
-          </form>
-          <select
-            className="cbms-select"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All statuses</option>
-            {CONCERN_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {titleize(s)}
-              </option>
-            ))}
-          </select>
-          <select
-            className="cbms-select"
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All categories</option>
-            {CONCERN_CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {titleize(c)}
-              </option>
-            ))}
-          </select>
-          <div className="cbms-toolbar__spacer" />
-          <span className="adm-muted">{num(list.data?.total)} concern(s)</span>
-          <Button onClick={exportCsv} disabled={rows.length === 0}>
-            ⬇ Export CSV
-          </Button>
-          {mayEncode && (
-            <Button
-              variant="primary"
-              onClick={() => {
-                setShowNewDrawer(true);
-                setSelectedConcern(null);
-                setNewForm(EMPTY_CONCERN_FORM);
+        <div id="tour-concerns-toolbar">
+          <Toolbar>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setPage(1);
+                setSearch(q.trim());
+              }}
+              style={{ display: "flex", gap: 8 }}
+            >
+              <input
+                className="cbms-input cbms-input--search"
+                placeholder="Search reference, description, purok, or reporter…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+              <Button type="submit">Search</Button>
+            </form>
+            <select
+              className="cbms-select"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
               }}
             >
-              + File Citizen Concern (311)
+              <option value="all">All statuses</option>
+              {CONCERN_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {titleize(s)}
+                </option>
+              ))}
+            </select>
+            <select
+              className="cbms-select"
+              value={category}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All categories</option>
+              {CONCERN_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {titleize(c)}
+                </option>
+              ))}
+            </select>
+            <div className="cbms-toolbar__spacer" />
+            <span className="adm-muted">{num(list.data?.total)} concern(s)</span>
+            <Button id="tour-concerns-export-btn" onClick={exportCsv} disabled={rows.length === 0}>
+              ⬇ Export CSV
             </Button>
-          )}
-        </Toolbar>
+            {mayEncode && (
+              <Button
+                id="tour-concerns-file-btn"
+                variant="primary"
+                onClick={() => {
+                  setShowNewDrawer(true);
+                  setSelectedConcern(null);
+                  setNewForm(EMPTY_CONCERN_FORM);
+                }}
+              >
+                + File Citizen Concern (311)
+              </Button>
+            )}
+          </Toolbar>
+        </div>
 
-        <Async loading={list.loading} error={list.error}>
-          <DataTable
-            onRowClick={(c) => openDrawer(c)}
-            columns={[
-              {
-                key: "referenceNo",
-                header: "Reference",
-                render: (c) => (
-                  <span className="adm-chiprow">
-                    <span className="cbms-table__primary" style={{ fontWeight: 600 }}>{c.referenceNo}</span>
-                    {c.slaBreached && <Chip tone="red">SLA breached</Chip>}
-                  </span>
-                ),
-              },
-              {
-                key: "category",
-                header: "Category",
-                render: (c) => <StatusChip status={c.category} />,
-              },
-              {
-                key: "description",
-                header: "Concern",
-                render: (c) => (
-                  <span className="cbms-table__muted">
-                    {c.description.length > 70 ? `${c.description.slice(0, 70)}…` : c.description}
-                  </span>
-                ),
-              },
-              {
-                key: "purok",
-                header: "Purok",
-                render: (c) => c.purok ?? <span className="cbms-table__muted">—</span>,
-              },
-              {
-                key: "reporter",
-                header: "Reported by",
-                render: (c) =>
-                  c.inhabitant ? (
-                    <span style={{ fontWeight: 500 }}>{`${c.inhabitant.firstName} ${c.inhabitant.lastName}`}</span>
-                  ) : (
-                    <span className="cbms-table__muted">Anonymous</span>
+        <div id="tour-concerns-table">
+          <Async loading={list.loading} error={list.error}>
+            <DataTable
+              onRowClick={(c) => openDrawer(c)}
+              columns={[
+                {
+                  key: "referenceNo",
+                  header: "Reference",
+                  render: (c) => (
+                    <span className="adm-chiprow">
+                      <span className="cbms-table__primary" style={{ fontWeight: 600 }}>{c.referenceNo}</span>
+                      {c.slaBreached && <Chip tone="red">SLA breached</Chip>}
+                    </span>
                   ),
-              },
-              {
-                key: "createdAt",
-                header: "Filed",
-                render: (c) => (
-                  <span title={dateTime(c.createdAt)}>{relative(c.createdAt)}</span>
-                ),
-              },
-              {
-                key: "sla",
-                header: "Response clock",
-                render: (c) => {
-                  if (c.status === "resolved") {
-                    return <Chip tone="green">Closed {relative(c.resolvedAt)}</Chip>;
-                  }
-                  if (c.status === "rejected") return <Chip tone="gray">Rejected</Chip>;
-                  if (!c.slaDueAt) return <span className="cbms-table__muted">—</span>;
-                  const days = Math.ceil(
-                    (new Date(c.slaDueAt).getTime() - Date.now()) / 86_400_000,
-                  );
-                  return c.slaBreached ? (
-                    <Chip tone="red">Breached by {Math.abs(days)}d</Chip>
-                  ) : (
-                    <Chip tone={days <= 1 ? "gold" : "green"}>{days}d left</Chip>
-                  );
                 },
-              },
-              {
-                key: "status",
-                header: "Status",
-                render: (c) => <StatusChip status={c.status} />,
-              },
-              {
-                key: "action",
-                header: "Action",
-                render: (c) => (
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openDrawer(c);
-                    }}
-                  >
-                    View
-                  </Button>
-                ),
-              },
-            ]}
-            rows={rows}
-            empty="No concerns match this filter."
-          />
-        </Async>
+                {
+                  key: "category",
+                  header: "Category",
+                  render: (c) => <StatusChip status={c.category} />,
+                },
+                {
+                  key: "description",
+                  header: "Concern",
+                  render: (c) => (
+                    <span className="cbms-table__muted">
+                      {c.description.length > 70 ? `${c.description.slice(0, 70)}…` : c.description}
+                    </span>
+                  ),
+                },
+                {
+                  key: "purok",
+                  header: "Purok",
+                  render: (c) => c.purok ?? <span className="cbms-table__muted">—</span>,
+                },
+                {
+                  key: "reporter",
+                  header: "Reported by",
+                  render: (c) =>
+                    c.inhabitant ? (
+                      <span style={{ fontWeight: 500 }}>{`${c.inhabitant.firstName} ${c.inhabitant.lastName}`}</span>
+                    ) : (
+                      <span className="cbms-table__muted">Anonymous</span>
+                    ),
+                },
+                {
+                  key: "createdAt",
+                  header: "Filed",
+                  render: (c) => (
+                    <span title={dateTime(c.createdAt)}>{relative(c.createdAt)}</span>
+                  ),
+                },
+                {
+                  key: "sla",
+                  header: "Response clock",
+                  render: (c) => {
+                    if (c.status === "resolved") {
+                      return <Chip tone="green">Closed {relative(c.resolvedAt)}</Chip>;
+                    }
+                    if (c.status === "rejected") return <Chip tone="gray">Rejected</Chip>;
+                    if (!c.slaDueAt) return <span className="cbms-table__muted">—</span>;
+                    const days = Math.ceil(
+                      (new Date(c.slaDueAt).getTime() - Date.now()) / 86_400_000,
+                    );
+                    return c.slaBreached ? (
+                      <Chip tone="red">Breached by {Math.abs(days)}d</Chip>
+                    ) : (
+                      <Chip tone={days <= 1 ? "gold" : "green"}>{days}d left</Chip>
+                    );
+                  },
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  render: (c) => <StatusChip status={c.status} />,
+                },
+                {
+                  key: "action",
+                  header: "Action",
+                  render: (c) => (
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDrawer(c);
+                      }}
+                    >
+                      View
+                    </Button>
+                  ),
+                },
+              ]}
+              rows={rows}
+              empty="No concerns match this filter."
+            />
+          </Async>
 
-        <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
+          <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
+        </div>
       </Panel>
 
       {/* ========================================================================= */}
@@ -805,6 +838,7 @@ export default function ConcernsPage() {
           onClick={() => setShowNewDrawer(false)}
         >
           <div
+            id="tour-concerns-new-drawer"
             style={{
               width: "100%",
               maxWidth: "560px",
@@ -951,6 +985,19 @@ export default function ConcernsPage() {
           </div>
         </div>
       )}
+
+      {/* Interactive Tour Guide & Static Floating Toggle */}
+      <ConcernsTourGuide
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+        onOpenNewDrawer={() => setShowNewDrawer(true)}
+        onCloseNewDrawer={() => setShowNewDrawer(false)}
+        isNewDrawerOpen={showNewDrawer}
+      />
+      <ConcernsGuideToggle
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+      />
     </>
   );
 }

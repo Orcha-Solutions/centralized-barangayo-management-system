@@ -278,7 +278,7 @@ export default function CitizenHubPage() {
             {/* Error message */}
             {loginError && (
               <div style={{ marginBottom: 16 }}>
-                <Alert tone="error">{loginError}</Alert>
+                <Alert tone="danger">{loginError}</Alert>
               </div>
             )}
 

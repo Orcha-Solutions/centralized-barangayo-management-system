@@ -26,6 +26,7 @@ import { Async, EmptyNote, Progress, Tabs } from "../../../components/common";
 import { downloadCsv } from "../../../lib/download";
 import { FUNDS } from "../../../lib/labels";
 import type { Budget, LedgerEntry, OfficialReceipt, Paged } from "../../../lib/types";
+import { FinanceTourGuide, FinanceGuideToggle } from "./FinanceTourGuide";
 
 type Tab = "ledger" | "receipts" | "budget";
 
@@ -62,6 +63,31 @@ export default function FinancePage() {
 
   const [selectedReceipt, setSelectedReceipt] = React.useState<ExtendedReceipt | null>(null);
   const [receiptDrawerOpen, setReceiptDrawerOpen] = React.useState(false);
+
+  // Tour Guide State
+  const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cbms.finance_guide_enabled");
+      if (stored === null) {
+        setTourEnabled(true);
+      } else {
+        setTourEnabled(stored === "true");
+      }
+    } catch {
+      setTourEnabled(true);
+    }
+  }, []);
+
+  const handleToggleTour = (next: boolean) => {
+    setTourEnabled(next);
+    try {
+      localStorage.setItem("cbms.finance_guide_enabled", String(next));
+    } catch {
+      // ignore
+    }
+  };
 
   // Form inputs for recording ledger entry
   const [newFund, setNewFund] = React.useState("general");
@@ -199,14 +225,18 @@ export default function FinancePage() {
           <div style={{ display: "flex", gap: 8 }}>
             {tab === "ledger" && (
               <>
-                <Button onClick={() => setRecordDrawerOpen(true)}>+ Record Journal Entry</Button>
-                <Button variant="default" onClick={exportLedger}>
+                <Button id="tour-finance-record-btn" onClick={() => setRecordDrawerOpen(true)}>
+                  + Record Journal Entry
+                </Button>
+                <Button id="tour-finance-export-btn" variant="default" onClick={exportLedger}>
                   ⬇ Export page (CSV)
                 </Button>
               </>
             )}
             {tab === "receipts" && (
-              <Button onClick={() => setReceiptDrawerOpen(true)}>+ Issue Official Receipt</Button>
+              <Button id="tour-finance-receipt-btn" onClick={() => setReceiptDrawerOpen(true)}>
+                + Issue Official Receipt
+              </Button>
             )}
           </div>
         }
@@ -224,44 +254,48 @@ export default function FinancePage() {
         </div>
       )}
 
-      <StatGrid>
-        <StatCard
-          label="Credits (this page)"
-          value={pesoAmount(credits)}
-          icon="⬆️"
-          tone="green"
-          hint="Collections"
-        />
-        <StatCard
-          label="Debits (this page)"
-          value={pesoAmount(debits)}
-          icon="⬇️"
-          tone="red"
-          hint="Disbursements"
-        />
-        <StatCard
-          label="Official receipts"
-          value={pesoAmount(receiptTotal)}
-          icon="🧾"
-          hint={`${num(receipts.data?.total)} OR(s) on file`}
-        />
-        <StatCard
-          label="Appropriation"
-          value={pesoAmount(budget.data?.totalAmount ?? 0)}
-          icon="📘"
-          hint={budget.data ? `FY ${budget.data.year}` : "—"}
-        />
-      </StatGrid>
+      <div id="tour-finance-stats">
+        <StatGrid>
+          <StatCard
+            label="Credits (this page)"
+            value={pesoAmount(credits)}
+            icon="⬆️"
+            tone="green"
+            hint="Collections"
+          />
+          <StatCard
+            label="Debits (this page)"
+            value={pesoAmount(debits)}
+            icon="⬇️"
+            tone="red"
+            hint="Disbursements"
+          />
+          <StatCard
+            label="Official receipts"
+            value={pesoAmount(receiptTotal)}
+            icon="🧾"
+            hint={`${num(receipts.data?.total)} OR(s) on file`}
+          />
+          <StatCard
+            label="Appropriation"
+            value={pesoAmount(budget.data?.totalAmount ?? 0)}
+            icon="📘"
+            hint={budget.data ? `FY ${budget.data.year}` : "—"}
+          />
+        </StatGrid>
+      </div>
 
-      <Tabs<Tab>
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          { value: "ledger", label: "General ledger" },
-          { value: "receipts", label: "Official receipts" },
-          { value: "budget", label: "Budget & utilisation" },
-        ]}
-      />
+      <div id="tour-finance-tabs">
+        <Tabs<Tab>
+          value={tab}
+          onChange={setTab}
+          tabs={[
+            { value: "ledger", label: "General ledger" },
+            { value: "receipts", label: "Official receipts" },
+            { value: "budget", label: "Budget & utilisation" },
+          ]}
+        />
+      </div>
 
       {tab === "ledger" && (
         <Panel padded={false}>
@@ -313,56 +347,58 @@ export default function FinancePage() {
             <span className="adm-muted">{num(ledger.data?.total)} entries</span>
           </Toolbar>
 
-          <Async loading={ledger.loading} error={ledger.error}>
-            <DataTable
-              columns={[
-                { key: "postedAt", header: "Posted", render: (r) => date(r.postedAt) },
-                { key: "fund", header: "Fund", render: (r) => <Chip tone="navy">{r.fund.toUpperCase()}</Chip> },
-                { key: "accountCode", header: "Account" },
-                {
-                  key: "description",
-                  header: "Description",
-                  render: (r) => (
-                    <span
-                      style={{ fontWeight: 600, color: "var(--cbms-navy)", textDecoration: "underline" }}
-                    >
-                      {r.description}
-                    </span>
-                  ),
-                },
-                {
-                  key: "direction",
-                  header: "Dr/Cr",
-                  render: (r) => (
-                    <Chip tone={r.direction === "credit" ? "green" : "red"}>
-                      {titleize(r.direction)}
-                    </Chip>
-                  ),
-                },
-                {
-                  key: "amount",
-                  header: "Amount",
-                  align: "right",
-                  render: (r) => <strong>{pesoAmount(r.amount)}</strong>,
-                },
-                {
-                  key: "ref",
-                  header: "Reference",
-                  render: (r) => (
-                    <span style={{ fontFamily: "monospace", fontSize: 12 }}>
-                      {r.orNumber ?? r.dvNumber ?? r.refType ?? "—"}
-                    </span>
-                  ),
-                },
-              ]}
-              rows={rows}
-              rowKey={(r) => r.id}
-              onRowClick={(r) => setSelectedLedgerEntry(r)}
-              empty="No ledger entries match this filter."
-            />
-          </Async>
+          <div id="tour-finance-table">
+            <Async loading={ledger.loading} error={ledger.error}>
+              <DataTable
+                columns={[
+                  { key: "postedAt", header: "Posted", render: (r) => date(r.postedAt) },
+                  { key: "fund", header: "Fund", render: (r) => <Chip tone="navy">{r.fund.toUpperCase()}</Chip> },
+                  { key: "accountCode", header: "Account" },
+                  {
+                    key: "description",
+                    header: "Description",
+                    render: (r) => (
+                      <span
+                        style={{ fontWeight: 600, color: "var(--cbms-navy)", textDecoration: "underline" }}
+                      >
+                        {r.description}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "direction",
+                    header: "Dr/Cr",
+                    render: (r) => (
+                      <Chip tone={r.direction === "credit" ? "green" : "red"}>
+                        {titleize(r.direction)}
+                      </Chip>
+                    ),
+                  },
+                  {
+                    key: "amount",
+                    header: "Amount",
+                    align: "right",
+                    render: (r) => <strong>{pesoAmount(r.amount)}</strong>,
+                  },
+                  {
+                    key: "ref",
+                    header: "Reference",
+                    render: (r) => (
+                      <span style={{ fontFamily: "monospace", fontSize: 12 }}>
+                        {r.orNumber ?? r.dvNumber ?? r.refType ?? "—"}
+                      </span>
+                    ),
+                  },
+                ]}
+                rows={rows}
+                rowKey={(r) => r.id}
+                onRowClick={(r) => setSelectedLedgerEntry(r)}
+                empty="No ledger entries match this filter."
+              />
+            </Async>
 
-          <Pagination page={page} pageSize={pageSize} total={ledger.data?.total ?? 0} onPage={setPage} />
+            <Pagination page={page} pageSize={pageSize} total={ledger.data?.total ?? 0} onPage={setPage} />
+          </div>
         </Panel>
       )}
 
@@ -737,6 +773,7 @@ export default function FinancePage() {
           onClick={() => setRecordDrawerOpen(false)}
         >
           <div
+            id="tour-finance-record-drawer"
             style={{
               width: "100%",
               maxWidth: "540px",
@@ -1106,6 +1143,7 @@ export default function FinancePage() {
           onClick={() => setReceiptDrawerOpen(false)}
         >
           <div
+            id="tour-finance-receipt-drawer"
             style={{
               width: "100%",
               maxWidth: "540px",
@@ -1285,6 +1323,17 @@ export default function FinancePage() {
           </div>
         </div>
       )}
+
+      {/* Interactive Tour Guide & Guide Toggle */}
+      <FinanceTourGuide
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+        onOpenRecordDrawer={() => setRecordDrawerOpen(true)}
+        onCloseRecordDrawer={() => setRecordDrawerOpen(false)}
+        isRecordDrawerOpen={recordDrawerOpen}
+        onSelectTab={setTab}
+      />
+      <FinanceGuideToggle enabled={tourEnabled} onToggle={handleToggleTour} />
     </>
   );
 }
