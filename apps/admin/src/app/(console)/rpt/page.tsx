@@ -23,6 +23,7 @@ import {
 import { Async, ActionResult } from "../../../components/common";
 import { useConsole } from "../../../components/Shell";
 import type { Inhabitant, Paged } from "../../../lib/types";
+import { RptTourGuide, RptGuideToggle } from "./RptTourGuide";
 
 type PropertyType = "residential" | "commercial" | "industrial" | "agricultural" | "special";
 
@@ -95,6 +96,31 @@ export default function RptPage() {
   const [declareDrawerOpen, setDeclareDrawerOpen] = React.useState(false);
   const [selectedProperty, setSelectedProperty] = React.useState<RptProperty | null>(null);
   const [isEditing, setIsEditing] = React.useState(false);
+
+  // Tour Guide State
+  const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cbms.rpt_guide_enabled");
+      if (stored === null) {
+        setTourEnabled(true);
+      } else {
+        setTourEnabled(stored === "true");
+      }
+    } catch {
+      setTourEnabled(true);
+    }
+  }, []);
+
+  const handleToggleTour = (next: boolean) => {
+    setTourEnabled(next);
+    try {
+      localStorage.setItem("cbms.rpt_guide_enabled", String(next));
+    } catch {
+      // ignore
+    }
+  };
 
   // Operations state
   const [busy, setBusy] = React.useState(false);
@@ -335,6 +361,7 @@ export default function RptPage() {
         actions={
           mayEncode ? (
             <Button
+              id="tour-rpt-declare-btn"
               type="button"
               variant="primary"
               onClick={openDeclareDrawer}
@@ -347,38 +374,41 @@ export default function RptPage() {
 
       <ActionResult error={error} success={ok} />
 
-      <StatGrid>
-        <StatCard
-          label="Declared Properties"
-          value={properties.length}
-          icon="🏡"
-          hint="Registered real estate parcels"
-        />
-        <StatCard
-          label="Total Assessed Value"
-          value={pesoAmount(totalAssessed)}
-          icon="📊"
-          tone="navy"
-          hint={`Market: ${pesoAmount(totalMarket)}`}
-        />
-        <StatCard
-          label="Fully Paid Dues (2026)"
-          value={fullyPaidCount}
-          icon="✅"
-          tone="green"
-          hint={dues.length ? `${Math.round((fullyPaidCount / dues.length) * 100)}% collection rate` : "0%"}
-        />
-        <StatCard
-          label="Delinquent Dues"
-          value={delinquentCount}
-          icon="⚠️"
-          tone="red"
-          hint="Requires treasurer notice"
-        />
-      </StatGrid>
+      <div id="tour-rpt-stats">
+        <StatGrid>
+          <StatCard
+            label="Declared Properties"
+            value={properties.length}
+            icon="🏡"
+            hint="Registered real estate parcels"
+          />
+          <StatCard
+            label="Total Assessed Value"
+            value={pesoAmount(totalAssessed)}
+            icon="📊"
+            tone="navy"
+            hint={`Market: ${pesoAmount(totalMarket)}`}
+          />
+          <StatCard
+            label="Fully Paid Dues (2026)"
+            value={fullyPaidCount}
+            icon="✅"
+            tone="green"
+            hint={dues.length ? `${Math.round((fullyPaidCount / dues.length) * 100)}% collection rate` : "0%"}
+          />
+          <StatCard
+            label="Delinquent Dues"
+            value={delinquentCount}
+            icon="⚠️"
+            tone="red"
+            hint="Requires treasurer notice"
+          />
+        </StatGrid>
+      </div>
 
       <Panel padded={false}>
-        <Toolbar>
+        <div id="tour-rpt-toolbar">
+          <Toolbar>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -422,98 +452,101 @@ export default function RptPage() {
             </select>
           </div>
         </Toolbar>
+        </div>
 
-        <Async loading={list.loading} error={list.error}>
-          <DataTable
-            columns={[
-              {
-                key: "taxDeclarationNo",
-                header: "Tax Dec No (TDN)",
-                render: (r: RptProperty) => (
-                  <div>
-                    <div style={{ fontWeight: 700, color: "var(--cbms-navy)" }}>{r.taxDeclarationNo}</div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--cbms-muted)" }}>
-                      Declared {date(r.createdAt)}
+        <div id="tour-rpt-table">
+          <Async loading={list.loading} error={list.error}>
+            <DataTable
+              columns={[
+                {
+                  key: "taxDeclarationNo",
+                  header: "Tax Dec No (TDN)",
+                  render: (r: RptProperty) => (
+                    <div>
+                      <div style={{ fontWeight: 700, color: "var(--cbms-navy)" }}>{r.taxDeclarationNo}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--cbms-muted)" }}>
+                        Declared {date(r.createdAt)}
+                      </div>
                     </div>
-                  </div>
-                ),
-              },
-              {
-                key: "propertyType",
-                header: "Classification",
-                render: (r: RptProperty) => (
-                  <Chip tone={r.propertyType === "residential" ? "navy" : r.propertyType === "commercial" ? "gold" : "gray"}>
-                    {titleize(r.propertyType)}
-                  </Chip>
-                ),
-              },
-              {
-                key: "ownerName",
-                header: "Owner & Location",
-                render: (r: RptProperty) => (
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{r.ownerName}</div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--cbms-muted)" }}>
-                      {r.purok ? `${r.purok} · ` : ""}{r.addressLine}
-                    </div>
-                  </div>
-                ),
-              },
-              {
-                key: "marketValue",
-                header: "Market Value",
-                align: "right",
-                render: (r: RptProperty) => pesoAmount(r.marketValue),
-              },
-              {
-                key: "assessedValue",
-                header: "Assessed Value",
-                align: "right",
-                render: (r: RptProperty) => (
-                  <strong style={{ color: "var(--cbms-navy)" }}>{pesoAmount(r.assessedValue)}</strong>
-                ),
-              },
-              {
-                key: "paymentStatus",
-                header: "2026 Tax Due",
-                render: (r: RptProperty) => {
-                  const due = dues.find((d) => d.rptPropertyId === r.id);
-                  const status = due?.paymentStatus || "unpaid";
-                  return (
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <StatusChip status={status === "fully_paid" ? "released" : "pending"} />
-                      {status === "fully_paid" ? (
-                        <span style={{ fontSize: "0.75rem", color: "var(--cbms-green)", fontWeight: 600 }}>
-                          {due?.orNumber || "Paid"}
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedProperty(r);
-                            setCollectingPayment(true);
-                          }}
-                          className="cbms-btn cbms-btn--sm cbms-btn--gold"
-                        >
-                          💰 Collect
-                        </button>
-                      )}
-                    </div>
-                  );
+                  ),
                 },
-              },
-            ]}
-            rows={filtered}
-            rowKey={(r: RptProperty) => r.id}
-            onRowClick={(r: RptProperty) => {
-              setSelectedProperty(r);
-              setIsEditing(false);
-              setCollectingPayment(false);
-            }}
-            empty="No declared properties found matching criteria."
-          />
-        </Async>
+                {
+                  key: "propertyType",
+                  header: "Classification",
+                  render: (r: RptProperty) => (
+                    <Chip tone={r.propertyType === "residential" ? "navy" : r.propertyType === "commercial" ? "gold" : "gray"}>
+                      {titleize(r.propertyType)}
+                    </Chip>
+                  ),
+                },
+                {
+                  key: "ownerName",
+                  header: "Owner & Location",
+                  render: (r: RptProperty) => (
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{r.ownerName}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--cbms-muted)" }}>
+                        {r.purok ? `${r.purok} · ` : ""}{r.addressLine}
+                      </div>
+                    </div>
+                  ),
+                },
+                {
+                  key: "marketValue",
+                  header: "Market Value",
+                  align: "right",
+                  render: (r: RptProperty) => pesoAmount(r.marketValue),
+                },
+                {
+                  key: "assessedValue",
+                  header: "Assessed Value",
+                  align: "right",
+                  render: (r: RptProperty) => (
+                    <strong style={{ color: "var(--cbms-navy)" }}>{pesoAmount(r.assessedValue)}</strong>
+                  ),
+                },
+                {
+                  key: "paymentStatus",
+                  header: "2026 Tax Due",
+                  render: (r: RptProperty) => {
+                    const due = dues.find((d) => d.rptPropertyId === r.id);
+                    const status = due?.paymentStatus || "unpaid";
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <StatusChip status={status === "fully_paid" ? "released" : "pending"} />
+                        {status === "fully_paid" ? (
+                          <span style={{ fontSize: "0.75rem", color: "var(--cbms-green)", fontWeight: 600 }}>
+                            {due?.orNumber || "Paid"}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedProperty(r);
+                              setCollectingPayment(true);
+                            }}
+                            className="cbms-btn cbms-btn--sm cbms-btn--gold"
+                          >
+                            💰 Collect
+                          </button>
+                        )}
+                      </div>
+                    );
+                  },
+                },
+              ]}
+              rows={filtered}
+              rowKey={(r: RptProperty) => r.id}
+              onRowClick={(r: RptProperty) => {
+                setSelectedProperty(r);
+                setIsEditing(false);
+                setCollectingPayment(false);
+              }}
+              empty="No declared properties found matching criteria."
+            />
+          </Async>
+        </div>
       </Panel>
 
       {/* ========================================================================= */}
@@ -539,6 +572,7 @@ export default function RptPage() {
           }}
         >
           <div
+            id="tour-rpt-details-drawer"
             style={{
               width: "100%",
               maxWidth: "580px",
@@ -998,6 +1032,7 @@ export default function RptPage() {
           onClick={() => setDeclareDrawerOpen(false)}
         >
           <div
+            id="tour-rpt-declare-drawer"
             style={{
               width: "100%",
               maxWidth: "560px",
@@ -1201,6 +1236,25 @@ export default function RptPage() {
           </div>
         </div>
       )}
+
+      {/* Interactive Tour Guide & Guide Toggle */}
+      <RptTourGuide
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+        onOpenDeclareDrawer={openDeclareDrawer}
+        onCloseDeclareDrawer={() => setDeclareDrawerOpen(false)}
+        isDeclareDrawerOpen={declareDrawerOpen}
+        onSelectSampleProperty={() => {
+          if (properties.length > 0) {
+            setSelectedProperty(properties[0]);
+            setIsEditing(false);
+            setCollectingPayment(false);
+          }
+        }}
+        onClosePropertyDrawer={() => setSelectedProperty(null)}
+        isPropertyDrawerOpen={!!selectedProperty}
+      />
+      <RptGuideToggle enabled={tourEnabled} onToggle={handleToggleTour} />
     </>
   );
 }

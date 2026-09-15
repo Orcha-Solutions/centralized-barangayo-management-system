@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ApiError, clearSession, getToken, login } from "@cbms/api-client";
 import { Alert, Button, Field, Spinner } from "@cbms/ui";
+import { LoginTourGuide, GuideToggle } from "./LoginTourGuide";
 
 const DEMO_PASSWORD = "Cbms#2026";
 
@@ -33,6 +34,25 @@ export default function LoginPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [booting, setBooting] = React.useState(false);
+
+  // First-time SaaS user tour guide state (enabled by default for first-timers, persisted in localStorage)
+  const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("cbms.login_guide_enabled");
+      if (stored === null || stored === "true") {
+        setTourEnabled(true);
+      }
+    }
+  }, []);
+
+  const handleToggleTour = (next: boolean) => {
+    setTourEnabled(next);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("cbms.login_guide_enabled", String(next));
+    }
+  };
 
   function pick(next: string) {
     setEmail(next);
@@ -136,7 +156,7 @@ export default function LoginPage() {
           <span style={{ color: "#9fb3dd", fontSize: 12 }}>Published under DILG Full Disclosure Policy</span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <Link
             href="/citizen"
             style={{
@@ -225,14 +245,14 @@ export default function LoginPage() {
               <div style={{ fontWeight: 700, fontSize: 16, color: "var(--cbms-navy)" }}>
                 Barangay Console
               </div>
-            <div style={{ fontSize: 11.5, color: "var(--cbms-muted)" }}>
-              Centralized Barangay Management System
+              <div style={{ fontSize: 11.5, color: "var(--cbms-muted)" }}>
+                Centralized Barangay Management System
+              </div>
             </div>
           </div>
-        </div>
-        <p style={{ fontSize: 12, color: "var(--cbms-muted)", margin: "10px 0 16px" }}>
-          Compliant with DILG-mandated LGUSS-BIMS (MC 2025-104). Select your official barangay role or BBI account below.
-        </p>
+          <p style={{ fontSize: 12, color: "var(--cbms-muted)", margin: "10px 0 16px" }}>
+            Compliant with DILG-mandated LGUSS-BIMS (MC 2025-104). Select your official barangay role or BBI account below.
+          </p>
 
         {error && <Alert tone="danger">{error}</Alert>}
         {notice && !error && <Alert tone="info">{notice}</Alert>}
@@ -293,21 +313,25 @@ export default function LoginPage() {
             </Field>
           )}
 
-          <Button type="submit" variant="primary" disabled={busy} style={{ width: "100%", marginTop: 8 }}>
-            {busy ? "Signing in…" : needsTotp ? "Verify & sign in" : "Sign in to Console"}
-          </Button>
+          <div id="tour-submit-btn" style={{ width: "100%", marginTop: 8 }}>
+            <Button type="submit" variant="primary" disabled={busy} style={{ width: "100%" }}>
+              {busy ? "Signing in…" : needsTotp ? "Verify & sign in" : "Sign in to Console"}
+            </Button>
+          </div>
         </form>
 
         {/* Quick Demo Role Picker */}
-        <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--cbms-line)" }}>
+        <div id="tour-role-selector" style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--cbms-line)" }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: "var(--cbms-navy)", marginBottom: 8 }}>
             🎭 Quick Role Selector (DILG MC 2025-104 §4.5.3):
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
             {DEMO_ACCOUNTS.map((acc) => {
               const active = email === acc.email;
+              const roleIdKey = acc.email.split("@")[0];
               return (
                 <button
+                  id={`tour-role-${roleIdKey}`}
                   key={acc.email}
                   type="button"
                   onClick={() => pick(acc.email)}
@@ -341,6 +365,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+
+    {/* Static Right-Side Chat-Style UI Toggle (similar to website live chat launchers) */}
+    <GuideToggle enabled={tourEnabled} onToggle={handleToggleTour} />
+
+    {/* Interactive SaaS Tour Guide with Mouse Pointer */}
+    <LoginTourGuide
+      enabled={tourEnabled}
+      onToggle={handleToggleTour}
+      onSelectRole={pick}
+      currentEmail={email}
+    />
   </div>
   );
 }

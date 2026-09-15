@@ -24,6 +24,7 @@ import { ActionResult, Async, DeadlineCell } from "../../../components/common";
 import { useConsole } from "../../../components/Shell";
 import { KP_STAGES } from "../../../lib/labels";
 import type { Bag, KpAtRisk, KpCase, Paged } from "../../../lib/types";
+import { KpTourGuide, KpGuideToggle } from "./KpTourGuide";
 
 export default function KpPage() {
   const router = useRouter();
@@ -32,6 +33,31 @@ export default function KpPage() {
   const [page, setPage] = React.useState(1);
   const [showNew, setShowNew] = React.useState(false);
   const pageSize = 25;
+
+  // Guide State (defaults to true on first visit, persisted in localStorage)
+  const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cbms.kp_guide_enabled");
+      if (stored === null) {
+        setTourEnabled(true);
+      } else {
+        setTourEnabled(stored === "true");
+      }
+    } catch {
+      setTourEnabled(true);
+    }
+  }, []);
+
+  const handleToggleTour = (next: boolean) => {
+    setTourEnabled(next);
+    try {
+      localStorage.setItem("cbms.kp_guide_enabled", String(next));
+    } catch {
+      // ignore
+    }
+  };
 
   const list = useApi<Paged<KpCase>>(`/kp/cases${qs({ stage, page, pageSize })}`);
   const deadlines = useApi<Bag<KpAtRisk> & { breached: number }>("/kp/deadlines");
@@ -84,7 +110,7 @@ export default function KpPage() {
         parity="KPISBH"
         actions={
           can("kp:encode") ? (
-            <Button variant="primary" onClick={() => setShowNew((v) => !v)}>
+            <Button id="tour-kp-new-btn" variant="primary" onClick={() => setShowNew((v) => !v)}>
               {showNew ? "Close" : "+ File a case"}
             </Button>
           ) : undefined
@@ -93,26 +119,28 @@ export default function KpPage() {
 
       <ActionResult error={error} success={ok} />
 
-      <StatGrid>
-        <StatCard label="Cases on this page" value={num(list.data?.total)} icon="⚖️" />
-        <StatCard label="Open (clock running)" value={num(open)} icon="⏱️" tone="gold" />
-        <StatCard
-          label="Within 5 days of deadline"
-          value={num(deadlines.data?.items?.length)}
-          icon="⚠️"
-          tone="gold"
-        />
-        <StatCard
-          label="Breached"
-          value={num(breached)}
-          icon="🚩"
-          tone={breached ? "red" : "green"}
-          hint="Past the statutory period"
-        />
-      </StatGrid>
+      <div id="tour-kp-stats">
+        <StatGrid>
+          <StatCard label="Cases on this page" value={num(list.data?.total)} icon="⚖️" />
+          <StatCard label="Open (clock running)" value={num(open)} icon="⏱️" tone="gold" />
+          <StatCard
+            label="Within 5 days of deadline"
+            value={num(deadlines.data?.items?.length)}
+            icon="⚠️"
+            tone="gold"
+          />
+          <StatCard
+            label="Breached"
+            value={num(breached)}
+            icon="🚩"
+            tone={breached ? "red" : "green"}
+            hint="Past the statutory period"
+          />
+        </StatGrid>
+      </div>
 
       {showNew && (
-        <>
+        <div id="tour-kp-encode-panel">
           <Panel title="File a new KP case">
             <form onSubmit={fileCase}>
               <div className="adm-form-grid">
@@ -158,98 +186,137 @@ export default function KpPage() {
             </form>
           </Panel>
           <div style={{ height: 16 }} />
-        </>
+        </div>
       )}
 
-      {breached > 0 && (
-        <Alert tone="danger">
-          {breached} case(s) have passed the RA 7160 §410 deadline. The Lupon must issue a
-          Certificate to File Action or document the delay.
-        </Alert>
-      )}
-
-      <Panel padded={false}>
-        <Toolbar>
-          <select
-            className="cbms-select"
-            value={stage}
-            onChange={(e) => {
-              setStage(e.target.value);
-              setPage(1);
+      <div id="tour-kp-statutory-alert">
+        {breached > 0 ? (
+          <Alert tone="danger">
+            {breached} case(s) have passed the RA 7160 §410 deadline. The Lupon must issue a
+            Certificate to File Action or document the delay.
+          </Alert>
+        ) : (
+          <div
+            style={{
+              padding: "10px 14px",
+              borderRadius: 6,
+              background: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              color: "#166534",
+              fontSize: "0.85rem",
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
             }}
           >
-            <option value="all">All stages</option>
-            {KP_STAGES.map((s) => (
-              <option key={s} value={s}>
-                {titleize(s)}
-              </option>
-            ))}
-          </select>
-          <div className="cbms-toolbar__spacer" />
-          <span className="adm-muted">{num(list.data?.total)} case(s)</span>
-        </Toolbar>
+            <span>⚖️</span>
+            <span>
+              <strong>Statutory Deadlines In Effect:</strong> All cases are currently within the 15-day mediation and conciliation windows under RA 7160 §410.
+            </span>
+          </div>
+        )}
+      </div>
 
-        <Async loading={list.loading} error={list.error}>
-          <DataTable
-            columns={[
-              {
-                key: "caseNo",
-                header: "Case",
-                render: (c) => (
-                  <>
-                    <div className="cbms-table__primary">
-                      {c.caseNo} {c.isConfidential && "🔒"}
-                    </div>
-                    <div className="cbms-table__muted">
-                      {c.isConfidential ? "[RESTRICTED]" : c.subject}
-                    </div>
-                  </>
-                ),
-              },
-              {
-                key: "parties",
-                header: "Parties",
-                render: (c) => (
-                  <span className="adm-chiprow">
-                    {(c.parties ?? []).map((p) => (
-                      <Chip key={p.id} tone={p.role === "complainant" ? "blue" : "gray"}>
-                        {p.inhabitant
-                          ? `${p.inhabitant.firstName} ${p.inhabitant.lastName}`
-                          : (p.nameOverride ?? "—")}
-                      </Chip>
-                    ))}
-                    {(c.parties ?? []).length === 0 && <span className="cbms-table__muted">—</span>}
-                  </span>
-                ),
-              },
-              { key: "stage", header: "Stage", render: (c) => <StatusChip status={c.stage} /> },
-              { key: "filedAt", header: "Filed", render: (c) => date(c.filedAt) },
-              {
-                key: "deadline",
-                header: "Statutory deadline",
-                render: (c) => (
-                  <DeadlineCell
-                    dueAt={c.deadline?.dueAt}
-                    daysRemaining={c.deadline?.daysRemaining}
-                    breached={c.deadline?.breached}
-                  />
-                ),
-              },
-              {
-                key: "hearings",
-                header: "Hearings",
-                align: "right",
-                render: (c) => num(c._count?.hearings ?? c.hearings?.length ?? 0),
-              },
-            ]}
-            rows={rows}
-            empty="No KP cases match this filter."
-            onRowClick={(c) => router.push(`/kp/${c.id}`)}
-          />
-        </Async>
+      <Panel padded={false}>
+        <div id="tour-kp-toolbar">
+          <Toolbar>
+            <select
+              className="cbms-select"
+              value={stage}
+              onChange={(e) => {
+                setStage(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">All stages</option>
+              {KP_STAGES.map((s) => (
+                <option key={s} value={s}>
+                  {titleize(s)}
+                </option>
+              ))}
+            </select>
+            <div className="cbms-toolbar__spacer" />
+            <span className="adm-muted">{num(list.data?.total)} case(s)</span>
+          </Toolbar>
+        </div>
 
-        <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
+        <div id="tour-kp-table">
+          <Async loading={list.loading} error={list.error}>
+            <DataTable
+              columns={[
+                {
+                  key: "caseNo",
+                  header: "Case",
+                  render: (c) => (
+                    <>
+                      <div className="cbms-table__primary">
+                        {c.caseNo} {c.isConfidential && "🔒"}
+                      </div>
+                      <div className="cbms-table__muted">
+                        {c.isConfidential ? "[RESTRICTED]" : c.subject}
+                      </div>
+                    </>
+                  ),
+                },
+                {
+                  key: "parties",
+                  header: "Parties",
+                  render: (c) => (
+                    <span className="adm-chiprow">
+                      {(c.parties ?? []).map((p) => (
+                        <Chip key={p.id} tone={p.role === "complainant" ? "blue" : "gray"}>
+                          {p.inhabitant
+                            ? `${p.inhabitant.firstName} ${p.inhabitant.lastName}`
+                            : (p.nameOverride ?? "—")}
+                        </Chip>
+                      ))}
+                      {(c.parties ?? []).length === 0 && <span className="cbms-table__muted">—</span>}
+                    </span>
+                  ),
+                },
+                { key: "stage", header: "Stage", render: (c) => <StatusChip status={c.stage} /> },
+                { key: "filedAt", header: "Filed", render: (c) => date(c.filedAt) },
+                {
+                  key: "deadline",
+                  header: "Statutory deadline",
+                  render: (c) => (
+                    <DeadlineCell
+                      dueAt={c.deadline?.dueAt}
+                      daysRemaining={c.deadline?.daysRemaining}
+                      breached={c.deadline?.breached}
+                    />
+                  ),
+                },
+                {
+                  key: "hearings",
+                  header: "Hearings",
+                  align: "right",
+                  render: (c) => num(c._count?.hearings ?? c.hearings?.length ?? 0),
+                },
+              ]}
+              rows={rows}
+              empty="No KP cases match this filter."
+              onRowClick={(c) => router.push(`/kp/${c.id}`)}
+            />
+          </Async>
+
+          <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
+        </div>
       </Panel>
+
+      {/* Interactive Tour Guide & Static Floating Toggle */}
+      <KpTourGuide
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+        onOpenNew={() => setShowNew(true)}
+        onCloseNew={() => setShowNew(false)}
+        isNewOpen={showNew}
+      />
+      <KpGuideToggle
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+      />
     </>
   );
 }

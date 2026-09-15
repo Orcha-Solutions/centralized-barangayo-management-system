@@ -24,6 +24,7 @@ import {
 import { ActionResult, Async } from "../../../../components/common";
 import { useConsole } from "../../../../components/Shell";
 import type { Bag, DisbursementBatch } from "../../../../lib/types";
+import { DisbursementsTourGuide, DisbursementsGuideToggle } from "./DisbursementsTourGuide";
 
 export default function BatchesPage() {
   const router = useRouter();
@@ -37,6 +38,31 @@ export default function BatchesPage() {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [ok, setOk] = React.useState<string | null>(null);
+
+  // Tour Guide State
+  const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cbms.disbursements_guide_enabled");
+      if (stored === null) {
+        setTourEnabled(true);
+      } else {
+        setTourEnabled(stored === "true");
+      }
+    } catch {
+      setTourEnabled(true);
+    }
+  }, []);
+
+  const handleToggleTour = (next: boolean) => {
+    setTourEnabled(next);
+    try {
+      localStorage.setItem("cbms.disbursements_guide_enabled", String(next));
+    } catch {
+      // ignore
+    }
+  };
 
   const list = useApi<Bag<DisbursementBatch>>("/wallet/batches");
   const all = list.data?.items ?? [];
@@ -135,7 +161,7 @@ export default function BatchesPage() {
         exclusive
         actions={
           can("wallet:encode") ? (
-            <Link href="/wallet/batches/new" className="cbms-btn cbms-btn--primary">
+            <Link id="tour-disbursements-prepare-btn" href="/wallet/batches/new" className="cbms-btn cbms-btn--primary">
               + Prepare batch
             </Link>
           ) : undefined
@@ -144,26 +170,29 @@ export default function BatchesPage() {
 
       <ActionResult error={error} success={ok} />
 
-      <StatGrid>
-        <StatCard label="Total Batches" value={num(all.length)} icon="💸" />
-        <StatCard
-          label="For Approval"
-          value={num(forApproval.length)}
-          icon="✍️"
-          tone={forApproval.length ? "gold" : "navy"}
-          hint="Awaiting punong barangay review"
-        />
-        <StatCard label="Completed Batches" value={num(completed.length)} icon="✅" tone="green" />
-        <StatCard
-          label="Value Disbursed"
-          value={peso(totalDisbursed.toString())}
-          icon="🏦"
-          hint="Completed payouts via e-wallet"
-        />
-      </StatGrid>
+      <div id="tour-disbursements-stats">
+        <StatGrid>
+          <StatCard label="Total Batches" value={num(all.length)} icon="💸" />
+          <StatCard
+            label="For Approval"
+            value={num(forApproval.length)}
+            icon="✍️"
+            tone={forApproval.length ? "gold" : "navy"}
+            hint="Awaiting punong barangay review"
+          />
+          <StatCard label="Completed Batches" value={num(completed.length)} icon="✅" tone="green" />
+          <StatCard
+            label="Value Disbursed"
+            value={peso(totalDisbursed.toString())}
+            icon="🏦"
+            hint="Completed payouts via e-wallet"
+          />
+        </StatGrid>
+      </div>
 
       <Panel padded={false}>
-        <Toolbar>
+        <div id="tour-disbursements-toolbar">
+          <Toolbar>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -214,48 +243,51 @@ export default function BatchesPage() {
           <div className="cbms-toolbar__spacer" />
           <span className="adm-muted">{num(rows.length)} batch(es)</span>
         </Toolbar>
+        </div>
 
-        <Async loading={list.loading} error={list.error}>
-          <DataTable
-            columns={[
-              {
-                key: "batchNo",
-                header: "Batch",
-                render: (b) => (
-                  <div>
-                    <div style={{ fontWeight: 700, color: "var(--cbms-navy)" }}>{b.batchNo}</div>
-                    <div style={{ fontSize: "0.8rem", color: "var(--cbms-muted)" }}>{b.title}</div>
-                  </div>
-                ),
-              },
-              { key: "kind", header: "Kind", render: (b) => <StatusChip status={b.kind} /> },
-              { key: "fund", header: "Fund", render: (b) => <Chip tone="navy">{titleize(b.fund)}</Chip> },
-              {
-                key: "itemCount",
-                header: "Payees",
-                align: "right",
-                render: (b) => <strong>{num(b.itemCount || b._count?.items || 0)}</strong>,
-              },
-              {
-                key: "totalCentavos",
-                header: "Total",
-                align: "right",
-                render: (b) => <strong style={{ color: "var(--cbms-navy)" }}>{peso(b.totalCentavos)}</strong>,
-              },
-              { key: "status", header: "Status", render: (b) => <StatusChip status={b.status} /> },
-              { key: "createdAt", header: "Prepared", render: (b) => dateTime(b.createdAt) },
-              {
-                key: "executedAt",
-                header: "Executed",
-                render: (b) => (b.executedAt ? dateTime(b.executedAt) : "—"),
-              },
-            ]}
-            rows={rows}
-            rowKey={(b) => b.id}
-            empty="No disbursement batches found."
-            onRowClick={(b) => setSelectedBatch(b)}
-          />
-        </Async>
+        <div id="tour-disbursements-table">
+          <Async loading={list.loading} error={list.error}>
+            <DataTable
+              columns={[
+                {
+                  key: "batchNo",
+                  header: "Batch",
+                  render: (b) => (
+                    <div>
+                      <div style={{ fontWeight: 700, color: "var(--cbms-navy)" }}>{b.batchNo}</div>
+                      <div style={{ fontSize: "0.8rem", color: "var(--cbms-muted)" }}>{b.title}</div>
+                    </div>
+                  ),
+                },
+                { key: "kind", header: "Kind", render: (b) => <StatusChip status={b.kind} /> },
+                { key: "fund", header: "Fund", render: (b) => <Chip tone="navy">{titleize(b.fund)}</Chip> },
+                {
+                  key: "itemCount",
+                  header: "Payees",
+                  align: "right",
+                  render: (b) => <strong>{num(b.itemCount || b._count?.items || 0)}</strong>,
+                },
+                {
+                  key: "totalCentavos",
+                  header: "Total",
+                  align: "right",
+                  render: (b) => <strong style={{ color: "var(--cbms-navy)" }}>{peso(b.totalCentavos)}</strong>,
+                },
+                { key: "status", header: "Status", render: (b) => <StatusChip status={b.status} /> },
+                { key: "createdAt", header: "Prepared", render: (b) => dateTime(b.createdAt) },
+                {
+                  key: "executedAt",
+                  header: "Executed",
+                  render: (b) => (b.executedAt ? dateTime(b.executedAt) : "—"),
+                },
+              ]}
+              rows={rows}
+              rowKey={(b) => b.id}
+              empty="No disbursement batches found."
+              onRowClick={(b) => setSelectedBatch(b)}
+            />
+          </Async>
+        </div>
       </Panel>
 
       {/* ========================================================================= */}
@@ -277,6 +309,7 @@ export default function BatchesPage() {
           onClick={() => setSelectedBatch(null)}
         >
           <div
+            id="tour-disbursements-drawer"
             style={{
               width: "100%",
               maxWidth: "600px",
@@ -542,6 +575,20 @@ export default function BatchesPage() {
           </div>
         </div>
       )}
+
+      {/* Interactive Tour Guide & Guide Toggle */}
+      <DisbursementsTourGuide
+        enabled={tourEnabled}
+        onToggle={handleToggleTour}
+        onSelectSampleBatch={() => {
+          if (all.length > 0) {
+            setSelectedBatch(all[0]);
+          }
+        }}
+        onCloseBatchDrawer={() => setSelectedBatch(null)}
+        isBatchDrawerOpen={!!selectedBatch}
+      />
+      <DisbursementsGuideToggle enabled={tourEnabled} onToggle={handleToggleTour} />
     </>
   );
 }
