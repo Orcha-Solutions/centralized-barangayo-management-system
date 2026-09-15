@@ -18,7 +18,8 @@ export interface ResidentSession {
  * already clears the session and bounces to /login on a 401, so we only need
  * to catch the "never signed in" case here.
  */
-export function useResidentSession(): ResidentSession {
+export function useResidentSession(opts?: { requireAuth?: boolean }): ResidentSession {
+  const requireAuth = opts?.requireAuth ?? true;
   const router = useRouter();
   const [state, setState] = React.useState<ResidentSession>({
     ready: false,
@@ -27,13 +28,18 @@ export function useResidentSession(): ResidentSession {
   });
 
   React.useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
+    const token = getToken();
+    if (!token) {
+      if (requireAuth) {
+        router.replace("/login");
+        return;
+      }
+      setState({ ready: true, user: null, inhabitantId: null });
       return;
     }
     const user = getStoredUser();
     setState({ ready: true, user, inhabitantId: user?.inhabitantId ?? null });
-  }, [router]);
+  }, [router, requireAuth]);
 
   return state;
 }

@@ -136,8 +136,25 @@ export default function LoginPage() {
           <span style={{ color: "#9fb3dd", fontSize: 12 }}>Published under DILG Full Disclosure Policy</span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 12.5 }}>Citizen Portal:</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Link
+            href="/citizen"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              background: "rgba(37, 99, 235, 0.25)",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 12.5,
+              padding: "6px 12px",
+              borderRadius: 8,
+              textDecoration: "none",
+              border: "1px solid rgba(147, 197, 253, 0.4)",
+            }}
+          >
+            👥 Inhabitant Hub
+          </Link>
           <Link
             href="/"
             style={{

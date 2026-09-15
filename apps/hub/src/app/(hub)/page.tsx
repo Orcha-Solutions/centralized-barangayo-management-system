@@ -48,13 +48,26 @@ export default function DashboardPage() {
 
   if (!data) return <Alert tone="warn">No scorecard data available.</Alert>;
 
-  const t = data.totals;
+  const t = data.totals || {
+    population: 0,
+    registeredWallets: 0,
+    merchants: 0,
+    transactions30d: 0,
+    certificates: 0,
+  };
+
+  const targets = data.targets || {
+    registrationRate: "≥ 80%",
+    activeRate: "≥ 50%",
+    merchants: "25 per barangay",
+    cashPointCoverage: "100%",
+  };
 
   return (
     <>
       <PageHead
         title="City adoption dashboard"
-        subtitle={`Roll-up across ${num(data.barangayCount)} barangays. E-wallet adoption and service delivery are CBMS-exclusive measures — they have no LGUSS-BIMS equivalent.`}
+        subtitle={`Roll-up across ${num(data.barangayCount || 0)} barangays. E-wallet adoption and service delivery are CBMS-exclusive measures — they have no LGUSS-BIMS equivalent.`}
         breadcrumb="Hub"
         exclusive
         actions={
@@ -65,21 +78,21 @@ export default function DashboardPage() {
       />
 
       <StatGrid>
-        <StatCard label="Barangays onboarded" value={num(data.barangayCount)} icon="🏘" />
+        <StatCard label="Barangays onboarded" value={num(data.barangayCount || 0)} icon="🏘" />
         <StatCard label="Population covered" value={num(t.population)} icon="👥" />
         <StatCard
           label="Registered wallets"
           value={num(t.registeredWallets)}
           icon="💳"
           tone="gold"
-          hint={`Target: ${data.targets.registrationRate}`}
+          hint={`Target: ${targets.registrationRate}`}
         />
         <StatCard
           label="Merchants accepting"
           value={num(t.merchants)}
           icon="🏪"
           tone="green"
-          hint={`Target: ${data.targets.merchants}`}
+          hint={`Target: ${targets.merchants}`}
         />
         <StatCard label="Transactions (30d)" value={num(t.transactions30d)} icon="⇄" />
         <StatCard label="Certificates issued" value={num(t.certificates)} icon="🧾" />
@@ -89,8 +102,8 @@ export default function DashboardPage() {
         <Alert tone="info">
           Transaction volume in the last 30 days across all barangays:{" "}
           <strong>{peso(volume30d.toString())}</strong>. Adoption targets —{" "}
-          {data.targets.registrationRate} registered, {data.targets.activeRate} active,{" "}
-          {data.targets.merchants}.
+          {targets.registrationRate} registered, {targets.activeRate} active,{" "}
+          {targets.merchants}.
         </Alert>
       </div>
 

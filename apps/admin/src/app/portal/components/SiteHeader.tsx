@@ -38,6 +38,19 @@ export function SiteHeader({
           </div>
           <span className="site-masthead__spacer" />
           <nav className="site-nav" aria-label="Primary">
+            <Link
+              className="site-nav__link"
+              href="/citizen"
+              style={{
+                fontWeight: 700,
+                color: "var(--site-navy)",
+                background: "rgba(37, 99, 235, 0.08)",
+                borderRadius: 6,
+                padding: "6px 12px",
+              }}
+            >
+              Inhabitant Hub 👥
+            </Link>
             <Link className="site-nav__link" href="/#directory">
               Barangay directory
             </Link>
