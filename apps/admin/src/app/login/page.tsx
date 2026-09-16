@@ -18,6 +18,7 @@ const DEMO_ACCOUNTS: Array<{ email: string; label: string; roleTag: string; icon
   { email: "bdrrmc@barangka.gov.ph", label: "BDRRMC Officer", roleTag: "Disaster & Emergency", icon: "🌀" },
   { email: "tanod@barangka.gov.ph", label: "Barangay Tanod", roleTag: "Public Safety & Blotter", icon: "🚨" },
   { email: "bhw@barangka.gov.ph", label: "BHW Lead", roleTag: "Maternal & Child Health", icon: "💉" },
+  { email: "it@barangka.gov.ph", label: "IT Officer", roleTag: "Logs & CRUD Security", icon: "💻" },
   { email: "lgu@marikina.gov.ph", label: "LGU Admin", roleTag: "City Oversight", icon: "🏙️" },
 ];
 

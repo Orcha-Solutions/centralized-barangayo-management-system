@@ -235,6 +235,23 @@ export const ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     permission("finance", "view"),
     permission("wallet", "view"),
   ],
+
+  IT_OFFICER: [
+    // Monitors all operational transaction logs & audit trails
+    permission("admin", "view"),
+    permission("reports", "view"),
+    permission("inhabitants", "view"),
+    permission("issuance", "view"),
+    permission("finance", "view"),
+    permission("property", "view"),
+    permission("disaster", "view"),
+    permission("blotter", "view"),
+    permission("kp", "view"),
+    permission("concerns", "view"),
+    permission("wallet", "view"),
+    // Security & administrative configuration: disable/enable user CRUD operations
+    permission("admin", "configure"),
+  ],
 };
 
 /** Roles that must pass MFA. */
@@ -251,6 +268,7 @@ export const STAFF_ROLES = [
   "BHW",
   "TANOD",
   "DILG_VIEWER",
+  "IT_OFFICER",
 ] as const;
 
 export const ROLE_SCOPE: Record<string, string> = {
@@ -268,6 +286,7 @@ export const ROLE_SCOPE: Record<string, string> = {
   RESIDENT: "self",
   AGENT_MERCHANT: "barangay",
   DILG_VIEWER: "region",
+  IT_OFFICER: "barangay",
 };
 
 export const ROLE_LABELS: Record<string, string> = {
@@ -285,4 +304,5 @@ export const ROLE_LABELS: Record<string, string> = {
   RESIDENT: "Resident",
   AGENT_MERCHANT: "Agent / Merchant",
   DILG_VIEWER: "DILG Viewer",
+  IT_OFFICER: "IT Officer / Systems Auditor",
 };

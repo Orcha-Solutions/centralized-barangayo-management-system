@@ -18,6 +18,7 @@ export const ROLE_LABELS: Record<string, string> = {
   RESIDENT: "Resident",
   AGENT_MERCHANT: "Agent / Merchant",
   DILG_VIEWER: "DILG Viewer",
+  IT_OFFICER: "IT Officer / Systems Auditor",
 };
 
 export function roleLabel(roles: string[] | undefined): string {

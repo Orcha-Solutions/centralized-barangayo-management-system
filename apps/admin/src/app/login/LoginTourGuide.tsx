@@ -81,6 +81,7 @@ export const TOUR_STEPS: TourStep[] = [
       "VAW Desk: Confidential intake of VAWC cases (RA 9262)",
       "Lupon Tagapamayapa: KP mediation, summons, and hearing schedules",
       "Barangay Treasurer: E-wallet subsidy batches and financial ledgers",
+      "IT Officer: Audit logs, transaction trails, and user CRUD access controls",
     ],
     tip: "You can click any role in the grid to preview that office's specialized view.",
   },
