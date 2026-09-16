@@ -381,6 +381,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                         { email: "tanod@barangka.gov.ph", label: "Barangay Tanod", icon: "🚨" },
                         { email: "bdrrmc@barangka.gov.ph", label: "BDRRMC (Disaster)", icon: "🌀" },
                         { email: "secretary@barangka.gov.ph", label: "Barangay Secretary", icon: "📝" },
+                        { email: "it@barangka.gov.ph", label: "IT Officer / Systems Auditor", icon: "💻" },
                         { email: "bhw@barangka.gov.ph", label: "BHW Lead", icon: "💉" },
                         { email: "kapitan@barangka.gov.ph", label: "Punong Barangay (All)", icon: "🏛️" },
                       ].map((r) => {

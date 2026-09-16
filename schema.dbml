@@ -87,6 +87,7 @@ enum RoleKey {
   RESIDENT
   AGENT_MERCHANT
   DILG_VIEWER
+  IT_OFFICER
 }
 
 enum ScopeLevel {
