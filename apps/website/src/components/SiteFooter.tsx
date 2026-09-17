@@ -76,6 +76,9 @@ export function SiteFooter({
                 </>
               )}
               <li>
+                <Link href="/guide">Operations Manual & SOPs</Link>
+              </li>
+              <li>
                 <Link href="/">All barangays</Link>
               </li>
             </ul>

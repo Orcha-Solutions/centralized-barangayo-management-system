@@ -120,6 +120,12 @@ export default async function LandingPage() {
                   never names, addresses or photos.
                 </p>
               </div>
+              <a href="/guide" className="site-card" style={{ textDecoration: "none", color: "inherit" }}>
+                <p className="site-card__name">📖 Operations Manual & SOPs</p>
+                <p className="site-card__city" style={{ marginTop: 8 }}>
+                  Review official SOPs, DILG MC 2025-104 standards, Katarungang Pambarangay 15-day mediation timelines, and citizen charters.
+                </p>
+              </a>
             </div>
           </div>
         </section>

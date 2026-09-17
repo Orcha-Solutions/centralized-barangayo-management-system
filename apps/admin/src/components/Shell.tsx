@@ -228,6 +228,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <Chip tone={mode === "companion" ? "navy" : "gold"}>Mode: {mode}</Chip>
              <div className="cbms-topbar__spacer" />
 
+            {/* Quick Docs Link */}
+            <Link
+              href="/docs"
+              className="cbms-btn cbms-btn--sm"
+              title="Operations Manual & Documentation"
+              style={{ padding: "0 0.6rem", display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "12px", textDecoration: "none" }}
+            >
+              <span>📖</span>
+              <span className="adm-topbar-docs-text">Manual</span>
+            </Link>
+
             {/* Dark Mode Toggle */}
             <button
               type="button"
@@ -425,6 +436,27 @@ export function Shell({ children }: { children: React.ReactNode }) {
                       })}
                     </div>
                   </div>
+
+                  <Link
+                    href="/docs"
+                    onClick={() => setUserMenuOpen(false)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "0.375rem",
+                      fontSize: "0.875rem",
+                      color: "var(--color-text, #1e293b)",
+                      textDecoration: "none",
+                      backgroundColor: "transparent",
+                      transition: "background-color 0.2s"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f1f5f9)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  >
+                    📖 Operations Manual
+                  </Link>
 
                   <Link
                     href="/profile"

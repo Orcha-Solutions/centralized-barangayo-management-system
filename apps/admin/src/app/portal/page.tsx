@@ -95,6 +95,12 @@ export default function PortalLandingPage() {
                   barangay tanod and watch resolution progress.
                 </p>
               </div>
+              <a href="/portal/guide" className="site-card" style={{ textDecoration: "none", color: "inherit" }}>
+                <p className="site-card__name">📖 Operations Manual</p>
+                <p className="site-card__city" style={{ marginTop: 8 }}>
+                  Review statutory SOPs, DILG MC 2025-104 standards, Katarungang Pambarangay conciliation clocks, and public service charters.
+                </p>
+              </a>
             </div>
           </div>
         </section>

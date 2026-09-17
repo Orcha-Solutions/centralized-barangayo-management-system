@@ -54,6 +54,9 @@ export function SiteHeader({
             <Link className="site-nav__link" href="/#directory">
               Barangay directory
             </Link>
+            <Link className="site-nav__link" href="/portal/guide">
+              Operations Manual 📖
+            </Link>
             <Link className="site-nav__link site-nav__link--cta" href="/portal/verify">
               Verify a certificate
             </Link>
