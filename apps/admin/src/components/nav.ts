@@ -107,6 +107,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/reports", label: "Reports", icon: "📊", perm: "reports:view" },
       { href: "/audit", label: "Audit Log", icon: "🧾", perm: "admin:view" },
       { href: "/tickets", label: "Tickets", icon: "🎫", perm: "admin:view" },
+      { href: "/docs", label: "Operations Manual", icon: "📖" },
     ],
   },
   {

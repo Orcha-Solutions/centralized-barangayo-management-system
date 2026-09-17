@@ -57,6 +57,9 @@ export function SiteFooter({
                 <Link href="/#directory">Barangay Directory</Link>
               </li>
               <li>
+                <Link href="/portal/guide">Operations Manual & SOPs</Link>
+              </li>
+              <li>
                 <Link href="/login">Staff Console Portal</Link>
               </li>
               <li>
