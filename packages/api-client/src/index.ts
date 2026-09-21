@@ -84,6 +84,7 @@ import {
   STATIC_PROPERTIES,
   STATIC_MATERIALS,
   STATIC_CONCERNS,
+  STATIC_TICKETS,
 } from "./staticData";
 
 export * from "./staticData";
@@ -180,6 +181,10 @@ function getStore(): Record<string, any[]> {
       ...STATIC_CONCERNS,
       ...(initializedStore.Concern || []).filter(x => !STATIC_CONCERNS.some(s => s.id === x.id))
     ];
+    initializedStore.Ticket = [
+      ...STATIC_TICKETS,
+      ...(initializedStore.Ticket || []).filter(x => !STATIC_TICKETS.some(s => s.id === x.id))
+    ];
 
     _inMemoryStore = initializedStore;
   }
@@ -200,7 +205,8 @@ function saveStore(store: Record<string, any[]>) {
       Concern: store.Concern,
       Appointment: store.Appointment,
       Property: store.Property,
-      Material: store.Material
+      Material: store.Material,
+      Ticket: store.Ticket,
     };
     window.localStorage.setItem("cbms.mutations", JSON.stringify(delta));
   } catch {}
@@ -1894,6 +1900,16 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       }
       return { success: true };
     }
+
+    const ticketDelMatch = cleanPath.match(/\/tickets\/([^\/]+)/);
+    if (ticketDelMatch) {
+      const id = ticketDelMatch[1];
+      if (store.Ticket) {
+        store.Ticket = store.Ticket.filter(x => x.id !== id);
+        saveStore(store);
+      }
+      return { success: true };
+    }
   }
 
   // Mutations / PATCH requests
@@ -1931,6 +1947,28 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
         saveStore(store);
       }
       return c || {};
+    }
+
+    // Support Tickets PATCH
+    const ticketPatchMatch = cleanPath.match(/\/tickets\/([^/]+)/);
+    if (ticketPatchMatch) {
+      const id = ticketPatchMatch[1];
+      if (!store.Ticket) store.Ticket = [...STATIC_TICKETS];
+      const t = store.Ticket.find((x: any) => x.id === id);
+      if (t) {
+        Object.assign(t, body);
+        if (body.response || body.comment) {
+          if (!t.responses) t.responses = [];
+          t.responses.push({
+            id: "tr-" + Math.random().toString(36).substring(2, 9),
+            body: body.response || body.comment,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        t.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return t || {};
     }
 
     // Properties PATCH
@@ -2428,6 +2466,27 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       return newConcern;
     }
 
+    if (cleanPath === "/tickets") {
+      const tickets = store.Ticket || [...STATIC_TICKETS];
+      const nextNum = (tickets.length + 1).toString().padStart(3, "0");
+      const newTicket = {
+        id: `tkt-${nextNum}`,
+        barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+        subject: body.subject || "Untitled Support Ticket",
+        body: body.body || "",
+        category: body.category || "technical",
+        priority: body.priority || "normal",
+        status: body.status || "open",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        responses: [],
+      };
+      if (!store.Ticket) store.Ticket = [...STATIC_TICKETS];
+      store.Ticket.unshift(newTicket);
+      saveStore(store);
+      return newTicket;
+    }
+
     if (cleanPath === "/sos") {
       const newAlert = {
         id: "sos-" + Math.random().toString(36).substring(2, 9),
@@ -2722,6 +2781,66 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
 
     return {
       items: store.User
+    };
+  }
+
+  // IT Support & Incident Tickets: /tickets/:id endpoint
+  const ticketSingleMatch = cleanPath.match(/^\/tickets\/([^/]+)$/);
+  if (ticketSingleMatch && method === "GET") {
+    const id = ticketSingleMatch[1];
+    const tickets = store.Ticket || STATIC_TICKETS;
+    const t = tickets.find((x: any) => x.id === id);
+    if (!t) return null;
+    return t;
+  }
+
+  // IT Support & Incident Tickets: /tickets list endpoint
+  if (cleanPath === "/tickets" && method === "GET") {
+    const queryString = path.includes("?") ? path.split("?")[1] : "";
+    const queryParams = new URLSearchParams(queryString);
+    const q = (queryParams.get("q") || "").toLowerCase().trim();
+    const status = queryParams.get("status") || "all";
+    const category = queryParams.get("category") || "all";
+    const priority = queryParams.get("priority") || "all";
+    const page = parseInt(queryParams.get("page") || "1", 10);
+    const pageSize = parseInt(queryParams.get("pageSize") || "25", 10);
+
+    let list = (store.Ticket || STATIC_TICKETS) as any[];
+
+    if (status !== "all") {
+      list = list.filter((t) => t.status === status);
+    }
+    if (category !== "all") {
+      list = list.filter((t) => t.category === category);
+    }
+    if (priority !== "all") {
+      list = list.filter((t) => t.priority === priority);
+    }
+    if (q) {
+      list = list.filter(
+        (t) =>
+          t.subject?.toLowerCase().includes(q) ||
+          t.body?.toLowerCase().includes(q) ||
+          t.category?.toLowerCase().includes(q) ||
+          t.priority?.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort by createdAt descending
+    list = [...list].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    const total = list.length;
+    const start = (page - 1) * pageSize;
+    const items = list.slice(start, start + pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize) || 1,
     };
   }
 

@@ -144,3 +144,4 @@ vite.config.ts.timestamp-*
 
 # Turborepo cache
 .turbo/
+CBMS_Stakeholder_Presentation.pptx

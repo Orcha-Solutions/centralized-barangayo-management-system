@@ -125,9 +125,9 @@ export default function TicketsPage() {
   return (
     <>
       <PageHead
-        title="Support Tickets"
-        subtitle="The platform help desk: issues raised by barangay staff against the system itself — access problems, defects, data corrections and training requests."
-        breadcrumb="Admin"
+        title="IT Support & Incident Tickets"
+        subtitle="IT Help Desk: Technical issues, system defects, account access requests, hardware faults, and data correction requests raised by barangay staff against the system."
+        breadcrumb="Application Management"
         actions={
           mayEncode ? (
             <Button variant="primary" onClick={() => setShowNew((v) => !v)}>

@@ -140,6 +140,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const isBdcUser =
     user?.roles?.includes("BDC_OFFICER") ||
     user?.email?.toLowerCase().includes("bdc");
+  const isItUser =
+    user?.roles?.includes("IT_OFFICER") ||
+    user?.email?.toLowerCase().includes("it");
 
   return (
     <ConsoleContext.Provider value={value}>
@@ -160,6 +163,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
               }
               const items = group.items.filter((i) => {
                 // Strict functionary role rules:
+                if (isItUser) {
+                  // IT Officer strictly sees only Application Management: Dashboard, Audit Logs, User CRUD Control, Dashboard Feature Toggles, IT Support Tickets, and Operations Manual
+                  return (
+                    i.href === "/dashboard" ||
+                    (group.label === "Application Management" &&
+                      (i.href === "/audit" ||
+                       i.href === "/audit/users" ||
+                       i.href === "/audit/features" ||
+                       i.href === "/tickets" ||
+                       i.href === "/docs"))
+                  );
+                }
                 if (isVawUser) {
                   // VAW Desk Officer strictly sees only Dashboard and Blotter (NO KP cases, NO GAD, NO institutions)
                   return i.href === "/dashboard" || i.href === "/blotter";

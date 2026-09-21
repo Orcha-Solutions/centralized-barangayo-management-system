@@ -102,6 +102,17 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Application Management",
+    roles: ["IT_OFFICER", "SYSTEM_ADMIN"],
+    items: [
+      { href: "/audit", label: "Audit Logs", icon: "🧾", perm: "admin:view" },
+      { href: "/audit/users", label: "User CRUD Control", icon: "🛡️", perm: "admin:view" },
+      { href: "/audit/features", label: "Dashboard Feature Toggles", icon: "🎛️", perm: "admin:view" },
+      { href: "/tickets", label: "IT Support Tickets", icon: "🎫", perm: "admin:view" },
+      { href: "/docs", label: "Operations Manual", icon: "📖" },
+    ],
+  },
+  {
     label: "Admin",
     items: [
       { href: "/reports", label: "Reports", icon: "📊", perm: "reports:view" },
