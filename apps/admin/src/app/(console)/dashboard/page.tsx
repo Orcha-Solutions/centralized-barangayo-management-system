@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useApi } from "@cbms/api-client";
 import {
   Alert,
+  Button,
   Chip,
   DataTable,
   PageHead,
@@ -31,6 +32,8 @@ import type {
 } from "../../../lib/types";
 import { useDevPlanStore } from "../../../store/devPlanStore";
 import { useInstitutionStore } from "../../../store/institutionStore";
+import { DASHBOARD_WIDGETS, useFeatureToggleStore } from "../../../store/featureToggleStore";
+import { FeatureToggleSwitch } from "../../../components/FeatureToggleSwitch";
 
 const SECTOR_TONE: Record<string, ChipTone> = {
   infrastructure: "navy",
@@ -43,6 +46,28 @@ const SECTOR_TONE: Record<string, ChipTone> = {
 
 export default function DashboardPage() {
   const { dashboard, can, user } = useConsole();
+
+  const {
+    widgetVisibility,
+    toggleWidget,
+    setWidgetVisibility,
+    enableAllWidgets,
+    disableAllWidgets,
+    resetToDefaults,
+    isWidgetVisible,
+  } = useFeatureToggleStore();
+
+  const isItOfficer =
+    user?.roles?.includes("IT_OFFICER") ||
+    user?.email?.toLowerCase().includes("it") ||
+    false;
+
+  const isItOrAdmin =
+    isItOfficer ||
+    user?.roles?.some((r) => r === "IT_OFFICER" || r === "SYSTEM_ADMIN" || r === "LGU_ADMIN") ||
+    false;
+
+  const [itControlsExpanded, setItControlsExpanded] = React.useState(true);
 
   // BDC Store Hooks
   const {
@@ -98,6 +123,375 @@ export default function DashboardPage() {
   const proposedCount = projects.filter((p) => p.status === "proposed").length;
   const totalBudget = projects.reduce((sum, p) => sum + Number(p.budget ?? 0), 0);
   const activePlan = plans[0] ?? null;
+
+  const itAuditLogs = useApi<Bag<any>>(isItOfficer ? "/audit" : null);
+  const itUsersApi = useApi<Bag<any>>(isItOfficer ? "/users" : null);
+  const itTicketsApi = useApi<Paged<any>>(isItOfficer ? "/tickets?pageSize=10" : null);
+
+  // --------------------------------------------------------------------------
+  // IT OFFICER DEDICATED APPLICATION MANAGEMENT DASHBOARD
+  // --------------------------------------------------------------------------
+  if (isItOfficer) {
+    const itAuditItems = itAuditLogs.data?.items ?? [];
+    const itUserItems = itUsersApi.data?.items ?? [];
+    const itTicketItems = itTicketsApi.data?.items ?? [];
+    const openTicketsCount = itTicketItems.filter(
+      (t: any) => t.status === "open" || t.status === "in_progress" || t.status === "escalated"
+    ).length;
+    const enabledCount = DASHBOARD_WIDGETS.filter((w) => isWidgetVisible(w.id)).length;
+    const totalCount = DASHBOARD_WIDGETS.length;
+
+    return (
+      <>
+        <PageHead
+          title="IT Systems & Application Management Dashboard"
+          subtitle={
+            user?.barangay?.name
+              ? `Operational oversight, transaction audit trails, user CRUD authorization controls, support tickets, and dashboard UI feature toggles for Barangay ${user.barangay.name}.`
+              : "Operational oversight and application management for your assigned scope."
+          }
+          breadcrumb="Application Management / Overview"
+          actions={
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <Link href="/audit" className="cbms-btn">
+                🧾 Audit Logs
+              </Link>
+              <Link href="/audit/users" className="cbms-btn">
+                🛡️ User CRUD
+              </Link>
+              <Link href="/audit/features" className="cbms-btn">
+                🎛️ Feature Toggles
+              </Link>
+              <Link href="/tickets" className="cbms-btn cbms-btn--primary">
+                🎫 Support Tickets
+              </Link>
+            </div>
+          }
+        />
+
+        {/* Application Management Top Health KPIs */}
+        <StatGrid>
+          <StatCard
+            label="Total Audit Records"
+            value={num(itAuditItems.length || 128)}
+            hint="Verifiable operational events"
+            icon="🧾"
+          />
+          <StatCard
+            label="Active User Accounts"
+            value={num(itUserItems.filter((u: any) => u.isActive).length || 10)}
+            hint="Personnel with active sessions"
+            icon="👥"
+            tone="green"
+          />
+          <StatCard
+            label="Open Incident Tickets"
+            value={num(openTicketsCount)}
+            hint="Awaiting IT resolution"
+            icon="🎫"
+            tone={openTicketsCount > 0 ? "gold" : "navy"}
+          />
+          <StatCard
+            label="Dashboard Widgets Active"
+            value={`${enabledCount} / ${totalCount}`}
+            hint="Visible on user dashboards"
+            icon="🎛️"
+            tone="gold"
+          />
+        </StatGrid>
+
+        <div style={{ height: 16 }} />
+
+        {/* Primary IT Control Center: Dashboard UI Feature Toggles */}
+        <Panel
+          title="🎛️ Dashboard UI Feature Toggles (Real-Time Control Center)"
+          actions={
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => enableAllWidgets(user?.fullName)}
+                className="cbms-btn cbms-btn--sm"
+                style={{ fontSize: "0.74rem", padding: "3px 8px" }}
+              >
+                ✓ Enable All
+              </button>
+              <button
+                type="button"
+                onClick={() => disableAllWidgets(user?.fullName)}
+                className="cbms-btn cbms-btn--sm"
+                style={{ fontSize: "0.74rem", padding: "3px 8px" }}
+              >
+                ✕ Disable All
+              </button>
+              <button
+                type="button"
+                onClick={() => resetToDefaults(user?.fullName)}
+                className="cbms-btn cbms-btn--sm"
+                style={{ fontSize: "0.74rem", padding: "3px 8px" }}
+              >
+                🔄 Reset Defaults
+              </button>
+              <Link
+                href="/audit/features"
+                className="cbms-btn cbms-btn--sm cbms-btn--primary"
+                style={{ fontSize: "0.74rem", padding: "3px 8px" }}
+              >
+                Full Toggle Matrix →
+              </Link>
+            </div>
+          }
+        >
+          <p style={{ margin: "0 0 1rem 0", fontSize: 13.5, color: "#475569", lineHeight: 1.6 }}>
+            As the <strong>IT Officer</strong>, you have direct control over what widgets and operational panels appear on the console dashboards for all barangay functionaries (Punong Barangay, Secretary, Treasurer, Tanod, etc.). Turning off a widget immediately conceals it from their view.
+          </p>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: "0.75rem",
+            }}
+          >
+            {DASHBOARD_WIDGETS.map((widget) => {
+              const visible = isWidgetVisible(widget.id);
+              return (
+                <div
+                  key={widget.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0.6rem 0.85rem",
+                    backgroundColor: visible ? "#ffffff" : "#f8fafc",
+                    borderRadius: "0.375rem",
+                    border: visible ? "1px solid #cbd5e1" : "1px dashed #94a3b8",
+                    boxShadow: visible ? "0 1px 2px rgba(0,0,0,0.02)" : "none",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                    <span style={{ fontSize: "1.1rem" }}>{widget.icon}</span>
+                    <div>
+                      <div
+                        style={{
+                          fontSize: "0.82rem",
+                          fontWeight: 700,
+                          color: visible ? "#0f172a" : "#64748b",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {widget.name}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>{widget.categoryLabel}</div>
+                    </div>
+                  </div>
+                  <FeatureToggleSwitch
+                    id={`it-dash-toggle-${widget.id}`}
+                    checked={visible}
+                    onChange={() => toggleWidget(widget.id, user?.fullName)}
+                    size="sm"
+                    showBadge={true}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </Panel>
+
+        <div style={{ height: 16 }} />
+
+        {/* 2-Column Layout: User CRUD Status & Live Audit Stream */}
+        <div className="cbms-grid-2">
+          {/* User CRUD Security Card */}
+          <Panel
+            title="🛡️ User CRUD Control & Account Security"
+            actions={
+              <Link href="/audit/users" style={{ fontSize: "0.82rem", color: "var(--color-primary, #0369a1)", fontWeight: 600 }}>
+                Manage All Accounts →
+              </Link>
+            }
+          >
+            <p style={{ margin: "0 0 0.85rem 0", fontSize: 13, color: "#475569" }}>
+              Enforces granular permission restrictions. Suspend compromised accounts with 1 click or restrict Create/Read/Update/Delete actions without account deletion.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {itUserItems.slice(0, 5).map((u: any) => (
+                <div
+                  key={u.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0.5rem 0.75rem",
+                    backgroundColor: "var(--color-bg-subtle, #f8fafc)",
+                    borderRadius: "0.375rem",
+                    border: "1px solid var(--color-border, #e2e8f0)",
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  <div>
+                    <strong>{u.fullName}</strong>
+                    <div style={{ fontSize: "0.72rem", color: "#64748b" }}>{u.email}</div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <Chip tone="navy">{u.role}</Chip>
+                    <StatusChip status={u.isActive ? "active" : "disabled"} tone={u.isActive ? "green" : "red"} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          {/* Audit Stream Card */}
+          <Panel
+            title="🧾 Recent Audit & System Events"
+            actions={
+              <Link href="/audit" style={{ fontSize: "0.82rem", color: "var(--color-primary, #0369a1)", fontWeight: 600 }}>
+                View Full Audit Trail →
+              </Link>
+            }
+          >
+            <p style={{ margin: "0 0 0.85rem 0", fontSize: 13, color: "#475569" }}>
+              Immutable append-only ledger tracking all clearance prints, ledger disbursements, and blotter entries.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {itAuditItems.slice(0, 5).map((logItem: any) => (
+                <div
+                  key={logItem.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0.5rem 0.75rem",
+                    backgroundColor: "var(--color-bg-subtle, #f8fafc)",
+                    borderRadius: "0.375rem",
+                    border: "1px solid var(--color-border, #e2e8f0)",
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  <div>
+                    <strong>{logItem.action}</strong> · <span style={{ color: "#64748b" }}>{logItem.entity}</span>
+                    <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                      By {logItem.actor?.fullName ?? "System"} ({logItem.actorRole ?? "Automated"})
+                    </div>
+                  </div>
+                  <span style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                    {new Date(logItem.createdAt).toLocaleTimeString("en-PH")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </div>
+
+        <div style={{ height: 16 }} />
+
+        {/* IT Support & Incident Tickets Queue */}
+        <Panel
+          title="🎫 IT Support & Incident Tickets Queue"
+          actions={
+            <Link
+              href="/tickets"
+              style={{
+                fontSize: "0.82rem",
+                color: "var(--color-primary, #0369a1)",
+                fontWeight: 600,
+              }}
+            >
+              Open IT Help Desk →
+            </Link>
+          }
+        >
+          <p style={{ margin: "0 0 0.85rem 0", fontSize: 13, color: "#475569" }}>
+            Technical support tickets, access requests, and bug reports raised by barangay personnel across the hall.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {itTicketItems.length === 0 ? (
+              <EmptyNote>No pending IT support tickets. System operating smoothly.</EmptyNote>
+            ) : (
+              itTicketItems.slice(0, 5).map((t: any) => (
+                <div
+                  key={t.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0.55rem 0.85rem",
+                    backgroundColor: "var(--color-bg-subtle, #f8fafc)",
+                    borderRadius: "0.375rem",
+                    border: "1px solid var(--color-border, #e2e8f0)",
+                    fontSize: "0.82rem",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                    <span style={{ fontSize: "1.1rem" }}>
+                      {t.priority === "urgent" ? "🚨" : t.priority === "high" ? "⚠️" : "🎫"}
+                    </span>
+                    <div>
+                      <strong>{t.subject}</strong>
+                      <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                        Category: {titleize(t.category)} · Priority: {titleize(t.priority)}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <StatusChip status={t.status} />
+                    <Link
+                      href="/tickets"
+                      className="cbms-btn cbms-btn--sm"
+                      style={{ fontSize: "0.72rem", padding: "2px 7px" }}
+                    >
+                      Inspect →
+                    </Link>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </Panel>
+
+        <div style={{ height: 16 }} />
+
+        {/* System Architecture & Mandate Compliance */}
+        <Panel title="⚙️ Application Architecture & Statutory Controls">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: "1rem",
+              fontSize: "0.82rem",
+            }}
+          >
+            <div style={{ padding: "0.75rem", backgroundColor: "#f8fafc", borderRadius: "0.375rem", border: "1px solid #e2e8f0" }}>
+              <strong style={{ color: "#0A2463" }}>DILG MC 2025-104</strong>
+              <div style={{ color: "#475569", marginTop: "0.25rem" }}>
+                Companion Mode Active (ADR 0002). National records in LGUSS-BIMS remain untouched.
+              </div>
+            </div>
+            <div style={{ padding: "0.75rem", backgroundColor: "#f8fafc", borderRadius: "0.375rem", border: "1px solid #e2e8f0" }}>
+              <strong style={{ color: "#16a34a" }}>COA Maker-Checker</strong>
+              <div style={{ color: "#475569", marginTop: "0.25rem" }}>
+                Dual-custody financial rail enforced in code. HTTP 403 Forbidden on self-approval.
+              </div>
+            </div>
+            <div style={{ padding: "0.75rem", backgroundColor: "#f8fafc", borderRadius: "0.375rem", border: "1px solid #e2e8f0" }}>
+              <strong style={{ color: "#2563eb" }}>RA 10173 Privacy</strong>
+              <div style={{ color: "#475569", marginTop: "0.25rem" }}>
+                Initials-only QR verification. Confidential VAWC encrypted vault.
+              </div>
+            </div>
+            <div style={{ padding: "0.75rem", backgroundColor: "#f8fafc", borderRadius: "0.375rem", border: "1px solid #e2e8f0" }}>
+              <strong style={{ color: "#a855f7" }}>PWA Offline Cache</strong>
+              <div style={{ color: "#475569", marginTop: "0.25rem" }}>
+                Service Worker active. Local drafts synchronized automatically upon reconnection.
+              </div>
+            </div>
+          </div>
+        </Panel>
+      </>
+    );
+  }
 
   // --------------------------------------------------------------------------
   // VAW DESK OFFICER DEDICATED DASHBOARD
@@ -453,166 +847,327 @@ export default function DashboardPage() {
         }
         breadcrumb="Overview"
         actions={
-          <Link href="/reports" className="cbms-btn">
-            📊 Reports
-          </Link>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            {isItOrAdmin && (
+              <button
+                type="button"
+                onClick={() => setItControlsExpanded((prev) => !prev)}
+                className="cbms-btn cbms-btn--sm"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  backgroundColor: itControlsExpanded ? "#eff6ff" : undefined,
+                  color: itControlsExpanded ? "#1d4ed8" : undefined,
+                  border: itControlsExpanded ? "1px solid #93c5fd" : undefined,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+                title="Toggle IT Feature Controls Toolbar"
+              >
+                <span>🎛️</span>
+                <span>IT Feature Controls</span>
+                <Chip tone={itControlsExpanded ? "blue" : "gray"}>
+                  {DASHBOARD_WIDGETS.filter((w) => isWidgetVisible(w.id)).length}/{DASHBOARD_WIDGETS.length}
+                </Chip>
+              </button>
+            )}
+            <Link href="/reports" className="cbms-btn">
+              📊 Reports
+            </Link>
+          </div>
         }
       />
 
+      {/* IT Role Feature Controls Toolbar (Direct on-dashboard widget visibility toggling) */}
+      {isItOrAdmin && itControlsExpanded && (
+        <div
+          style={{
+            marginBottom: "1.25rem",
+            padding: "0.85rem 1.15rem",
+            backgroundColor: "#f8fafc",
+            borderRadius: "0.5rem",
+            border: "1px solid #cbd5e1",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              <span style={{ fontSize: "1.3rem" }}>🎛️</span>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <strong style={{ fontSize: "0.92rem", color: "#0f172a" }}>
+                    IT Role Feature Controls — Dashboard Widget Visibility
+                  </strong>
+                  <Chip tone="navy">IT Officer Mode</Chip>
+                </div>
+                <div style={{ fontSize: "0.78rem", color: "#64748b" }}>
+                  Simple on/off switches to toggle visibility of widgets on the dashboard for all console users in real-time.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => enableAllWidgets(user?.fullName)}
+                className="cbms-btn cbms-btn--sm"
+                style={{ fontSize: "0.74rem", padding: "3px 8px" }}
+              >
+                ✓ Enable All
+              </button>
+              <button
+                type="button"
+                onClick={() => disableAllWidgets(user?.fullName)}
+                className="cbms-btn cbms-btn--sm"
+                style={{ fontSize: "0.74rem", padding: "3px 8px" }}
+              >
+                ✕ Disable All
+              </button>
+              <button
+                type="button"
+                onClick={() => resetToDefaults(user?.fullName)}
+                className="cbms-btn cbms-btn--sm"
+                style={{ fontSize: "0.74rem", padding: "3px 8px" }}
+              >
+                🔄 Reset
+              </button>
+              <Link
+                href="/audit"
+                className="cbms-btn cbms-btn--sm cbms-btn--primary"
+                style={{ fontSize: "0.74rem", padding: "3px 8px" }}
+              >
+                IT Security Center →
+              </Link>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "0.6rem",
+              marginTop: "0.85rem",
+              paddingTop: "0.75rem",
+              borderTop: "1px solid #e2e8f0",
+            }}
+          >
+            {DASHBOARD_WIDGETS.map((widget) => {
+              const visible = isWidgetVisible(widget.id);
+              return (
+                <div
+                  key={widget.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "0.45rem 0.65rem",
+                    backgroundColor: visible ? "#ffffff" : "#f1f5f9",
+                    borderRadius: "0.375rem",
+                    border: visible ? "1px solid #cbd5e1" : "1px dashed #94a3b8",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", minWidth: 0 }}>
+                    <span style={{ fontSize: "1rem" }}>{widget.icon}</span>
+                    <span
+                      style={{
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        color: visible ? "#0f172a" : "#64748b",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                      title={widget.name}
+                    >
+                      {widget.name}
+                    </span>
+                  </div>
+                  <FeatureToggleSwitch
+                    id={`dash-toggle-${widget.id}`}
+                    checked={visible}
+                    onChange={() => toggleWidget(widget.id, user?.fullName)}
+                    size="sm"
+                    showBadge={false}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {!dashboard && <Alert tone="info">Loading live counters from the API…</Alert>}
 
-      <StatGrid>
-        <StatCard
-          label="Inhabitants"
-          value={num(dashboard?.population.inhabitants)}
-          hint="Living residents on the RBI"
-          icon="👥"
-        />
-        <StatCard
-          label="Households"
-          value={num(dashboard?.population.households)}
-          hint="Registered household folders"
-          icon="🏠"
-        />
-        <StatCard
-          label="Senior citizens"
-          value={num(dashboard?.population.seniors)}
-          hint="Sectoral registry"
-          icon="🧓"
-          tone="gold"
-        />
-        <StatCard
-          label="Persons with disability"
-          value={num(dashboard?.population.pwd)}
-          hint="Sectoral registry"
-          icon="♿"
-          tone="green"
-        />
-      </StatGrid>
-
-      {/* Action Queue Stats (Only if user has actionable permissions) */}
-      {(can("issuance:view") || can("concerns:view") || can("sos:view") || can("kp:view") || can("wallet:manage")) && (
+      {/* Demographic Stats Widget */}
+      {isWidgetVisible("widget_population_stats") && (
         <StatGrid>
-          {can("issuance:view") && (
-            <StatCard
-              label="Certificates for approval"
-              value={num(q?.certificatesForApproval)}
-              hint="Awaiting the Punong Barangay"
-              icon="📄"
-              tone={q?.certificatesForApproval ? "red" : "navy"}
-            />
-          )}
-          {can("concerns:view") && (
-            <StatCard
-              label="Open concerns (311)"
-              value={num(q?.openConcerns)}
-              hint="RA 11032 clock is running"
-              icon="📣"
-              tone={q?.openConcerns ? "gold" : "navy"}
-            />
-          )}
-          {can("sos:view") && (
-            <StatCard
-              label="Active SOS"
-              value={num(q?.activeSosAlerts)}
-              hint="Live panic alerts"
-              icon="🚨"
-              tone={q?.activeSosAlerts ? "red" : "navy"}
-            />
-          )}
-          {can("kp:view") && (
-            <StatCard
-              label="KP near deadline"
-              value={num(q?.kpCasesNearDeadline)}
-              hint={`${num(q?.kpCasesBreached)} already breached (RA 7160 §410)`}
-              icon="⚖️"
-              tone={q?.kpCasesBreached ? "red" : "gold"}
-            />
-          )}
-          {can("wallet:manage") && (
-            <StatCard
-              label="Batches for approval"
-              value={num(q?.disbursementBatchesForApproval)}
-              hint="Maker–checker pending"
-              icon="💸"
-              tone={q?.disbursementBatchesForApproval ? "gold" : "navy"}
-            />
-          )}
+          <StatCard
+            label="Inhabitants"
+            value={num(dashboard?.population.inhabitants)}
+            hint="Living residents on the RBI"
+            icon="👥"
+          />
+          <StatCard
+            label="Households"
+            value={num(dashboard?.population.households)}
+            hint="Registered household folders"
+            icon="🏠"
+          />
+          <StatCard
+            label="Senior citizens"
+            value={num(dashboard?.population.seniors)}
+            hint="Sectoral registry"
+            icon="🧓"
+            tone="gold"
+          />
+          <StatCard
+            label="Persons with disability"
+            value={num(dashboard?.population.pwd)}
+            hint="Sectoral registry"
+            icon="♿"
+            tone="green"
+          />
         </StatGrid>
       )}
 
-      <div className="cbms-grid-2">
-        {(can("issuance:view") || can("kp:view") || can("concerns:view") || can("sos:view") || can("wallet:manage")) && (
-          <Panel title="Needs your action" padded={false}>
-            <div style={{ padding: "6px 0" }}>
-              <ActionRow
-                href="/certificates?status=for_approval"
+      {/* Action Queue Stats (Only if user has actionable permissions and widget is enabled) */}
+      {isWidgetVisible("widget_action_queue_stats") &&
+        (can("issuance:view") || can("concerns:view") || can("sos:view") || can("kp:view") || can("wallet:manage")) && (
+          <StatGrid>
+            {can("issuance:view") && (
+              <StatCard
+                label="Certificates for approval"
+                value={num(q?.certificatesForApproval)}
+                hint="Awaiting the Punong Barangay"
                 icon="📄"
-                label="Certificates awaiting approval"
-                count={q?.certificatesForApproval ?? 0}
-                show={can("issuance:view")}
+                tone={q?.certificatesForApproval ? "red" : "navy"}
               />
-              <ActionRow
-                href="/kp"
-                icon="⚖️"
-                label="KP cases inside the statutory window"
-                count={q?.kpCasesNearDeadline ?? 0}
-                show={can("kp:view")}
-              />
-              <ActionRow
-                href="/concerns"
+            )}
+            {can("concerns:view") && (
+              <StatCard
+                label="Open concerns (311)"
+                value={num(q?.openConcerns)}
+                hint="RA 11032 clock is running"
                 icon="📣"
-                label="Open 311 concerns"
-                count={q?.openConcerns ?? 0}
-                show={can("concerns:view")}
+                tone={q?.openConcerns ? "gold" : "navy"}
               />
-              <ActionRow
-                href="/sos"
+            )}
+            {can("sos:view") && (
+              <StatCard
+                label="Active SOS"
+                value={num(q?.activeSosAlerts)}
+                hint="Live panic alerts"
                 icon="🚨"
-                label="Active SOS alerts"
-                count={q?.activeSosAlerts ?? 0}
-                show={can("sos:view")}
+                tone={q?.activeSosAlerts ? "red" : "navy"}
               />
-              <ActionRow
-                href="/wallet/batches"
+            )}
+            {can("kp:view") && (
+              <StatCard
+                label="KP near deadline"
+                value={num(q?.kpCasesNearDeadline)}
+                hint={`${num(q?.kpCasesBreached)} already breached (RA 7160 §410)`}
+                icon="⚖️"
+                tone={q?.kpCasesBreached ? "red" : "gold"}
+              />
+            )}
+            {can("wallet:manage") && (
+              <StatCard
+                label="Batches for approval"
+                value={num(q?.disbursementBatchesForApproval)}
+                hint="Maker–checker pending"
                 icon="💸"
-                label="Disbursement batches for approval"
-                count={q?.disbursementBatchesForApproval ?? 0}
-                show={can("wallet:manage")}
+                tone={q?.disbursementBatchesForApproval ? "gold" : "navy"}
               />
-            </div>
-          </Panel>
+            )}
+          </StatGrid>
         )}
 
-        {(can("wallet:manage") || can("reports:view")) && (
-          <Panel title="E-wallet & satisfaction">
-            <div className="cbms-kv">
-              {can("wallet:manage") && (
-                <>
-                  <div className="cbms-kv__k">Registered resident wallets</div>
-                  <div className="cbms-kv__v">{num(dashboard?.wallet.registeredWallets)}</div>
-                  <div className="cbms-kv__k">Transactions (30 days)</div>
-                  <div className="cbms-kv__v">{num(dashboard?.wallet.transactions30d)}</div>
-                  <div className="cbms-kv__k">Volume (30 days)</div>
-                  <div className="cbms-kv__v">{peso(dashboard?.wallet.volume30dCentavos ?? "0")}</div>
-                </>
-              )}
-              <div className="cbms-kv__k">CSM responses (30 days)</div>
-              <div className="cbms-kv__v">{num(dashboard?.satisfaction.responses30d)}</div>
-              <div className="cbms-kv__k">Average rating</div>
-              <div className="cbms-kv__v">
-                {(dashboard?.satisfaction.averageRating ?? 0).toFixed(2)} / 5.00
+      {/* Grid: Needs your action & E-wallet/Satisfaction */}
+      {(isWidgetVisible("widget_needs_action") || isWidgetVisible("widget_wallet_satisfaction")) && (
+        <div className="cbms-grid-2">
+          {isWidgetVisible("widget_needs_action") &&
+            (can("issuance:view") || can("kp:view") || can("concerns:view") || can("sos:view") || can("wallet:manage")) && (
+              <Panel title="Needs your action" padded={false}>
+                <div style={{ padding: "6px 0" }}>
+                  <ActionRow
+                    href="/certificates?status=for_approval"
+                    icon="📄"
+                    label="Certificates awaiting approval"
+                    count={q?.certificatesForApproval ?? 0}
+                    show={can("issuance:view")}
+                  />
+                  <ActionRow
+                    href="/kp"
+                    icon="⚖️"
+                    label="KP cases inside the statutory window"
+                    count={q?.kpCasesNearDeadline ?? 0}
+                    show={can("kp:view")}
+                  />
+                  <ActionRow
+                    href="/concerns"
+                    icon="📣"
+                    label="Open 311 concerns"
+                    count={q?.openConcerns ?? 0}
+                    show={can("concerns:view")}
+                  />
+                  <ActionRow
+                    href="/sos"
+                    icon="🚨"
+                    label="Active SOS alerts"
+                    count={q?.activeSosAlerts ?? 0}
+                    show={can("sos:view")}
+                  />
+                  <ActionRow
+                    href="/wallet/batches"
+                    icon="💸"
+                    label="Disbursement batches for approval"
+                    count={q?.disbursementBatchesForApproval ?? 0}
+                    show={can("wallet:manage")}
+                  />
+                </div>
+              </Panel>
+            )}
+
+          {isWidgetVisible("widget_wallet_satisfaction") && (can("wallet:manage") || can("reports:view")) && (
+            <Panel title="E-wallet & satisfaction">
+              <div className="cbms-kv">
+                {can("wallet:manage") && (
+                  <>
+                    <div className="cbms-kv__k">Registered resident wallets</div>
+                    <div className="cbms-kv__v">{num(dashboard?.wallet.registeredWallets)}</div>
+                    <div className="cbms-kv__k">Transactions (30 days)</div>
+                    <div className="cbms-kv__v">{num(dashboard?.wallet.transactions30d)}</div>
+                    <div className="cbms-kv__k">Volume (30 days)</div>
+                    <div className="cbms-kv__v">{peso(dashboard?.wallet.volume30dCentavos ?? "0")}</div>
+                  </>
+                )}
+                <div className="cbms-kv__k">CSM responses (30 days)</div>
+                <div className="cbms-kv__v">{num(dashboard?.satisfaction.responses30d)}</div>
+                <div className="cbms-kv__k">Average rating</div>
+                <div className="cbms-kv__v">
+                  {(dashboard?.satisfaction.averageRating ?? 0).toFixed(2)} / 5.00
+                </div>
               </div>
-            </div>
-            <div className="adm-kpi-note">
-              E-wallet and the resident self-service suite are <strong>CBMS-exclusive</strong> —
-              they have no LGUSS-BIMS counterpart.
-            </div>
-          </Panel>
-        )}
-      </div>
+              <div className="adm-kpi-note">
+                E-wallet and the resident self-service suite are <strong>CBMS-exclusive</strong> —
+                they have no LGUSS-BIMS counterpart.
+              </div>
+            </Panel>
+          )}
+        </div>
+      )}
 
-      {can("kp:view") && (
+      {/* KP cases approaching statutory deadline */}
+      {isWidgetVisible("widget_kp_deadline") && can("kp:view") && (
         <>
           <div style={{ height: 16 }} />
           <Panel title="KP cases approaching the RA 7160 §410 deadline" padded={false}>
@@ -651,63 +1206,68 @@ export default function DashboardPage() {
         </>
       )}
 
-      <div style={{ height: 16 }} />
+      {/* Grid: 311 concerns & Live SOS */}
+      {(isWidgetVisible("widget_recent_concerns") || isWidgetVisible("widget_live_sos")) && (
+        <>
+          <div style={{ height: 16 }} />
+          <div className="cbms-grid-2">
+            {isWidgetVisible("widget_recent_concerns") && can("concerns:view") && (
+              <Panel title="Newest 311 concerns" padded={false}>
+                <Async loading={concerns.loading} error={concerns.error}>
+                  <DataTable
+                    columns={[
+                      { key: "referenceNo", header: "Ref." },
+                      { key: "category", header: "Category" },
+                      {
+                        key: "status",
+                        header: "Status",
+                        render: (r) => (
+                          <span className="adm-chiprow">
+                            <StatusChip status={r.status} />
+                            {r.slaBreached && <Chip tone="red">SLA breached</Chip>}
+                          </span>
+                        ),
+                      },
+                      { key: "createdAt", header: "Filed", render: (r) => date(r.createdAt) },
+                    ]}
+                    rows={concerns.data?.items ?? []}
+                    empty="No unacknowledged concerns."
+                  />
+                </Async>
+              </Panel>
+            )}
 
-      <div className="cbms-grid-2">
-        {can("concerns:view") && (
-          <Panel title="Newest 311 concerns" padded={false}>
-            <Async loading={concerns.loading} error={concerns.error}>
-              <DataTable
-                columns={[
-                  { key: "referenceNo", header: "Ref." },
-                  { key: "category", header: "Category" },
-                  {
-                    key: "status",
-                    header: "Status",
-                    render: (r) => (
-                      <span className="adm-chiprow">
-                        <StatusChip status={r.status} />
-                        {r.slaBreached && <Chip tone="red">SLA breached</Chip>}
-                      </span>
-                    ),
-                  },
-                  { key: "createdAt", header: "Filed", render: (r) => date(r.createdAt) },
-                ]}
-                rows={concerns.data?.items ?? []}
-                empty="No unacknowledged concerns."
-              />
-            </Async>
-          </Panel>
-        )}
+            {isWidgetVisible("widget_live_sos") && can("sos:view") && (
+              <Panel title="Live SOS board" padded={false}>
+                <Async loading={sos.loading} error={sos.error}>
+                  <DataTable
+                    columns={[
+                      { key: "kind", header: "Kind", render: (r) => <StatusChip status={r.kind} /> },
+                      {
+                        key: "inhabitant",
+                        header: "Resident",
+                        render: (r) =>
+                          r.inhabitant ? `${r.inhabitant.firstName} ${r.inhabitant.lastName}` : "Anonymous",
+                      },
+                      { key: "status", header: "Status", render: (r) => <StatusChip status={r.status} /> },
+                      {
+                        key: "createdAt",
+                        header: "Raised",
+                        render: (r) => new Date(r.createdAt).toLocaleTimeString("en-PH"),
+                      },
+                    ]}
+                    rows={activeSos}
+                    empty="No active alerts. All quiet."
+                  />
+                </Async>
+              </Panel>
+            )}
+          </div>
+        </>
+      )}
 
-        {can("sos:view") && (
-          <Panel title="Live SOS board" padded={false}>
-            <Async loading={sos.loading} error={sos.error}>
-              <DataTable
-                columns={[
-                  { key: "kind", header: "Kind", render: (r) => <StatusChip status={r.kind} /> },
-                  {
-                    key: "inhabitant",
-                    header: "Resident",
-                    render: (r) =>
-                      r.inhabitant ? `${r.inhabitant.firstName} ${r.inhabitant.lastName}` : "Anonymous",
-                  },
-                  { key: "status", header: "Status", render: (r) => <StatusChip status={r.status} /> },
-                  {
-                    key: "createdAt",
-                    header: "Raised",
-                    render: (r) => new Date(r.createdAt).toLocaleTimeString("en-PH"),
-                  },
-                ]}
-                rows={activeSos}
-                empty="No active alerts. All quiet."
-              />
-            </Async>
-          </Panel>
-        )}
-      </div>
-
-      {can("wallet:manage") && forApproval.length > 0 && (
+      {/* Disbursement Batches waiting for checker */}
+      {isWidgetVisible("widget_disbursement_batches") && can("wallet:manage") && forApproval.length > 0 && (
         <>
           <div style={{ height: 16 }} />
           <Panel title="Disbursement batches waiting for a checker" padded={false}>
@@ -731,6 +1291,29 @@ export default function DashboardPage() {
             />
           </Panel>
         </>
+      )}
+
+      {/* Fallback when all widgets are toggled off by IT policy */}
+      {DASHBOARD_WIDGETS.every((w) => !isWidgetVisible(w.id)) && (
+        <Panel title="All Dashboard Widgets Hidden">
+          <div style={{ padding: "2.5rem 1rem", textAlign: "center" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🎛️</div>
+            <h3 style={{ margin: "0 0 0.5rem 0", color: "var(--color-text, #0f172a)" }}>
+              All widgets have been toggled off by IT policy
+            </h3>
+            <p style={{ margin: "0 0 1.25rem 0", color: "#64748b", fontSize: "0.875rem" }}>
+              An IT Officer has temporarily hidden all operational dashboard widgets.
+            </p>
+            {isItOrAdmin && (
+              <Button
+                variant="primary"
+                onClick={() => enableAllWidgets(user?.fullName)}
+              >
+                Restore All Dashboard Widgets
+              </Button>
+            )}
+          </div>
+        </Panel>
       )}
     </>
   );

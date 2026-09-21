@@ -3532,3 +3532,239 @@ export const STATIC_CONCERNS: StaticConcern[] = [
     updatedAt: "2026-09-11T08:00:00.000Z",
   },
 ];
+
+// ---------------------------------------------------------------------------
+// IT Support & Incident Tickets Mock Data
+// ---------------------------------------------------------------------------
+
+export interface StaticTicketResponse {
+  id: string;
+  body: string;
+  createdAt: string;
+  authorName?: string;
+  isInternal?: boolean;
+}
+
+export interface StaticTicket {
+  id: string;
+  barangayId?: string;
+  subject: string;
+  body: string;
+  category: "technical" | "access" | "data_correction" | "training" | "other";
+  status: "open" | "in_progress" | "escalated" | "resolved" | "closed";
+  priority: "urgent" | "high" | "normal" | "low";
+  createdAt: string;
+  updatedAt?: string;
+  responses?: StaticTicketResponse[];
+}
+
+export const STATIC_TICKETS: StaticTicket[] = [
+  {
+    id: "tkt-001",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Thermal POS receipt printer offline at Treasury Window 1",
+    body: "During issuance of Community Tax Certificate (Cedula) and Barangay Clearance, the thermal POS printer (Epson TM-T82) stopped communicating with the cashier workstation. Red error LED is flashing. Cashier currently writing manual receipts.",
+    category: "technical",
+    priority: "urgent",
+    status: "in_progress",
+    createdAt: "2026-09-21T08:15:00.000Z",
+    updatedAt: "2026-09-21T08:25:00.000Z",
+    responses: [
+      {
+        id: "tr-001",
+        body: "IT Helpdesk (M. Alcantara): Investigating workstation spooler service. Restarted Windows Print Spooler and reseated high-speed USB cable. Running test 80mm feed calibration.",
+        createdAt: "2026-09-21T08:25:00.000Z",
+      },
+    ],
+  },
+  {
+    id: "tkt-002",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Account security lockout after failed password retries — Elena Rivera (VAW Desk)",
+    body: "Elena Rivera (VAWC Desk Officer) was locked out of her console session after 5 consecutive password attempts on the newly deployed intake terminal in Room 204. Requesting security lock clearance and password reset.",
+    category: "access",
+    priority: "high",
+    status: "open",
+    createdAt: "2026-09-21T08:45:00.000Z",
+    updatedAt: "2026-09-21T08:45:00.000Z",
+    responses: [],
+  },
+  {
+    id: "tkt-003",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Typographical correction for PhilSys ID on Inhabitant record inh-004",
+    body: "Barangay Secretary noted that PhilSys Card number for resident Roberto Gonzales was entered as 1234-5678-9012-3450 instead of 1234-5678-9012-3456. Resident presented original National ID physical card and PhilSys QR verification slip. Correction requested with audit logging.",
+    category: "data_correction",
+    priority: "normal",
+    status: "open",
+    createdAt: "2026-09-20T14:10:00.000Z",
+    updatedAt: "2026-09-20T14:10:00.000Z",
+    responses: [],
+  },
+  {
+    id: "tkt-004",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Replication sync timeout during brownout: 4 blotter entries in offline queue",
+    body: "During brief power outage at Purok 4 Sub-station, 4 incident reports were entered into the offline SQLite edge buffer. When power returned, sync daemon reported replication timeout (E_SYNC_SOCKET_TIMEOUT). Requesting central cloud database consistency check.",
+    category: "technical",
+    priority: "urgent",
+    status: "escalated",
+    createdAt: "2026-09-20T11:30:00.000Z",
+    updatedAt: "2026-09-20T12:20:00.000Z",
+    responses: [
+      {
+        id: "tr-002",
+        body: "IT Officer (M. Alcantara): Checked edge tablet local journal. All 4 incident entries are intact with cryptographic client signatures. Escalating to Central LGU Platform Ops for forced replica reconciliation.",
+        createdAt: "2026-09-20T11:50:00.000Z",
+      },
+      {
+        id: "tr-003",
+        body: "Central Platform Ops (D. Tan): Escalation received. Triggered manual replication pipeline for Barangay Barangka node. Outpost telemetry confirms all 4 blotter records committed and assigned canonical numbers.",
+        createdAt: "2026-09-20T12:20:00.000Z",
+      },
+    ],
+  },
+  {
+    id: "tkt-005",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Biometric USB scanner device not detected on Registry Station 3",
+    body: "Registry station 3 reports 'Device Not Found' when attempting inhabitant biometric enrollment. USB status in Windows Device Manager displays warning code 43 (Port Reset Failed).",
+    category: "technical",
+    priority: "high",
+    status: "in_progress",
+    createdAt: "2026-09-21T07:50:00.000Z",
+    updatedAt: "2026-09-21T08:10:00.000Z",
+    responses: [
+      {
+        id: "tr-004",
+        body: "IT Support: Reconnected scanner to powered USB 3.0 back panel port. Reinstalling vendor biometric SDK drivers v3.4.1. Remote session established with Registry Station 3.",
+        createdAt: "2026-09-21T08:10:00.000Z",
+      },
+    ],
+  },
+  {
+    id: "tkt-006",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Request to merge duplicate inhabitant records for Maria Clara Delos Santos",
+    body: "Inhabitant was encoded twice: once under maiden name 'Maria Clara Cruz' (inh-089) and once under married name 'Maria Clara Delos Santos' (inh-214). Both share the same PhilSys national identity number and date of birth.",
+    category: "data_correction",
+    priority: "high",
+    status: "resolved",
+    createdAt: "2026-09-17T13:20:00.000Z",
+    updatedAt: "2026-09-17T15:45:00.000Z",
+    responses: [
+      {
+        id: "tr-005",
+        body: "IT Officer (M. Alcantara): PhilSys hash confirmed identical. Unified certificate history, blotter references, and household tree under master record inh-214. Flagged inh-089 as merged alias in audit trail.",
+        createdAt: "2026-09-17T15:45:00.000Z",
+      },
+    ],
+  },
+  {
+    id: "tkt-007",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Refresher session request: Lupong Tagapamayapa KP Form 7 to Form 11 generation",
+    body: "Lupon Secretary Atty. Cruz requested a 30-minute training session for newly appointed Lupon clerks on generating automated summons, hearing notices, and amicable settlement certificates directly from blotter entries.",
+    category: "training",
+    priority: "low",
+    status: "resolved",
+    createdAt: "2026-09-18T09:00:00.000Z",
+    updatedAt: "2026-09-19T15:00:00.000Z",
+    responses: [
+      {
+        id: "tr-006",
+        body: "IT Helpdesk: Scheduled hands-on session for Friday 2:00 PM at Barangay Session Hall. Provided Lupon staff with laminated KP process quick-reference guide.",
+        createdAt: "2026-09-18T10:30:00.000Z",
+      },
+      {
+        id: "tr-007",
+        body: "IT Support: Training completed successfully with 4 Lupon clerks in attendance. Verified sample test case draft for KP Form 7 and Form 11.",
+        createdAt: "2026-09-19T15:00:00.000Z",
+      },
+    ],
+  },
+  {
+    id: "tkt-008",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "UPS Battery replacement warning on Server Rack APC 1500VA",
+    body: "The backup UPS powering the local network switch, NAS backup storage, and firewall in the IT comms closet is beeping at 15-minute intervals. Self-test indicates battery replacement required before upcoming rainy season.",
+    category: "other",
+    priority: "normal",
+    status: "open",
+    createdAt: "2026-09-19T16:00:00.000Z",
+    updatedAt: "2026-09-19T16:00:00.000Z",
+    responses: [],
+  },
+  {
+    id: "tkt-009",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Emergency dispatch tablet Wi-Fi disconnect during Tanod night mobile patrol",
+    body: "Mobile Patrol Tablet Unit 2 loses connectivity when transitioning from Barangay Hall mesh Wi-Fi to cellular APN around Purok 5 boundary. Tanod officers unable to receive real-time SOS beacons until app restarted.",
+    category: "technical",
+    priority: "urgent",
+    status: "in_progress",
+    createdAt: "2026-09-21T06:30:00.000Z",
+    updatedAt: "2026-09-21T07:15:00.000Z",
+    responses: [
+      {
+        id: "tr-008",
+        body: "IT Support: Updated APN roaming profile and configured background persistent heartbeat service on Tablet Unit 2. Field drive test underway along Purok 5 perimeter.",
+        createdAt: "2026-09-21T07:15:00.000Z",
+      },
+    ],
+  },
+  {
+    id: "tkt-010",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Role assignment request: BDRRMC Incident Commander access for Kagawad B. Bautista",
+    body: "Pursuant to Barangay Council Executive Order No. 04-2026, Kagawad Bernardo Bautista has assumed the role of BDRRMC Committee Chair. Requires role escalation from standard staff to BDRRMC_OFFICER for flood monitoring dashboard.",
+    category: "access",
+    priority: "normal",
+    status: "closed",
+    createdAt: "2026-09-16T10:15:00.000Z",
+    updatedAt: "2026-09-16T11:00:00.000Z",
+    responses: [
+      {
+        id: "tr-009",
+        body: "IT Officer: Validated executive order documentation. Role upgraded to BDRRMC_OFFICER and bound to registered mobile device for 2FA security compliance.",
+        createdAt: "2026-09-16T11:00:00.000Z",
+      },
+    ],
+  },
+  {
+    id: "tkt-011",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "Guidance on automated DILG Quarterly Performance Report CSV export",
+    body: "Barangay Secretary requested assistance on validating automated CSV fields against DILG Memorandum Circular 2025-104 requirements for the upcoming Q3 submission.",
+    category: "training",
+    priority: "low",
+    status: "resolved",
+    createdAt: "2026-09-15T14:00:00.000Z",
+    updatedAt: "2026-09-15T15:30:00.000Z",
+    responses: [
+      {
+        id: "tr-010",
+        body: "IT Officer: Walked through the reports module with Secretary Bautista. Exported preliminary Q3 CSV dataset and verified 100% field compliance against DILG schema validator.",
+        createdAt: "2026-09-15T15:30:00.000Z",
+      },
+    ],
+  },
+  {
+    id: "tkt-012",
+    barangayId: STATIC_BARANGAY_ID,
+    subject: "HDMI active extender display signal drop in Barangay Session Hall",
+    body: "Projector feed drops out intermittently when connecting presentation laptops on lectern HDMI port during council sessions.",
+    category: "technical",
+    priority: "low",
+    status: "closed",
+    createdAt: "2026-09-14T08:30:00.000Z",
+    updatedAt: "2026-09-14T11:10:00.000Z",
+    responses: [
+      {
+        id: "tr-011",
+        body: "IT Support: Replaced damaged passive HDMI cable with shielded CAT6 active balun kit. Confirmed stable 1080p 60Hz video playback throughout 3-hour legislative session.",
+        createdAt: "2026-09-14T11:10:00.000Z",
+      },
+    ],
+  },
+];
