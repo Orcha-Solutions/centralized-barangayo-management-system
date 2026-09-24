@@ -25,9 +25,10 @@ export default function DashboardFeatureTogglesPage() {
   const { user: currentUser } = useConsole();
   const isItOrAdmin =
     currentUser?.roles?.some(
-      (r) => r === "IT_OFFICER" || r === "SYSTEM_ADMIN" || r === "LGU_ADMIN"
+      (r) => r === "IT_OFFICER" || r === "SYSTEM_ADMIN" || r === "LGU_ADMIN" || r === "PUNONG_BARANGAY"
     ) ||
-    currentUser?.email?.toLowerCase().includes("it") ||
+    currentUser?.email?.toLowerCase().startsWith("it@") ||
+    currentUser?.email?.toLowerCase().includes("kapitan") ||
     false;
 
   const [widgetCategoryFilter, setWidgetCategoryFilter] = React.useState<string>("all");
