@@ -131,18 +131,32 @@ export function Shell({ children }: { children: React.ReactNode }) {
     : user?.city?.name ?? "CBMS";
   const mode = user?.barangay?.mode ?? "companion";
 
+  const isSuperAdmin =
+    user?.roles?.includes("PUNONG_BARANGAY") ||
+    user?.roles?.includes("SYSTEM_ADMIN") ||
+    user?.email?.toLowerCase().includes("kapitan") ||
+    user?.email?.toLowerCase().includes("superadmin");
+
   const isVawUser =
-    user?.roles?.includes("VAW_DESK_OFFICER") ||
-    user?.email?.toLowerCase().includes("vaw");
+    !isSuperAdmin &&
+    (user?.roles?.includes("VAW_DESK_OFFICER") ||
+      user?.email?.toLowerCase().includes("vaw"));
   const isLuponUser =
-    user?.roles?.includes("LUPON_SECRETARY") ||
-    user?.email?.toLowerCase().includes("lupon");
+    !isSuperAdmin &&
+    (user?.roles?.includes("LUPON_SECRETARY") ||
+      user?.email?.toLowerCase().includes("lupon"));
   const isBdcUser =
-    user?.roles?.includes("BDC_OFFICER") ||
-    user?.email?.toLowerCase().includes("bdc");
+    !isSuperAdmin &&
+    (user?.roles?.includes("BDC_OFFICER") ||
+      user?.email?.toLowerCase().includes("bdc"));
   const isItUser =
-    user?.roles?.includes("IT_OFFICER") ||
-    user?.email?.toLowerCase().includes("it");
+    !isSuperAdmin &&
+    (user?.roles?.includes("IT_OFFICER") ||
+      user?.email?.toLowerCase().startsWith("it@") ||
+      user?.email?.toLowerCase().includes("it_officer") ||
+      user?.email?.toLowerCase().includes("admin.it") ||
+      user?.email?.toLowerCase().includes("sysadmin"));
+
 
   return (
     <ConsoleContext.Provider value={value}>

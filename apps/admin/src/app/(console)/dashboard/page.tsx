@@ -57,14 +57,24 @@ export default function DashboardPage() {
     isWidgetVisible,
   } = useFeatureToggleStore();
 
+  const isSuperAdmin =
+    user?.roles?.includes("PUNONG_BARANGAY") ||
+    user?.roles?.includes("SYSTEM_ADMIN") ||
+    user?.email?.toLowerCase().includes("kapitan") ||
+    user?.email?.toLowerCase().includes("superadmin");
+
   const isItOfficer =
-    user?.roles?.includes("IT_OFFICER") ||
-    user?.email?.toLowerCase().includes("it") ||
-    false;
+    !isSuperAdmin &&
+    (user?.roles?.includes("IT_OFFICER") ||
+      user?.email?.toLowerCase().startsWith("it@") ||
+      user?.email?.toLowerCase().includes("it_officer") ||
+      user?.email?.toLowerCase().includes("admin.it") ||
+      user?.email?.toLowerCase().includes("sysadmin"));
 
   const isItOrAdmin =
+    isSuperAdmin ||
     isItOfficer ||
-    user?.roles?.some((r) => r === "IT_OFFICER" || r === "SYSTEM_ADMIN" || r === "LGU_ADMIN") ||
+    user?.roles?.some((r) => r === "IT_OFFICER" || r === "SYSTEM_ADMIN" || r === "LGU_ADMIN" || r === "PUNONG_BARANGAY") ||
     false;
 
   const [itControlsExpanded, setItControlsExpanded] = React.useState(true);
