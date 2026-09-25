@@ -137,21 +137,38 @@ export default function LoginPage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span
+          <svg
+            width="22"
+            height="14"
+            viewBox="0 0 900 600"
             style={{
-              display: "inline-flex",
-              width: 20,
-              height: 13,
               borderRadius: 2,
-              overflow: "hidden",
-              flexDirection: "column",
-              border: "1px solid rgba(255,255,255,0.3)",
               flexShrink: 0,
+              border: "1px solid rgba(255,255,255,0.35)",
+              display: "inline-block",
             }}
+            aria-label="Flag of the Philippines"
           >
-            <i style={{ background: "#0038a8", height: "50%", display: "block" }} />
-            <i style={{ background: "#ce1126", height: "50%", display: "block" }} />
-          </span>
+            <rect width="900" height="300" fill="#0038A8" />
+            <rect y="300" width="900" height="300" fill="#CE1126" />
+            <polygon points="0,0 519.6,300 0,600" fill="#FFFFFF" />
+            <g fill="#FCD116" stroke="#FCD116">
+              <circle cx="173.2" cy="300" r="54" />
+              <g transform="translate(173.2, 300)">
+                <path d="M 0,-115 L -8,-58 L 8,-58 Z M -10,-105 L -14,-58 L 0,-58 Z M 10,-105 L 0,-58 L 14,-58 Z" />
+                <path d="M 0,-115 L -8,-58 L 8,-58 Z M -10,-105 L -14,-58 L 0,-58 Z M 10,-105 L 0,-58 L 14,-58 Z" transform="rotate(45)" />
+                <path d="M 0,-115 L -8,-58 L 8,-58 Z M -10,-105 L -14,-58 L 0,-58 Z M 10,-105 L 0,-58 L 14,-58 Z" transform="rotate(90)" />
+                <path d="M 0,-115 L -8,-58 L 8,-58 Z M -10,-105 L -14,-58 L 0,-58 Z M 10,-105 L 0,-58 L 14,-58 Z" transform="rotate(135)" />
+                <path d="M 0,-115 L -8,-58 L 8,-58 Z M -10,-105 L -14,-58 L 0,-58 Z M 10,-105 L 0,-58 L 14,-58 Z" transform="rotate(180)" />
+                <path d="M 0,-115 L -8,-58 L 8,-58 Z M -10,-105 L -14,-58 L 0,-58 Z M 10,-105 L 0,-58 L 14,-58 Z" transform="rotate(225)" />
+                <path d="M 0,-115 L -8,-58 L 8,-58 Z M -10,-105 L -14,-58 L 0,-58 Z M 10,-105 L 0,-58 L 14,-58 Z" transform="rotate(270)" />
+                <path d="M 0,-115 L -8,-58 L 8,-58 Z M -10,-105 L -14,-58 L 0,-58 Z M 10,-105 L 0,-58 L 14,-58 Z" transform="rotate(315)" />
+              </g>
+              <polygon points="50,45 54,58 68,58 57,66 61,79 50,71 39,79 43,66 32,58 46,58" />
+              <polygon points="50,555 54,542 68,542 57,534 61,521 50,529 39,521 43,534 32,542 46,542" />
+              <polygon points="460,300 447,304 447,318 439,307 426,311 434,300 426,289 439,293 447,282 447,296" />
+            </g>
+          </svg>
           <strong style={{ letterSpacing: "0.02em" }}>Republic of the Philippines</strong>
           <span style={{ color: "rgba(255,255,255,0.35)" }}>|</span>
           <span style={{ color: "#9fb3dd", fontSize: 12 }}>Published under DILG Full Disclosure Policy</span>

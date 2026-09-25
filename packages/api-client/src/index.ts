@@ -85,6 +85,7 @@ import {
   STATIC_MATERIALS,
   STATIC_CONCERNS,
   STATIC_TICKETS,
+  STATIC_APPOINTMENTS,
 } from "./staticData";
 
 export * from "./staticData";
@@ -184,6 +185,10 @@ function getStore(): Record<string, any[]> {
     initializedStore.Ticket = [
       ...STATIC_TICKETS,
       ...(initializedStore.Ticket || []).filter(x => !STATIC_TICKETS.some(s => s.id === x.id))
+    ];
+    initializedStore.Appointment = [
+      ...STATIC_APPOINTMENTS,
+      ...(initializedStore.Appointment || []).filter(x => !STATIC_APPOINTMENTS.some(s => s.id === x.id))
     ];
 
     _inMemoryStore = initializedStore;
@@ -631,6 +636,120 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       page: 1,
       pageSize: 50
     };
+  }
+
+  // 5.1 Single Certificate Request Detail
+  const certSingleMatch = cleanPath.match(/^\/certificates\/([^/]+)$/);
+  if (certSingleMatch && method === "GET") {
+    const id = certSingleMatch[1];
+    const list = store.CertificateRequest || STATIC_CERTIFICATE_REQUESTS;
+    const item = list.find((c: any) => c.id === id || c.referenceNo === id);
+    if (!item) return null;
+
+    const foundInh = item.inhabitantId && store.Inhabitant ? store.Inhabitant.find((i: any) => i.id === item.inhabitantId) : null;
+    const inh = item.inhabitant || (foundInh ? {
+      id: foundInh.id,
+      firstName: foundInh.firstName,
+      lastName: foundInh.lastName,
+      middleName: foundInh.middleName,
+      philsysNo: foundInh.philsysCardNumber || foundInh.philsysNo || "1234-5678-9012",
+      birthDate: foundInh.dateOfBirth || foundInh.birthDate || "1990-05-15",
+      contactPhone: foundInh.contactNumber || foundInh.contactPhone || "0917-123-4567",
+      household: { addressLine: foundInh.addressLine || "123 Mabini St., Barangka", purok: foundInh.purok || "Purok 1" }
+    } : {
+      id: item.inhabitantId || "uh8hppo",
+      firstName: "Juan",
+      lastName: "Dela Cruz",
+      philsysNo: "1234-5678-9012",
+      birthDate: "1990-05-15",
+      contactPhone: "0917-123-4567",
+      household: { addressLine: "123 Mabini St., Barangka", purok: "Purok 1" }
+    });
+
+    const type = item.type || store.CertificateType?.find((t: any) => t.id === item.typeId) || {
+      name: "Barangay Clearance",
+      code: "BC-01",
+      fee: item.fee || 50,
+      validityDays: 180,
+      requirements: ["Valid Government ID", "Proof of Residency"]
+    };
+
+    return {
+      ...item,
+      inhabitant: inh,
+      type: type,
+      submittedAt: item.submittedAt || item.createdAt,
+      approvedAt: item.approvedAt || (item.status === "released" ? item.createdAt : null),
+      releasedAt: item.releasedAt || (item.status === "released" ? item.updatedAt || item.createdAt : null),
+      expiresAt: item.expiresAt || (item.status === "released" ? new Date(Date.now() + 180 * 86400000).toISOString() : null),
+      processingMs: item.processingMs || 3600000 * 2,
+    };
+  }
+
+  // 5.2 Certificate Document Output & Verification Preview
+  const certDocMatch = cleanPath.match(/^\/certificates\/([^/]+)\/document$/);
+  if (certDocMatch && method === "GET") {
+    const id = certDocMatch[1];
+    const list = store.CertificateRequest || STATIC_CERTIFICATE_REQUESTS;
+    const item = list.find((c: any) => c.id === id || c.referenceNo === id);
+    if (!item) return null;
+
+    const inh = item.inhabitant || (item.inhabitantId && store.Inhabitant ? store.Inhabitant.find((i: any) => i.id === item.inhabitantId) : null);
+    const inhName = inh ? `${inh.firstName} ${inh.lastName}` : "Juan Dela Cruz";
+    const typeName = item.type?.name || "Barangay Clearance";
+
+    return {
+      referenceNo: item.referenceNo,
+      title: typeName.toUpperCase(),
+      barangay: "Barangka",
+      body: `TO WHOM IT MAY CONCERN:\n\nThis is to certify that ${inhName}, of legal age, Filipino citizen, is a bonafide resident of Barangay Barangka, Marikina City.\n\nThis certification is issued upon the request of the interested party for the purpose of: ${item.purpose}.\n\nGiven this day at Barangay Barangka, City of Marikina, Philippines.`,
+      issuedAt: item.releasedAt || item.updatedAt || new Date().toISOString(),
+      expiresAt: item.expiresAt || new Date(Date.now() + 180 * 86400000).toISOString(),
+      verifyCode: item.verifyCode || `BCMS-VERIFIED-${item.referenceNo}`,
+      verifyUrl: `/portal/verify/${item.verifyCode || item.referenceNo}`,
+      orNumber: item.orNumber || "OR-2026-9901"
+    };
+  }
+
+  // 5.3 Approve and Release Certificate Request
+  const certApproveMatch = cleanPath.match(/^\/certificates\/([^/]+)\/approve$/);
+  if (certApproveMatch && method === "POST") {
+    const id = certApproveMatch[1];
+    if (!store.CertificateRequest) store.CertificateRequest = [...STATIC_CERTIFICATE_REQUESTS];
+    const item = store.CertificateRequest.find((c: any) => c.id === id || c.referenceNo === id);
+    if (!item) {
+      const err: any = new Error("Certificate request not found.");
+      err.status = 404;
+      throw err;
+    }
+    item.status = "released";
+    item.approvedAt = new Date().toISOString();
+    item.releasedAt = new Date().toISOString();
+    item.updatedAt = new Date().toISOString();
+    if (!item.verifyCode) {
+      item.verifyCode = `BCMS-${Math.floor(1000 + Math.random() * 9000)}-VERIFIED`;
+    }
+    saveStore(store);
+    return { ok: true, request: item };
+  }
+
+  // 5.4 Reject Certificate Request
+  const certRejectMatch = cleanPath.match(/^\/certificates\/([^/]+)\/reject$/);
+  if (certRejectMatch && method === "POST") {
+    const id = certRejectMatch[1];
+    if (!store.CertificateRequest) store.CertificateRequest = [...STATIC_CERTIFICATE_REQUESTS];
+    const item = store.CertificateRequest.find((c: any) => c.id === id || c.referenceNo === id);
+    if (!item) {
+      const err: any = new Error("Certificate request not found.");
+      err.status = 404;
+      throw err;
+    }
+    const body = opts.body ? JSON.parse(opts.body as string) : {};
+    item.status = "rejected";
+    item.rejectedReason = body.reason || "Requirements not fulfilled.";
+    item.updatedAt = new Date().toISOString();
+    saveStore(store);
+    return { ok: true, request: item };
   }
 
   if (cleanPath === "/certificates/stats" && method === "GET") {
@@ -1910,6 +2029,26 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       }
       return { success: true };
     }
+
+    const certDelMatch = cleanPath.match(/\/certificates\/([^\/]+)/);
+    if (certDelMatch) {
+      const id = certDelMatch[1];
+      if (store.CertificateRequest) {
+        store.CertificateRequest = store.CertificateRequest.filter(x => x.id !== id && x.referenceNo !== id);
+        saveStore(store);
+      }
+      return { success: true };
+    }
+
+    const aptDelMatch = cleanPath.match(/\/appointments\/([^\/]+)/);
+    if (aptDelMatch) {
+      const id = aptDelMatch[1];
+      if (store.Appointment) {
+        store.Appointment = store.Appointment.filter(x => x.id !== id);
+        saveStore(store);
+      }
+      return { success: true };
+    }
   }
 
   // Mutations / PATCH requests
@@ -1969,6 +2108,29 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
         saveStore(store);
       }
       return t || {};
+    }
+
+    // Appointments PATCH
+    const aptPatchMatch = cleanPath.match(/\/appointments\/([^\/]+)/);
+    if (aptPatchMatch) {
+      const id = aptPatchMatch[1];
+      if (!store.Appointment) store.Appointment = [...STATIC_APPOINTMENTS];
+      const a = store.Appointment.find((x: any) => x.id === id);
+      if (a) {
+        Object.assign(a, body);
+        if (body.status === "checked_in" && !a.checkedInAt) {
+          a.checkedInAt = new Date().toISOString();
+        }
+        if (body.status === "serving" && !a.servedAt) {
+          a.servedAt = new Date().toISOString();
+        }
+        if ((body.status === "completed" || body.status === "no_show") && !a.completedAt) {
+          a.completedAt = new Date().toISOString();
+        }
+        a.updatedAt = new Date().toISOString();
+        saveStore(store);
+      }
+      return a || {};
     }
 
     // Properties PATCH
@@ -2487,6 +2649,59 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       return newTicket;
     }
 
+    // Appointments POST
+    if (cleanPath === "/appointments") {
+      const appointments = store.Appointment || [...STATIC_APPOINTMENTS];
+      const sched = body.scheduledAt ? new Date(body.scheduledAt) : new Date();
+      const now = new Date();
+      const isTodaySched =
+        sched.getFullYear() === now.getFullYear() &&
+        sched.getMonth() === now.getMonth() &&
+        sched.getDate() === now.getDate();
+
+      let queueNumber: string | null = null;
+      if (isTodaySched) {
+        const todayCount = appointments.filter((a: any) => {
+          const d = new Date(a.scheduledAt);
+          return (
+            d.getFullYear() === now.getFullYear() &&
+            d.getMonth() === now.getMonth() &&
+            d.getDate() === now.getDate()
+          );
+        }).length;
+        const prefix = body.service === "kp_hearing" ? "KP-" : body.service === "health" ? "H-" : "Q-";
+        queueNumber = `${prefix}${String(todayCount + 1).padStart(3, "0")}`;
+      }
+
+      let inhabitant: any = null;
+      const targetInhabitantId = body.inhabitantId || (currentUser.scope === "self" ? currentUser.inhabitantId : null);
+      if (targetInhabitantId) {
+        const inh = store.Inhabitant?.find((i: any) => i.id === targetInhabitantId);
+        if (inh) {
+          inhabitant = { firstName: inh.firstName, lastName: inh.lastName, philsysNo: inh.philsysNo };
+        }
+      }
+
+      const newApt = {
+        id: "apt-" + Math.random().toString(36).substring(2, 9),
+        barangayId: currentUser.barangayId || STATIC_BARANGAY_ID,
+        service: body.service || "general",
+        scheduledAt: sched.toISOString(),
+        queueNumber,
+        status: "booked",
+        notes: body.notes || (targetInhabitantId ? "Scheduled appointment via portal" : "Walk-in appointment"),
+        inhabitantId: targetInhabitantId || null,
+        inhabitant,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (!store.Appointment) store.Appointment = [...STATIC_APPOINTMENTS];
+      store.Appointment.unshift(newApt);
+      saveStore(store);
+      return newApt;
+    }
+
     if (cleanPath === "/sos") {
       const newAlert = {
         id: "sos-" + Math.random().toString(36).substring(2, 9),
@@ -2842,6 +3057,92 @@ async function mockApiRouter(path: string, opts: RequestInit = {}): Promise<any>
       pageSize,
       totalPages: Math.ceil(total / pageSize) || 1,
     };
+  }
+
+  // Appointments & Queue Management: /appointments list endpoint
+  if (cleanPath === "/appointments" && method === "GET") {
+    const queryString = path.includes("?") ? path.split("?")[1] : "";
+    const queryParams = new URLSearchParams(queryString);
+    const q = (queryParams.get("q") || "").toLowerCase().trim();
+    const status = queryParams.get("status") || "all";
+    const service = queryParams.get("service") || "all";
+    const inhabitantId = queryParams.get("inhabitantId") || "";
+    const page = parseInt(queryParams.get("page") || "1", 10);
+    const pageSize = parseInt(queryParams.get("pageSize") || "25", 10);
+
+    let list = (store.Appointment || STATIC_APPOINTMENTS) as any[];
+
+    // If resident user viewing their own appointments
+    if (currentUser.scope === "self" || currentUser.roles.includes("RESIDENT")) {
+      if (currentUser.inhabitantId) {
+        list = list.filter((a) => a.inhabitantId === currentUser.inhabitantId);
+      }
+    } else if (inhabitantId) {
+      list = list.filter((a) => a.inhabitantId === inhabitantId);
+    }
+
+    if (status !== "all") {
+      list = list.filter((a) => a.status === status);
+    }
+    if (service !== "all") {
+      list = list.filter((a) => a.service === service);
+    }
+    if (q) {
+      list = list.filter(
+        (a) =>
+          a.queueNumber?.toLowerCase().includes(q) ||
+          a.notes?.toLowerCase().includes(q) ||
+          a.inhabitant?.firstName?.toLowerCase().includes(q) ||
+          a.inhabitant?.lastName?.toLowerCase().includes(q)
+      );
+    }
+
+    // Attach inhabitant details if missing but inhabitantId present
+    list = list.map((a) => {
+      if (a.inhabitant) return a;
+      if (a.inhabitantId) {
+        const inh = store.Inhabitant?.find((i: any) => i.id === a.inhabitantId);
+        if (inh) {
+          return {
+            ...a,
+            inhabitant: { firstName: inh.firstName, lastName: inh.lastName, philsysNo: inh.philsysNo },
+          };
+        }
+      }
+      return a;
+    });
+
+    // Sort by scheduledAt ascending (earliest scheduled slot first)
+    list = [...list].sort(
+      (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+    );
+
+    const total = list.length;
+    const start = (page - 1) * pageSize;
+    const items = list.slice(start, start + pageSize);
+
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize) || 1,
+    };
+  }
+
+  // Appointment detail GET endpoint
+  const aptDetailMatch = cleanPath.match(/^\/appointments\/([^/]+)$/);
+  if (aptDetailMatch && method === "GET") {
+    const id = aptDetailMatch[1];
+    const a = (store.Appointment || STATIC_APPOINTMENTS).find((x: any) => x.id === id);
+    if (!a) return null;
+    if (!a.inhabitant && a.inhabitantId) {
+      const inh = store.Inhabitant?.find((i: any) => i.id === a.inhabitantId);
+      if (inh) {
+        return { ...a, inhabitant: { firstName: inh.firstName, lastName: inh.lastName, philsysNo: inh.philsysNo } };
+      }
+    }
+    return a;
   }
 
   // Fallback default response for unmocked GET paths

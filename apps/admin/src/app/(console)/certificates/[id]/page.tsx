@@ -29,7 +29,12 @@ export default function CertificateDetailPage() {
   const id = String((params as Record<string, string | string[]>)?.id ?? "");
 
   const req = useApi<CertificateRequest>(id ? `/certificates/${id}` : null);
-  const cr = req.data;
+  const cr =
+    req.data && !Array.isArray(req.data) && (req.data as any).referenceNo
+      ? req.data
+      : Array.isArray(req.data) && req.data.length > 0 && (req.data[0] as any)?.referenceNo
+      ? (req.data[0] as CertificateRequest)
+      : null;
   const doc = useApi<CertificateDocument>(
     cr?.status === "released" ? `/certificates/${id}/document` : null,
     [cr?.status],
