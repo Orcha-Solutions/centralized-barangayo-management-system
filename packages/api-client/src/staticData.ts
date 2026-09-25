@@ -199,6 +199,20 @@ export interface StaticRptTaxDue {
   createdAt?: string;
 }
 
+export interface StaticAppointment {
+  id: string;
+  barangayId: string;
+  service: "certificate" | "kp_hearing" | "health" | "general" | string;
+  scheduledAt: string;
+  queueNumber?: string | null;
+  status: "booked" | "checked_in" | "serving" | "completed" | "no_show" | string;
+  notes?: string | null;
+  inhabitantId?: string | null;
+  inhabitant?: { firstName: string; lastName: string; philsysNo?: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const STATIC_BARANGAY_ID = "van6rdk";
 
 export const STATIC_CERTIFICATE_TYPES: StaticCertificateType[] = [
@@ -3768,3 +3782,239 @@ export const STATIC_TICKETS: StaticTicket[] = [
     ],
   },
 ];
+
+function getIsoTimeToday(hours: number, minutes: number = 0): string {
+  const d = new Date();
+  d.setHours(hours, minutes, 0, 0);
+  return d.toISOString();
+}
+
+function getIsoTimeOffsetDays(dayOffset: number, hours: number, minutes: number = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  d.setHours(hours, minutes, 0, 0);
+  return d.toISOString();
+}
+
+export const STATIC_APPOINTMENTS: StaticAppointment[] = [
+  // Today's appointments - Serving (at counter / desk)
+  {
+    id: "apt-001",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "certificate",
+    scheduledAt: getIsoTimeToday(8, 30),
+    queueNumber: "Q-001",
+    status: "serving",
+    notes: "Barangay Clearance renewal for Overseas Employment Certificate (OEC) application.",
+    inhabitantId: "uh8hppo",
+    inhabitant: { firstName: "Juan", lastName: "Dela Cruz", philsysNo: "1234-5678-9012" },
+    createdAt: getIsoTimeOffsetDays(-1, 14, 0),
+    updatedAt: getIsoTimeToday(8, 35),
+  },
+  {
+    id: "apt-002",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "kp_hearing",
+    scheduledAt: getIsoTimeToday(9, 0),
+    queueNumber: "KP-001",
+    status: "serving",
+    notes: "Pangkat mediation session regarding boundary wall dispute at Purok 2 before Lupon Tagapamayapa.",
+    inhabitantId: "res-gonzales",
+    inhabitant: { firstName: "Roberto", lastName: "Gonzales", philsysNo: "4455-6677-8899" },
+    createdAt: getIsoTimeOffsetDays(-3, 10, 0),
+    updatedAt: getIsoTimeToday(9, 5),
+  },
+
+  // Today's appointments - Checked In (waiting in lobby)
+  {
+    id: "apt-003",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "health",
+    scheduledAt: getIsoTimeToday(9, 30),
+    queueNumber: "H-002",
+    status: "checked_in",
+    notes: "First trimester prenatal ultrasound checkup and iron supplementation vitamins distribution.",
+    inhabitantId: "inh-rivera",
+    inhabitant: { firstName: "Elena", lastName: "Rivera", philsysNo: "3322-1144-5566" },
+    createdAt: getIsoTimeOffsetDays(-2, 11, 20),
+    updatedAt: getIsoTimeToday(9, 25),
+  },
+  {
+    id: "apt-004",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "general",
+    scheduledAt: getIsoTimeToday(10, 0),
+    queueNumber: "Q-003",
+    status: "checked_in",
+    notes: "Walk-in application: Tricycle Operator and Driver Association (TODA) local franchise renewal endorsement.",
+    inhabitantId: null,
+    inhabitant: null,
+    createdAt: getIsoTimeToday(9, 45),
+    updatedAt: getIsoTimeToday(9, 55),
+  },
+
+  // Today's appointments - Booked (awaiting arrival)
+  {
+    id: "apt-005",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "certificate",
+    scheduledAt: getIsoTimeToday(11, 0),
+    queueNumber: "Q-004",
+    status: "booked",
+    notes: "Certificate of Indigency application for financial aid under DSWD Crisis Intervention Unit.",
+    inhabitantId: "xk3tyib",
+    inhabitant: { firstName: "Maria", lastName: "Santos", philsysNo: "8899-1122-3344" },
+    createdAt: getIsoTimeOffsetDays(-1, 16, 30),
+    updatedAt: getIsoTimeOffsetDays(-1, 16, 30),
+  },
+  {
+    id: "apt-006",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "general",
+    scheduledAt: getIsoTimeToday(13, 30),
+    queueNumber: "Q-005",
+    status: "booked",
+    notes: "Community Tax Certificate (Cedula) issuance for business contract notarization.",
+    inhabitantId: "res1-inhabitant",
+    inhabitant: { firstName: "Cardo", lastName: "Dalisay", philsysNo: "9988-7766-5544" },
+    createdAt: getIsoTimeToday(7, 30),
+    updatedAt: getIsoTimeToday(7, 30),
+  },
+  {
+    id: "apt-007",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "health",
+    scheduledAt: getIsoTimeToday(14, 15),
+    queueNumber: "H-004",
+    status: "booked",
+    notes: "Senior Citizen quarterly hypertension and diabetes maintenance medicine pickup.",
+    inhabitantId: "inh-rosario",
+    inhabitant: { firstName: "Corazon", lastName: "Del Rosario", philsysNo: "5544-3322-1100" },
+    createdAt: getIsoTimeOffsetDays(-1, 11, 0),
+    updatedAt: getIsoTimeOffsetDays(-1, 11, 0),
+  },
+  {
+    id: "apt-008",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "certificate",
+    scheduledAt: getIsoTimeToday(15, 0),
+    queueNumber: "Q-006",
+    status: "booked",
+    notes: "Barangay Residency Certification for LandBank ATM payroll card opening.",
+    inhabitantId: "inh-cruz",
+    inhabitant: { firstName: "Fernando", lastName: "Cruz", philsysNo: "7766-5544-3322" },
+    createdAt: getIsoTimeToday(8, 0),
+    updatedAt: getIsoTimeToday(8, 0),
+  },
+
+  // Today's appointments - Completed
+  {
+    id: "apt-009",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "certificate",
+    scheduledAt: getIsoTimeToday(8, 0),
+    queueNumber: "Q-001",
+    status: "completed",
+    notes: "First-Time Jobseeker (RA 11261) certificate issued with fee exemption. Completed in 7 mins.",
+    inhabitantId: "inh-morales",
+    inhabitant: { firstName: "Teresa", lastName: "Morales", philsysNo: "1122-3344-5566" },
+    createdAt: getIsoTimeOffsetDays(-1, 9, 0),
+    updatedAt: getIsoTimeToday(8, 12),
+  },
+  {
+    id: "apt-010",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "kp_hearing",
+    scheduledAt: getIsoTimeToday(8, 30),
+    queueNumber: "KP-002",
+    status: "completed",
+    notes: "Initial conciliation conference before Punong Barangay. Amicable settlement signed and recorded.",
+    inhabitantId: "inh-bautista",
+    inhabitant: { firstName: "Lourdes", lastName: "Bautista", philsysNo: "2233-4455-6677" },
+    createdAt: getIsoTimeOffsetDays(-4, 15, 0),
+    updatedAt: getIsoTimeToday(9, 15),
+  },
+  {
+    id: "apt-011",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "health",
+    scheduledAt: getIsoTimeToday(8, 45),
+    queueNumber: "H-001",
+    status: "completed",
+    notes: "Influenza booster vaccination for frontline barangay emergency responders.",
+    inhabitantId: "inh-danilo",
+    inhabitant: { firstName: "Danilo", lastName: "Cruz", philsysNo: "6677-8899-0011" },
+    createdAt: getIsoTimeOffsetDays(-2, 14, 0),
+    updatedAt: getIsoTimeToday(9, 0),
+  },
+
+  // Today's appointments - No Shows
+  {
+    id: "apt-012",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "certificate",
+    scheduledAt: getIsoTimeToday(9, 15),
+    queueNumber: "Q-002",
+    status: "no_show",
+    notes: "Applicant did not respond after 3 loudspeaker announcements; ticket released per RA 11032 SLA policy.",
+    inhabitantId: null,
+    inhabitant: null,
+    createdAt: getIsoTimeToday(8, 45),
+    updatedAt: getIsoTimeToday(9, 40),
+  },
+  {
+    id: "apt-013",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "general",
+    scheduledAt: getIsoTimeToday(10, 30),
+    queueNumber: "Q-007",
+    status: "no_show",
+    notes: "Barangay ID photo capture slot expired without attendance.",
+    inhabitantId: "usr-bdc",
+    inhabitant: { firstName: "Roberto", lastName: "Gomez", philsysNo: "9900-1122-3344" },
+    createdAt: getIsoTimeOffsetDays(-1, 10, 0),
+    updatedAt: getIsoTimeToday(11, 0),
+  },
+
+  // Upcoming appointments (Tomorrow and later this week)
+  {
+    id: "apt-014",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "certificate",
+    scheduledAt: getIsoTimeOffsetDays(1, 9, 30),
+    queueNumber: null,
+    status: "booked",
+    notes: "Barangay Business Clearance inspection endorsement for sari-sari store expansion.",
+    inhabitantId: "uh8hppo",
+    inhabitant: { firstName: "Juan", lastName: "Dela Cruz", philsysNo: "1234-5678-9012" },
+    createdAt: getIsoTimeToday(10, 0),
+    updatedAt: getIsoTimeToday(10, 0),
+  },
+  {
+    id: "apt-015",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "kp_hearing",
+    scheduledAt: getIsoTimeOffsetDays(1, 14, 0),
+    queueNumber: null,
+    status: "booked",
+    notes: "Second conciliation summons hearing: Noise disturbance complaint along J.P. Rizal St.",
+    inhabitantId: "res1-inhabitant",
+    inhabitant: { firstName: "Cardo", lastName: "Dalisay", philsysNo: "9988-7766-5544" },
+    createdAt: getIsoTimeToday(10, 30),
+    updatedAt: getIsoTimeToday(10, 30),
+  },
+  {
+    id: "apt-016",
+    barangayId: STATIC_BARANGAY_ID,
+    service: "health",
+    scheduledAt: getIsoTimeOffsetDays(2, 10, 0),
+    queueNumber: null,
+    status: "booked",
+    notes: "Infant Pentavalent immunisation dose 2 at Barangay Health Station.",
+    inhabitantId: "xk3tyib",
+    inhabitant: { firstName: "Maria", lastName: "Santos", philsysNo: "8899-1122-3344" },
+    createdAt: getIsoTimeToday(11, 15),
+    updatedAt: getIsoTimeToday(11, 15),
+  },
+];
+

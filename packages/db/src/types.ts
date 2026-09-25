@@ -186,6 +186,10 @@ export interface User {
   fullName: string;
   avatarUrl: string | null;
   isActive: boolean;
+  canCreate?: boolean;
+  canRead?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
   mfaEnabled: boolean;
   mfaSecret: string | null;
   barangayId: string | null;
@@ -1006,6 +1010,15 @@ export interface TicketResponse {
   body: string;
   isInternal: boolean;
   createdAt: Date;
+}
+
+export interface DashboardFeatureToggle {
+  id: string;
+  barangayId: string;
+  widgetId: string;
+  isEnabled: boolean;
+  updatedById: string | null;
+  updatedAt: Date;
 }
 
 export interface FileObject {
