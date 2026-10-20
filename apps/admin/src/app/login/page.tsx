@@ -2,31 +2,150 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ApiError, clearSession, getToken, login } from "@cbms/api-client";
+import {
+  API_URL,
+  ApiError,
+  listTenants,
+  login,
+  type TenantInfo,
+} from "@cbms/api-client";
 import { Alert, Button, Field, Spinner } from "@cbms/ui";
-import { LoginTourGuide, GuideToggle } from "./LoginTourGuide";
-
-const DEMO_PASSWORD = "Cbms#2026";
-
-const DEMO_ACCOUNTS: Array<{ email: string; label: string; roleTag: string; icon: string }> = [
-  { email: "kapitan@barangka.gov.ph", label: "Punong Barangay", roleTag: "Super Admin", icon: "🏛️" },
-  { email: "secretary@barangka.gov.ph", label: "Barangay Secretary", roleTag: "Records & Issuances", icon: "📝" },
-  { email: "bdc@barangka.gov.ph", label: "BDC Chair", roleTag: "Dev Plans & Institutions", icon: "🧭" },
-  { email: "vawdesk@barangka.gov.ph", label: "VAW Desk Officer", roleTag: "Confidential VAWC Intake", icon: "🛡️" },
-  { email: "lupon@barangka.gov.ph", label: "Lupon Secretary", roleTag: "KP Summons & Hearings", icon: "⚖️" },
-  { email: "treasurer@barangka.gov.ph", label: "Barangay Treasurer", roleTag: "Finance, Wallet & Assets", icon: "🏦" },
-  { email: "bdrrmc@barangka.gov.ph", label: "BDRRMC Officer", roleTag: "Disaster & Emergency", icon: "🌀" },
-  { email: "tanod@barangka.gov.ph", label: "Barangay Tanod", roleTag: "Public Safety & Blotter", icon: "🚨" },
-  { email: "bhw@barangka.gov.ph", label: "BHW Lead", roleTag: "Maternal & Child Health", icon: "💉" },
-  { email: "it@barangka.gov.ph", label: "IT Officer", roleTag: "Logs & CRUD Security", icon: "💻" },
-  { email: "lgu@marikina.gov.ph", label: "LGU Admin", roleTag: "City Oversight", icon: "🏙️" },
-];
 
 type Stage = "credentials" | "mfa" | "enroll";
 
+const DEFAULT_PASSWORD = "Password123!";
+
+interface OfficialCredential {
+  email: string;
+  role: string;
+  title: string;
+  scope: string;
+  badge: string;
+  icon: string;
+  tenantId?: string;
+}
+
+const OFFICIAL_CREDENTIALS: OfficialCredential[] = [
+  {
+    email: "admin@cbms.gov.ph",
+    role: "SYSTEM_ADMIN",
+    title: "Platform Super Admin (Executive)",
+    scope: "National / Platform",
+    badge: "All 16 Tenants & System Access",
+    icon: "🛡️",
+  },
+  {
+    email: "it@cbms.gov.ph",
+    role: "SYSTEM_ADMIN",
+    title: "ORCHA Systems & IT Super Admin",
+    scope: "National / Platform",
+    badge: "Cloud Infrastructure, Fleet & Onboarding",
+    icon: "💻",
+  },
+  {
+    email: "lgu@marikina.gov.ph",
+    role: "LGU_ADMIN",
+    title: "Marikina City LGU Admin",
+    scope: "Marikina City (16 Brgys)",
+    badge: "City Multi-Tenant Oversight",
+    icon: "🌆",
+  },
+  {
+    email: "kapitan@barangka.gov.ph",
+    role: "PUNONG_BARANGAY",
+    title: "Punong Barangay (Hon. Roberto Dela Cruz)",
+    scope: "Brgy. Barangka",
+    badge: "All Barangay Modules",
+    icon: "🏛️",
+    tenantId: "tnt-barangka",
+  },
+  {
+    email: "secretary@barangka.gov.ph",
+    role: "BARANGAY_SECRETARY",
+    title: "Barangay Secretary (Ma. Theresa Villanueva)",
+    scope: "Brgy. Barangka",
+    badge: "RBI, Clearances & Ordinances",
+    icon: "📝",
+    tenantId: "tnt-barangka",
+  },
+  {
+    email: "treasurer@barangka.gov.ph",
+    role: "BARANGAY_TREASURER",
+    title: "Barangay Treasurer (Eduardo Ramos)",
+    scope: "Brgy. Barangka",
+    badge: "e-OR, Cashbook & Budget",
+    icon: "🏦",
+    tenantId: "tnt-barangka",
+  },
+  {
+    email: "it@barangka.gov.ph",
+    role: "IT_OFFICER",
+    title: "IT Officer / DPO (Kevin Mendoza)",
+    scope: "Brgy. Barangka",
+    badge: "Users, Audit & DPO",
+    icon: "💻",
+    tenantId: "tnt-barangka",
+  },
+  {
+    email: "lupon@barangka.gov.ph",
+    role: "LUPON_SECRETARY",
+    title: "Lupon Secretary (Atty. Ricardo Bautista)",
+    scope: "Brgy. Barangka",
+    badge: "Katarungang Pambarangay",
+    icon: "⚖️",
+    tenantId: "tnt-barangka",
+  },
+  {
+    email: "vawdesk@barangka.gov.ph",
+    role: "VAW_DESK_OFFICER",
+    title: "VAW Desk Officer (Clarissa Morales)",
+    scope: "Brgy. Barangka",
+    badge: "RA 9262 & BPO Vault",
+    icon: "💜",
+    tenantId: "tnt-barangka",
+  },
+  {
+    email: "bdc@barangka.gov.ph",
+    role: "BDC_OFFICER",
+    title: "BDC Coordinator (Engr. Noel Pascual)",
+    scope: "Brgy. Barangka",
+    badge: "AIP, BDP & Projects",
+    icon: "🧭",
+    tenantId: "tnt-barangka",
+  },
+  {
+    email: "bdrrmc@barangka.gov.ph",
+    role: "BDRRMC_OFFICER",
+    title: "BDRRMC Focal (Capt. Danilo Soriano)",
+    scope: "Brgy. Barangka",
+    badge: "Alerts, Evacuation & Relief",
+    icon: "🌀",
+    tenantId: "tnt-barangka",
+  },
+  {
+    email: "tanod@barangka.gov.ph",
+    role: "TANOD",
+    title: "Chief Tanod (Rogelio Navarro)",
+    scope: "Brgy. Barangka",
+    badge: "Patrol & Incident Log",
+    icon: "🚨",
+    tenantId: "tnt-barangka",
+  },
+  {
+    email: "bhw@barangka.gov.ph",
+    role: "BHW",
+    title: "BHW Lead (Lorna Tolentino)",
+    scope: "Brgy. Barangka",
+    badge: "Field Health & Census",
+    icon: "💉",
+    tenantId: "tnt-barangka",
+  },
+];
+
 export default function LoginPage() {
-  const [email, setEmail] = React.useState("kapitan@barangka.gov.ph");
-  const [password, setPassword] = React.useState(DEMO_PASSWORD);
+  const [email, setEmail] = React.useState("admin@cbms.gov.ph");
+  const [password, setPassword] = React.useState(DEFAULT_PASSWORD);
+  const [showPassword, setShowPassword] = React.useState(false);
   const [totp, setTotp] = React.useState("");
   const [stage, setStage] = React.useState<Stage>("credentials");
   const [secret, setSecret] = React.useState<string | null>(null);
@@ -34,47 +153,50 @@ export default function LoginPage() {
   const [notice, setNotice] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
-  const [booting, setBooting] = React.useState(false);
-
-  // First-time SaaS user tour guide state (enabled by default for first-timers, persisted in localStorage)
-  const [tourEnabled, setTourEnabled] = React.useState(false);
+  const [booting] = React.useState(false);
+  const [apiOnline, setApiOnline] = React.useState<boolean | null>(null);
 
   React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = window.localStorage.getItem("cbms.login_guide_enabled");
-      if (stored === null || stored === "true") {
-        setTourEnabled(true);
-      }
-    }
+    let active = true;
+    fetch(`${API_URL}/tenants`)
+      .then((r) => {
+        if (active) setApiOnline(r.ok);
+      })
+      .catch(() => {
+        if (active) setApiOnline(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const handleToggleTour = (next: boolean) => {
-    setTourEnabled(next);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("cbms.login_guide_enabled", String(next));
-    }
-  };
-
-  function pick(next: string) {
-    setEmail(next);
-    setPassword(DEMO_PASSWORD);
-    setTotp("");
-    setStage("credentials");
-    setSecret(null);
-    setOtpauthUri(null);
-    setError(null);
-    setNotice(null);
-  }
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function performLogin(
+    targetEmail: string,
+    targetPassword: string,
+    targetTotp?: string,
+    targetTenantId?: string,
+  ) {
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
-      const res = await login(email.trim(), password, totp.trim() || undefined);
+      const res = await login(
+        targetEmail.trim(),
+        targetPassword,
+        targetTotp?.trim() || undefined,
+        targetTenantId || undefined,
+      );
       if (res.token) {
-        window.location.href = "/dashboard";
+        const isSuperAdminUser =
+          res.user?.role === "SYSTEM_ADMIN" ||
+          res.user?.roles?.includes("SYSTEM_ADMIN") ||
+          res.user?.scope === "platform" ||
+          targetEmail.toLowerCase().startsWith("admin@") ||
+          targetEmail.toLowerCase().includes("superadmin") ||
+          targetEmail.toLowerCase().includes("orcha") ||
+          targetEmail.toLowerCase() === "it@cbms.gov.ph";
+        window.location.href = isSuperAdminUser ? "/super-admin" : "/dashboard";
         return;
       }
       if (res.mfaEnrollmentRequired) {
@@ -95,11 +217,17 @@ export default function LoginPage() {
       setError("Unexpected response from the authentication service.");
     } catch (err) {
       const e2 = err as ApiError;
-      setError(e2?.message ?? "Sign-in failed.");
+      setError(e2?.message ?? "Sign-in failed. Please verify your email and password.");
     } finally {
       setBusy(false);
     }
   }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    await performLogin(email, password, totp);
+  }
+
 
   if (booting) {
     return (
@@ -165,7 +293,7 @@ export default function LoginPage() {
                 <path d="M 0,-115 L -8,-58 L 8,-58 Z M -10,-105 L -14,-58 L 0,-58 Z M 10,-105 L 0,-58 L 14,-58 Z" transform="rotate(315)" />
               </g>
               <polygon points="50,45 54,58 68,58 57,66 61,79 50,71 39,79 43,66 32,58 46,58" />
-              <polygon points="50,555 54,542 68,542 57,534 61,521 50,529 39,521 43,534 32,542 46,542" />
+              <polygon points="50,555 54,542 68,542 57,534 61,521 50,529 39,521 43,66 32,542 46,542" />
               <polygon points="460,300 447,304 447,318 439,307 426,311 434,300 426,289 439,293 447,282 447,296" />
             </g>
           </svg>
@@ -233,167 +361,286 @@ export default function LoginPage() {
       </header>
 
       {/* Main Login Area */}
-      <div style={{ flex: 1, display: "grid", placeItems: "center", padding: "30px 20px" }}>
-        <div className="cbms-auth__card" style={{ maxWidth: 480 }}>
+      <div style={{ flex: 1, display: "grid", placeItems: "center", padding: "24px 20px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+            gap: 24,
+            maxWidth: 980,
+            width: "100%",
+            alignItems: "start",
+          }}
+        >
+          {/* Left Card: Official Login & Multitenant Workspace Selector */}
+          <div className="cbms-auth__card" style={{ maxWidth: "100%", width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 11, marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+                <div className="cbms-sidebar__logo">CB</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: "var(--cbms-navy)" }}>
+                    Barangay Console
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "var(--cbms-muted)" }}>
+                    Multi-Tenant Government Operations Portal
+                  </div>
+                </div>
+              </div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: 999,
+                  background: apiOnline ? "#dcfce7" : apiOnline === false ? "#fef3c7" : "#f1f5f9",
+                  color: apiOnline ? "#166534" : apiOnline === false ? "#92400e" : "#475569",
+                  border: `1px solid ${apiOnline ? "#86efac" : apiOnline === false ? "#fde68a" : "#cbd5e1"}`,
+                }}
+                title={apiOnline ? `Connected to ${API_URL}` : "Offline fallback active"}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: apiOnline ? "#16a34a" : apiOnline === false ? "#d97706" : "#94a3b8",
+                  }}
+                />
+                {apiOnline ? "Live API Connected" : apiOnline === false ? "Offline Mode" : "Checking API…"}
+              </span>
+            </div>
+
+            {error && <Alert tone="danger">{error}</Alert>}
+            {notice && !error && <Alert tone="info">{notice}</Alert>}
+
+            <form onSubmit={submit}>
+
+                <Field label="Email Address">
+                  <input
+                    className="cbms-input"
+                    type="email"
+                    autoComplete="username"
+                    placeholder="admin@cbms.gov.ph"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Password">
+                  <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                    <input
+                      className="cbms-input"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={{ paddingRight: 64 }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      style={{
+                        position: "absolute",
+                        right: 8,
+                        background: "transparent",
+                        border: "none",
+                        color: "var(--cbms-navy)",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        padding: "4px 6px",
+                      }}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                </Field>
+
+                {stage === "enroll" && secret && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div className="cbms-label">Authenticator secret</div>
+                    <div className="adm-secret">{secret}</div>
+                    {otpauthUri && (
+                      <>
+                        <div className="cbms-label" style={{ marginTop: 10 }}>
+                          otpauth URI
+                        </div>
+                        <div className="adm-secret">{otpauthUri}</div>
+                      </>
+                    )}
+                    <div style={{ fontSize: 11.5, color: "var(--cbms-muted)", marginTop: 6 }}>
+                      Add it to Google Authenticator / Authy, then enter the current 6-digit code.
+                    </div>
+                  </div>
+                )}
+
+                {needsTotp && (
+                  <Field label="6-digit code" hint="From your authenticator app.">
+                    <input
+                      className="cbms-input"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      autoComplete="one-time-code"
+                      value={totp}
+                      onChange={(e) => setTotp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="000000"
+                      required
+                    />
+                  </Field>
+                )}
+
+                <div style={{ width: "100%", marginTop: 12 }}>
+                  <Button type="submit" variant="primary" disabled={busy} style={{ width: "100%" }}>
+                    {busy ? "Signing in…" : needsTotp ? "Verify & sign in" : "Sign in to Barangay Workspace"}
+                  </Button>
+                </div>
+              </form>
+
+            <div
+              style={{
+                marginTop: 16,
+                paddingTop: 12,
+                borderTop: "1px solid var(--cbms-line)",
+                textAlign: "center",
+                fontSize: 11,
+                color: "var(--cbms-muted)",
+              }}
+            >
+              Protected by JWT Bearer + Refresh Rotation, PostgreSQL RBAC & DILG Multi-Tenant Isolation.
+            </div>
+          </div>
+
+          {/* Right Card: Official & Admin Credentials Quick-Fill Directory */}
           <div
+            className="cbms-auth__card"
             style={{
-              background: "#eef3fc",
-              border: "1px solid #c9d8f3",
-              borderRadius: 8,
-              padding: "8px 12px",
-              marginBottom: 16,
-              fontSize: 12,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              maxWidth: "100%",
+              width: "100%",
+              background: "rgba(255, 255, 255, 0.97)",
+              padding: "20px 22px",
             }}
           >
-            <span style={{ color: "var(--cbms-muted)" }}>Looking for citizen services?</span>
-            <Link
-              href="/"
-              style={{ fontWeight: 700, color: "var(--cbms-navy)", textDecoration: "underline" }}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: "var(--cbms-navy)" }}>
+                  🔑 Official & Admin Credentials
+                </div>
+                <div style={{ fontSize: 11.5, color: "var(--cbms-muted)" }}>
+                  Click any account to populate credentials or sign in immediately
+                </div>
+              </div>
+              <code
+                style={{
+                  background: "#eef3fc",
+                  color: "var(--cbms-navy)",
+                  border: "1px solid #c9d8f3",
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              >
+                Pass: {DEFAULT_PASSWORD}
+              </code>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+                maxHeight: 450,
+                overflowY: "auto",
+                paddingRight: 4,
+                marginTop: 10,
+              }}
             >
-              Go to Public Portal →
-            </Link>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 6 }}>
-            <div className="cbms-sidebar__logo">CB</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "var(--cbms-navy)" }}>
-                Barangay Console
-              </div>
-              <div style={{ fontSize: 11.5, color: "var(--cbms-muted)" }}>
-                Centralized Barangay Management System
-              </div>
-            </div>
-          </div>
-          <p style={{ fontSize: 12, color: "var(--cbms-muted)", margin: "10px 0 16px" }}>
-            Compliant with DILG-mandated LGUSS-BIMS (MC 2025-104). Select your official barangay role or BBI account below.
-          </p>
-
-        {error && <Alert tone="danger">{error}</Alert>}
-        {notice && !error && <Alert tone="info">{notice}</Alert>}
-
-        <form onSubmit={submit}>
-          <Field label="Email Account">
-            <input
-              className="cbms-input"
-              type="text"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Password">
-            <input
-              className="cbms-input"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </Field>
-
-          {stage === "enroll" && secret && (
-            <div style={{ marginBottom: 14 }}>
-              <div className="cbms-label">Authenticator secret</div>
-              <div className="adm-secret">{secret}</div>
-              {otpauthUri && (
-                <>
-                  <div className="cbms-label" style={{ marginTop: 10 }}>
-                    otpauth URI
-                  </div>
-                  <div className="adm-secret">{otpauthUri}</div>
-                </>
-              )}
-              <div style={{ fontSize: 11.5, color: "var(--cbms-muted)", marginTop: 6 }}>
-                Add it to Google Authenticator / Authy, then enter the current 6-digit code.
-              </div>
-            </div>
-          )}
-
-          {needsTotp && (
-            <Field label="6-digit code" hint="From your authenticator app.">
-              <input
-                className="cbms-input"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                autoComplete="one-time-code"
-                value={totp}
-                onChange={(e) => setTotp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="000000"
-                required
-              />
-            </Field>
-          )}
-
-          <div id="tour-submit-btn" style={{ width: "100%", marginTop: 8 }}>
-            <Button type="submit" variant="primary" disabled={busy} style={{ width: "100%" }}>
-              {busy ? "Signing in…" : needsTotp ? "Verify & sign in" : "Sign in to Console"}
-            </Button>
-          </div>
-        </form>
-
-        {/* Quick Demo Role Picker */}
-        <div id="tour-role-selector" style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--cbms-line)" }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--cbms-navy)", marginBottom: 8 }}>
-            🎭 Quick Role Selector (DILG MC 2025-104 §4.5.3):
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            {DEMO_ACCOUNTS.map((acc) => {
-              const active = email === acc.email;
-              const roleIdKey = acc.email.split("@")[0];
-              return (
-                <button
-                  id={`tour-role-${roleIdKey}`}
-                  key={acc.email}
-                  type="button"
-                  onClick={() => pick(acc.email)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    padding: "6px 8px",
-                    borderRadius: 6,
-                    border: active ? "1.5px solid #2563eb" : "1px solid var(--color-border, #e2e8f0)",
-                    background: active ? "rgba(37, 99, 235, 0.08)" : "transparent",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontSize: "0.78rem",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span style={{ fontSize: "1rem" }}>{acc.icon}</span>
-                  <div style={{ overflow: "hidden" }}>
-                    <div style={{ fontWeight: active ? 700 : 500, whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>
-                      {acc.label}
+              {OFFICIAL_CREDENTIALS.map((cred) => {
+                const isSelected = email.trim().toLowerCase() === cred.email.toLowerCase();
+                return (
+                  <div
+                    key={cred.email}
+                    onClick={() => {
+                      setStage("credentials");
+                      setEmail(cred.email);
+                      setPassword(DEFAULT_PASSWORD);
+                      setError(null);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      padding: "8px 10px",
+                      borderRadius: 8,
+                      border: isSelected ? "1.5px solid #2563eb" : "1px solid #e2e8f0",
+                      background: isSelected ? "#eff6ff" : "#f8fafc",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+                      <span style={{ fontSize: 18, flexShrink: 0 }}>{cred.icon}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: 12.5,
+                            color: "#0f172a",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {cred.title}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 1 }}>
+                          <code style={{ fontSize: 11, color: "#1d4ed8", fontWeight: 600 }}>
+                            {cred.email}
+                          </code>
+                          <span style={{ fontSize: 10.5, color: "#64748b" }}>• {cred.badge}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: "0.68rem", color: "#64748b", whiteSpace: "nowrap" }}>
-                      {acc.roleTag}
-                    </div>
+
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setStage("credentials");
+                        setEmail(cred.email);
+                        setPassword(DEFAULT_PASSWORD);
+                        performLogin(cred.email, DEFAULT_PASSWORD);
+                      }}
+                      style={{
+                        flexShrink: 0,
+                        background: isSelected ? "var(--cbms-navy, #0a2463)" : "#fff",
+                        color: isSelected ? "#fff" : "var(--cbms-navy, #0a2463)",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: 6,
+                        padding: "5px 10px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: busy ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      Sign In →
+                    </button>
                   </div>
-                </button>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
     </div>
-
-    {/* Static Right-Side Chat-Style UI Toggle (similar to website live chat launchers) */}
-    <GuideToggle enabled={tourEnabled} onToggle={handleToggleTour} />
-
-    {/* Interactive SaaS Tour Guide with Mouse Pointer */}
-    <LoginTourGuide
-      enabled={tourEnabled}
-      onToggle={handleToggleTour}
-      onSelectRole={pick}
-      currentEmail={email}
-    />
-  </div>
   );
 }
+

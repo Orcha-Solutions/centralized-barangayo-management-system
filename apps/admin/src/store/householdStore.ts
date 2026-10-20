@@ -19,8 +19,9 @@ export const useHouseholdStore = create<HouseholdState>((set, getStore) => ({
   fetchHouseholds: async () => {
     set({ loading: true, error: null });
     try {
-      const data = await get<Household[]>("/households");
-      set({ households: data, loading: false });
+      const data = await get<any>("/households");
+      const list = Array.isArray(data) ? data : (data?.data || []);
+      set({ households: list, loading: false });
     } catch (err: any) {
       set({ error: err.message || "Failed to fetch households", loading: false });
     }

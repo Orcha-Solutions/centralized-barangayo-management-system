@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Alert, Button, Field, Loading, MockBanner, Spinner } from "@cbms/ui";
+import { Alert, Button, Field, Loading, Spinner } from "@cbms/ui";
 import { clearSession, getStoredUser, getToken, login, logout, useApi } from "@cbms/api-client";
 import "./citizen.css";
 
@@ -1644,7 +1644,6 @@ export default function CitizenHubPage() {
             </Link>
           </div>
         </div>
-        <MockBanner />
       </footer>
 
       {/* SOS Modal */}

@@ -78,6 +78,16 @@ export default function AppointmentsPage() {
     personSearch ? `/inhabitants${qs({ q: personSearch, pageSize: 6 })}` : null,
   );
 
+  React.useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && showNew) {
+        setShowNew(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showNew]);
+
   async function book(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -139,8 +149,8 @@ export default function AppointmentsPage() {
         exclusive
         actions={
           mayEncode ? (
-            <Button variant="primary" onClick={() => setShowNew((v) => !v)}>
-              {showNew ? "Close" : "+ Book"}
+            <Button variant="primary" onClick={() => setShowNew(true)}>
+              + Book
             </Button>
           ) : undefined
         }
@@ -186,13 +196,77 @@ export default function AppointmentsPage() {
         jumping the line.
       </Alert>
 
+      {/* ========================================================================= */}
+      {/* CONTENT DRAWER: BOOK AN APPOINTMENT (SLIDE-OVER FROM RIGHT) */}
+      {/* ========================================================================= */}
       {showNew && mayEncode && (
-        <>
-          <div style={{ height: 16 }} />
-          <Panel title="Book an appointment">
-            <form onSubmit={book}>
-              <div className="adm-form-grid">
-                <Field label="Service">
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.45)",
+            zIndex: 1500,
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+          onClick={() => setShowNew(false)}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "520px",
+              backgroundColor: "var(--cbms-surface, #ffffff)",
+              height: "100%",
+              boxShadow: "-6px 0 25px rgba(0,0,0,0.2)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid var(--cbms-border)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                backgroundColor: "rgba(0,0,0,0.02)",
+              }}
+            >
+              <div>
+                <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, color: "var(--cbms-navy)" }}>
+                  📅 Book an Appointment
+                </h3>
+                <span style={{ fontSize: "0.8rem", color: "var(--cbms-muted)" }}>
+                  Schedule counter transaction · Republic Act 11032 Citizen&apos;s Charter
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNew(false)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  fontSize: 20,
+                  cursor: "pointer",
+                  color: "var(--cbms-muted)",
+                  padding: "4px 8px",
+                  lineHeight: 1,
+                }}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Drawer Form Body */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
+              <form onSubmit={book} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <Field label="Service" hint="Category of transaction requested at the hall">
                   <select
                     className="cbms-select"
                     value={form.service}
@@ -205,9 +279,10 @@ export default function AppointmentsPage() {
                     ))}
                   </select>
                 </Field>
+
                 <Field
                   label="Date & time"
-                  hint="The queue number is assigned by the hall on the day."
+                  hint="The queue ticket number is assigned by the hall on the day."
                 >
                   <input
                     className="cbms-input"
@@ -217,68 +292,89 @@ export default function AppointmentsPage() {
                     required
                   />
                 </Field>
-              </div>
 
-              <Field
-                label="Resident (optional)"
-                hint="Leave blank for a walk-in booked at the counter without a resident record."
-              >
-                {picked ? (
-                  <div className="adm-row">
-                    <Chip tone="navy">{fullName(picked)}</Chip>
-                    <Button size="sm" type="button" onClick={() => setPicked(null)}>
-                      Clear
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="adm-row">
-                    <input
-                      className="cbms-input cbms-input--search"
-                      placeholder="Search resident by name or PhilSys no.…"
-                      value={personQ}
-                      onChange={(e) => setPersonQ(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          setPersonSearch(personQ.trim());
-                        }
-                      }}
-                    />
-                    <Button size="sm" type="button" onClick={() => setPersonSearch(personQ.trim())}>
-                      Search
-                    </Button>
-                  </div>
-                )}
-              </Field>
+                <Field
+                  label="Resident (optional)"
+                  hint="Leave blank for a walk-in booked at the counter without a resident record."
+                >
+                  {picked ? (
+                    <div className="adm-row" style={{ marginTop: 4 }}>
+                      <Chip tone="navy">{fullName(picked)}</Chip>
+                      <Button size="sm" type="button" onClick={() => setPicked(null)}>
+                        Clear
+                      </Button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div className="adm-row">
+                        <input
+                          className="cbms-input cbms-input--search"
+                          placeholder="Search resident by name or PhilSys no.…"
+                          value={personQ}
+                          onChange={(e) => setPersonQ(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              setPersonSearch(personQ.trim());
+                            }
+                          }}
+                        />
+                        <Button size="sm" type="button" onClick={() => setPersonSearch(personQ.trim())}>
+                          Search
+                        </Button>
+                      </div>
 
-              {!picked && personSearch && (
-                <div className="adm-chiprow" style={{ marginBottom: 12 }}>
-                  {people.loading && <span className="adm-muted">Searching…</span>}
-                  {!people.loading && !people.data?.items.length && (
-                    <span className="adm-muted">No resident matches “{personSearch}”.</span>
+                      {personSearch && (
+                        <div className="adm-chiprow" style={{ marginTop: 4, flexWrap: "wrap" }}>
+                          {people.loading && <span className="adm-muted">Searching…</span>}
+                          {!people.loading && !people.data?.items.length && (
+                            <span className="adm-muted">No resident matches “{personSearch}”.</span>
+                          )}
+                          {(people.data?.items ?? []).map((p) => (
+                            <Button
+                              key={p.id}
+                              size="sm"
+                              type="button"
+                              onClick={() => {
+                                setPicked(p);
+                                setPersonSearch("");
+                              }}
+                            >
+                              {fullName(p)}
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
-                  {(people.data?.items ?? []).map((p) => (
-                    <Button
-                      key={p.id}
-                      size="sm"
-                      type="button"
-                      onClick={() => {
-                        setPicked(p);
-                        setPersonSearch("");
-                      }}
-                    >
-                      {fullName(p)}
-                    </Button>
-                  ))}
-                </div>
-              )}
+                </Field>
 
-              <Button type="submit" variant="primary" disabled={busy || !form.scheduledAt}>
-                {busy ? "Booking…" : "Book appointment"}
-              </Button>
-            </form>
-          </Panel>
-        </>
+                <div
+                  style={{
+                    backgroundColor: "rgba(0,0,0,0.02)",
+                    border: "1px solid var(--cbms-border)",
+                    borderRadius: 6,
+                    padding: "12px 14px",
+                    fontSize: "0.82rem",
+                    color: "var(--cbms-muted)",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  ℹ️ <strong>RA 11032 Queue Discipline:</strong> Booked appointments generate an auditable queue ticket upon arrival. The check-in timestamp marks the start of the service clock for Anti-Red Tape Authority (ARTA) compliance.
+                </div>
+
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
+                  <Button type="button" onClick={() => setShowNew(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="primary" disabled={busy || !form.scheduledAt}>
+                    {busy ? "Booking…" : "Book appointment"}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
 
       <div style={{ height: 16 }} />

@@ -16,8 +16,17 @@ enum RecordSource {
 
 Table Tenant {
   id String [pk, default: `cuid()`]
-  name String
-  subdomain String [unique]
+  code String [unique, note: 'Unique tenant slug, e.g. barangka, calumpang']
+  name String [note: 'Display name of the tenant barangay']
+  subdomain String [unique, note: 'Dedicated routing subdomain, e.g. barangka.cbms.gov.ph']
+  customDomain String [unique]
+  barangayId String [unique, note: 'Strictly dictates the specific barangay instance']
+  cityId String [note: 'Parent LGU / City jurisdiction']
+  psgcCode String [unique, note: 'Philippine Standard Geographic Code']
+  status BarangayStatus [default: 'active']
+  mode TenantMode [default: 'companion']
+  schemaName String [note: 'Optional schema partition namespace']
+  settings Json [note: 'Tenant configuration, feature flags, brand colors, SLAs']
   createdAt DateTime [default: `now()`]
   updatedAt DateTime
 }
@@ -142,6 +151,7 @@ Table User {
   mfaEnabled Boolean [default: false]
   mfaSecret String
   barangayId String
+  tenantId String
   cityId String
   inhabitantId String [unique]
   lastLoginAt DateTime
@@ -1944,4 +1954,6 @@ Ref: Passkey.userId > User.id
 Ref: OfficialReceipt.cancelledById > User.id
 Ref: DisbursementBatch.preparedById > User.id
 Ref: DisbursementBatch.approvedById > User.id
+Ref: User.tenantId > Tenant.id
+Ref: Tenant.barangayId - Barangay.id
 

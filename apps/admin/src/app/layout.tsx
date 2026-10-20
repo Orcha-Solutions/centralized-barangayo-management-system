@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "@cbms/ui/styles.css";
 import "./admin.css";
 import { PwaRegister } from "../components/PwaRegister";
+import { QueryProvider } from "../components/QueryProvider";
 
 export const metadata: Metadata = {
   title: "Barangay Console — CBMS",
@@ -31,9 +32,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <PwaRegister />
-        {children}
+        <QueryProvider>
+          <PwaRegister />
+          {children}
+        </QueryProvider>
       </body>
     </html>
   );
 }
+

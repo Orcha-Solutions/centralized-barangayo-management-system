@@ -243,6 +243,20 @@ html.dark .cbms-panel__title { color: var(--cbms-gold); }
 .cbms-btn--sm { height: 30px; padding: 0 10px; font-size: 12.5px; }
 
 .cbms-table-wrap { overflow-x: auto; }
+.cbms-table-wrap--sticky {
+  overflow-y: auto;
+  position: relative;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+.cbms-table-wrap--sticky .cbms-table { border-collapse: separate; border-spacing: 0; }
+.cbms-table-wrap--sticky .cbms-table th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--cbms-white);
+  border-bottom: 2px solid var(--cbms-line);
+}
 .cbms-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .cbms-table th {
   text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
@@ -360,6 +374,24 @@ html.dark .cbms-table__primary { color: var(--cbms-gold); }
   width: 100%; padding: 22px; border-radius: var(--cbms-radius-lg);
   background: var(--cbms-red); color: #fff; border: none;
   font-size: 17px; font-weight: 800; cursor: pointer; letter-spacing: .02em;
+}
+
+/* ---------- Skeleton Loading ---------- */
+@keyframes cbms-skeleton-pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.25; }
+  100% { opacity: 0.6; }
+}
+
+.cbms-skeleton {
+  background: var(--cbms-line);
+  border-radius: 4px;
+  animation: cbms-skeleton-pulse 1.4s ease-in-out infinite;
+  display: inline-block;
+}
+
+html.dark .cbms-skeleton {
+  background: #334155;
 }
 .cbms-sos:active { background: #a50d1e; }
 

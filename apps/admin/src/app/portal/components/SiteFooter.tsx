@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { MockBanner } from "@cbms/ui";
 
 export function SiteFooter({
   barangayName,
@@ -90,7 +89,6 @@ export function SiteFooter({
           <span>Republic of the Philippines</span>
         </div>
       </div>
-      <MockBanner />
     </footer>
   );
 }

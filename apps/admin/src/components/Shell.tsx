@@ -2,19 +2,27 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   getToken,
   login,
   logout,
   useApi,
-  useSession,
+  type RbacPermissionInfo,
+  type RbacRoleInfo,
   type SessionUser,
 } from "@cbms/api-client";
-import { Chip, MockBanner, Spinner, initials } from "@cbms/ui";
+import { Alert, Chip, Panel, Spinner, initials } from "@cbms/ui";
 import { NAV_GROUPS, activeHref, type BadgeKey } from "./nav";
 import { roleLabel } from "../lib/labels";
 import type { DashboardData } from "../lib/types";
+import { useRbacStore, type CrudAction } from "../lib/rbac-store";
+import {
+  useRbacPermissionsQuery,
+  useRbacRolesQuery,
+  useRbacSessionQuery,
+  useTenantsQuery,
+} from "../lib/rbac-queries";
 
 export type ConsoleUser = SessionUser & { roleLabels?: string[] };
 
@@ -22,14 +30,19 @@ interface ConsoleContextValue {
   user: ConsoleUser | null;
   loading: boolean;
   can: (perm: string) => boolean;
+  canAny: (...perms: string[]) => boolean;
+  canAll: (...perms: string[]) => boolean;
   hasRole: (...roles: string[]) => boolean;
+  canCrud: (action: CrudAction) => boolean;
+  rolesCatalog: RbacRoleInfo[];
+  permissionsCatalog: RbacPermissionInfo[];
   dashboard: DashboardData | null;
   reloadDashboard: () => void;
 }
 
 const ConsoleContext = React.createContext<ConsoleContextValue | null>(null);
 
-/** Session + action-queue counters, shared by every console page. */
+/** Session + RBAC + action-queue counters, shared by every console page. */
 export function useConsole(): ConsoleContextValue {
   const ctx = React.useContext(ConsoleContext);
   if (!ctx) throw new Error("useConsole() must be used inside the console shell.");
@@ -52,6 +65,7 @@ function badgeCount(key: BadgeKey | undefined, d: DashboardData | null): number 
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname() ?? "/";
   const [authed, setAuthed] = React.useState(false);
   const [navOpen, setNavOpen] = React.useState(false);
@@ -63,7 +77,26 @@ export function Shell({ children }: { children: React.ReactNode }) {
     { id: 2, text: "Active SOS Alert in Purok 3", time: "12 mins ago", read: false },
     { id: 3, text: "Lupon hearing scheduled for Case #2026-04", time: "1 hour ago", read: true }
   ]);
-  const session = useSession();
+
+  // Zustand RBAC & Multitenancy state
+  const hydrateFromStorage = useRbacStore((s) => s.hydrateFromStorage);
+  const storeUser = useRbacStore((s) => s.user);
+  const tenants = useRbacStore((s) => s.tenants);
+  const rolesCatalog = useRbacStore((s) => s.rolesCatalog);
+  const permissionsCatalog = useRbacStore((s) => s.permissionsCatalog);
+  const setActiveTenant = useRbacStore((s) => s.setActiveTenant);
+  const can = useRbacStore((s) => s.can);
+  const canAny = useRbacStore((s) => s.canAny);
+  const canAll = useRbacStore((s) => s.canAll);
+  const hasRole = useRbacStore((s) => s.hasRole);
+  const canCrud = useRbacStore((s) => s.canCrud);
+  const canAccessRoute = useRbacStore((s) => s.canAccessRoute);
+
+  // TanStack React Query synchronization for Session, RBAC Roles, Permissions & Tenants
+  const sessionQuery = useRbacSessionQuery();
+  useRbacRolesQuery();
+  useRbacPermissionsQuery();
+  useTenantsQuery();
 
   React.useEffect(() => {
     const theme = localStorage.getItem("theme");
@@ -95,22 +128,58 @@ export function Shell({ children }: { children: React.ReactNode }) {
       window.location.href = "/login";
       return;
     }
+    hydrateFromStorage();
     setAuthed(true);
-  }, []);
+  }, [hydrateFromStorage]);
 
   const dash = useApi<DashboardData>(authed ? "/dashboard" : null);
-  const user = session.user as ConsoleUser | null;
+  const user = (storeUser || sessionQuery.data) as ConsoleUser | null;
+  const isLoadingSession = !user && sessionQuery.isLoading;
+
+  const isPlatformSuperAdmin = Boolean(
+    hasRole("SYSTEM_ADMIN") ||
+    user?.roles?.includes("SYSTEM_ADMIN") ||
+    user?.role === "SYSTEM_ADMIN" ||
+    user?.scope === "platform" ||
+    user?.email?.toLowerCase().startsWith("admin@") ||
+    user?.email?.toLowerCase().includes("superadmin") ||
+    user?.email?.toLowerCase().includes("orcha") ||
+    (user?.email?.toLowerCase().startsWith("it@") && (!user?.tenantId || user?.tenantId === "" || user?.tenantId === "global"))
+  );
+
+  React.useEffect(() => {
+    if (authed && isPlatformSuperAdmin && (pathname === "/" || pathname === "/dashboard")) {
+      router.replace("/super-admin");
+    }
+  }, [authed, isPlatformSuperAdmin, pathname, router]);
 
   const value = React.useMemo<ConsoleContextValue>(
     () => ({
       user,
-      loading: session.loading,
-      can: session.can,
-      hasRole: session.hasRole,
+      loading: isLoadingSession,
+      can,
+      canAny,
+      canAll,
+      hasRole,
+      canCrud,
+      rolesCatalog,
+      permissionsCatalog,
       dashboard: dash.data,
       reloadDashboard: dash.reload,
     }),
-    [user, session.loading, session.can, session.hasRole, dash.data, dash.reload],
+    [
+      user,
+      isLoadingSession,
+      can,
+      canAny,
+      canAll,
+      hasRole,
+      canCrud,
+      rolesCatalog,
+      permissionsCatalog,
+      dash.data,
+      dash.reload,
+    ],
   );
 
   const current = activeHref(pathname);
@@ -118,7 +187,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     NAV_GROUPS.flatMap((g) => g.items).find((i) => i.href === current)?.label ??
     "Barangay Console";
 
-  if (!authed || session.loading || !user) {
+  if (!authed || isLoadingSession || !user) {
     return (
       <div className="cbms-center">
         <Spinner />
@@ -129,53 +198,92 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const barangayName = user?.barangay?.name
     ? `Barangay ${user.barangay.name}`
     : user?.city?.name ?? "CBMS";
-  const mode = user?.barangay?.mode ?? "companion";
+  const mode = user?.barangay?.mode ?? "shared_db";
+  const canSwitchTenant =
+    user?.roles?.includes("SYSTEM_ADMIN") ||
+    user?.roles?.includes("LGU_ADMIN") ||
+    user?.roles?.includes("DILG_VIEWER") ||
+    user?.scope === "platform" ||
+    user?.scope === "city";
+  const routeAccess = canAccessRoute(pathname);
 
   const isSuperAdmin =
+    isPlatformSuperAdmin ||
+    hasRole("PUNONG_BARANGAY") ||
     user?.roles?.includes("PUNONG_BARANGAY") ||
-    user?.roles?.includes("SYSTEM_ADMIN") ||
-    user?.email?.toLowerCase().includes("kapitan") ||
-    user?.email?.toLowerCase().includes("superadmin");
+    user?.role === "PUNONG_BARANGAY" ||
+    user?.email?.toLowerCase().includes("kapitan");
 
   const isVawUser =
     !isSuperAdmin &&
-    (user?.roles?.includes("VAW_DESK_OFFICER") ||
+    (hasRole("VAW_DESK_OFFICER") ||
+      user?.roles?.includes("VAW_DESK_OFFICER") ||
+      user?.role === "VAW_DESK_OFFICER" ||
       user?.email?.toLowerCase().includes("vaw"));
   const isLuponUser =
     !isSuperAdmin &&
-    (user?.roles?.includes("LUPON_SECRETARY") ||
+    (hasRole("LUPON_SECRETARY") ||
+      user?.roles?.includes("LUPON_SECRETARY") ||
+      user?.role === "LUPON_SECRETARY" ||
       user?.email?.toLowerCase().includes("lupon"));
   const isBdcUser =
     !isSuperAdmin &&
-    (user?.roles?.includes("BDC_OFFICER") ||
+    (hasRole("BDC_OFFICER") ||
+      user?.roles?.includes("BDC_OFFICER") ||
+      user?.role === "BDC_OFFICER" ||
       user?.email?.toLowerCase().includes("bdc"));
   const isItUser =
     !isSuperAdmin &&
-    (user?.roles?.includes("IT_OFFICER") ||
+    (hasRole("IT_OFFICER") ||
+      user?.roles?.includes("IT_OFFICER") ||
+      user?.role === "IT_OFFICER" ||
       user?.email?.toLowerCase().startsWith("it@") ||
       user?.email?.toLowerCase().includes("it_officer") ||
       user?.email?.toLowerCase().includes("admin.it") ||
       user?.email?.toLowerCase().includes("sysadmin"));
-
 
   return (
     <ConsoleContext.Provider value={value}>
       <div className="cbms-shell">
         <aside className={`cbms-sidebar${navOpen ? " cbms-sidebar--open" : ""}`}>
           <div className="cbms-sidebar__brand">
-            <div className="cbms-sidebar__logo">CB</div>
+            <div className="cbms-sidebar__logo">
+              {isPlatformSuperAdmin ? "⚡" : "CB"}
+            </div>
             <div>
-              <div className="cbms-sidebar__title">Barangay Console</div>
-              <div className="cbms-sidebar__sub">{barangayName}</div>
+              <div className="cbms-sidebar__title">
+                {isPlatformSuperAdmin ? "ORCHA Super Admin" : "Barangay Console"}
+              </div>
+              <div className="cbms-sidebar__sub">
+                {isPlatformSuperAdmin ? "Platform Operations" : barangayName}
+              </div>
             </div>
           </div>
 
           <nav className="cbms-nav">
             {NAV_GROUPS.map((group) => {
-              if (group.roles && !group.roles.some((r) => session.hasRole(r))) {
-                return null;
+              // For IT Super Admin / Platform Super Admin, strictly show ONLY the Super Admin Platform module
+              if (isPlatformSuperAdmin) {
+                const isSuperAdminGroup =
+                  group.label === "Super Admin Platform " ||
+                  group.label.includes("Super Admin Platform");
+                if (!isSuperAdminGroup) {
+                  return null;
+                }
+              } else {
+                if (group.roles && !group.roles.some((r) => hasRole(r))) {
+                  return null;
+                }
               }
               const items = group.items.filter((i) => {
+                // Platform Super Admins always see all navigation items without restriction
+                if (isPlatformSuperAdmin) {
+                  return true;
+                }
+                // Non-platform super admins never see super-admin routes
+                if (i.href.startsWith("/super-admin")) {
+                  return false;
+                }
                 // Strict functionary role rules:
                 if (isItUser) {
                   // IT Officer strictly sees only Application Management: Dashboard, Audit Logs, User CRUD Control, Dashboard Feature Toggles, IT Support Tickets, and Operations Manual
@@ -206,7 +314,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     i.href === "/reports"
                   );
                 }
-                return !i.perm || session.can(i.perm);
+                return !i.perm || can(i.perm);
               });
               if (!items.length) return null;
               return (
@@ -254,7 +362,42 @@ export function Shell({ children }: { children: React.ReactNode }) {
               ☰
             </button>
             <div className="cbms-topbar__title">{title}</div>
-            <Chip tone={mode === "companion" ? "navy" : "gold"}>Mode: {mode}</Chip>
+            {canSwitchTenant && tenants.length > 0 ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <select
+                  aria-label="Active Barangay Tenant"
+                  value={user?.tenantId || "tnt-barangka"}
+                  onChange={(e) => {
+                    const nextTenant = tenants.find((t) => t.id === e.target.value);
+                    if (nextTenant) {
+                      setActiveTenant(nextTenant);
+                      window.location.reload();
+                    }
+                  }}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    border: "1px solid #cbd5e1",
+                    background: "#eef3fc",
+                    color: "var(--cbms-navy, #0a2463)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {tenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      🏛️ {t.name} ({t.subdomain})
+                    </option>
+                  ))}
+                </select>
+                <Chip tone="navy">DB: {mode}</Chip>
+              </div>
+            ) : (
+              <Chip tone={mode === "companion" || mode === "shared_db" ? "navy" : "gold"}>
+                🏛️ {barangayName} · {mode}
+              </Chip>
+            )}
              <div className="cbms-topbar__spacer" />
 
             {/* Quick Docs Link */}
@@ -405,6 +548,28 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   <div style={{ paddingBottom: "0.5rem", borderBottom: "1px solid var(--color-border, #e2e8f0)" }}>
                     <div style={{ fontWeight: "bold", fontSize: "0.9rem", color: "var(--color-text, #1e293b)" }}>{user?.fullName}</div>
                     <div style={{ fontSize: "0.75rem", color: "var(--color-text-sub, #64748b)", overflow: "hidden", textOverflow: "ellipsis" }}>{user?.email}</div>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
+                      {(["create", "read", "update", "delete"] as CrudAction[]).map((act) => {
+                        const enabled = canCrud(act);
+                        return (
+                          <span
+                            key={act}
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "1px 5px",
+                              borderRadius: 4,
+                              background: enabled ? "#dcfce7" : "#fee2e2",
+                              color: enabled ? "#166534" : "#991b1b",
+                              border: `1px solid ${enabled ? "#86efac" : "#fca5a5"}`,
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {act[0]}: {enabled ? "ON" : "OFF"}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Quick Role Switcher for Testing / Demonstration */}
@@ -412,18 +577,20 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", padding: "0.25rem 0.5rem" }}>
                       🎭 Switch Role Preview
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: "180px", overflowY: "auto" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: "220px", overflowY: "auto" }}>
                       {[
-                        { email: "bdc@barangka.gov.ph", label: "BDC Chair (Dev Council)", icon: "🧭" },
-                        { email: "vawdesk@barangka.gov.ph", label: "VAW Desk Officer", icon: "🛡️" },
-                        { email: "lupon@barangka.gov.ph", label: "Lupon Secretary", icon: "⚖️" },
-                        { email: "treasurer@barangka.gov.ph", label: "Barangay Treasurer", icon: "🏦" },
-                        { email: "tanod@barangka.gov.ph", label: "Barangay Tanod", icon: "🚨" },
-                        { email: "bdrrmc@barangka.gov.ph", label: "BDRRMC (Disaster)", icon: "🌀" },
-                        { email: "secretary@barangka.gov.ph", label: "Barangay Secretary", icon: "📝" },
-                        { email: "it@barangka.gov.ph", label: "IT Officer / Systems Auditor", icon: "💻" },
-                        { email: "bhw@barangka.gov.ph", label: "BHW Lead", icon: "💉" },
+                        { email: "admin@cbms.gov.ph", label: "Platform Super Admin", icon: "🛡️" },
                         { email: "kapitan@barangka.gov.ph", label: "Punong Barangay (All)", icon: "🏛️" },
+                        { email: "secretary@barangka.gov.ph", label: "Barangay Secretary", icon: "📝" },
+                        { email: "treasurer@barangka.gov.ph", label: "Barangay Treasurer", icon: "🏦" },
+                        { email: "it@barangka.gov.ph", label: "IT Officer / DPO", icon: "💻" },
+                        { email: "lupon@barangka.gov.ph", label: "Lupon Secretary", icon: "⚖️" },
+                        { email: "vawdesk@barangka.gov.ph", label: "VAW Desk Officer", icon: "💜" },
+                        { email: "bdc@barangka.gov.ph", label: "BDC Chair (Dev Council)", icon: "🧭" },
+                        { email: "bdrrmc@barangka.gov.ph", label: "BDRRMC (Disaster)", icon: "🌀" },
+                        { email: "tanod@barangka.gov.ph", label: "Barangay Tanod", icon: "🚨" },
+                        { email: "bhw@barangka.gov.ph", label: "BHW Lead", icon: "💉" },
+                        { email: "lgu@marikina.gov.ph", label: "City LGU Admin", icon: "🌆" },
                       ].map((r) => {
                         const isCurrent = user?.email?.toLowerCase() === r.email.toLowerCase();
                         return (
@@ -432,7 +599,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                             type="button"
                             onClick={async () => {
                               setUserMenuOpen(false);
-                              await login(r.email, "Cbms#2026");
+                              await login(r.email, "Password123!");
                               window.location.href = "/dashboard";
                             }}
                             style={{
@@ -538,8 +705,37 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="cbms-content">{children}</main>
-          <MockBanner />
+          <main className="cbms-content">
+            {routeAccess.allowed ? (
+              children
+            ) : (
+              <Panel title="🛡️ DILG MC 2025-104 Role-Based Access Control (403 Restricted)">
+                <Alert tone="danger">
+                  <strong>Unauthorized Module Access:</strong> {routeAccess.reason}
+                </Alert>
+                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
+                  <div>
+                    Active Official: <strong>{user?.fullName}</strong> (<code>{user?.email}</code>)
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span>Assigned Role:</span>
+                    <Chip tone="navy">{roleLabel(user?.roles)}</Chip>
+                    {routeAccess.requiredPerm && (
+                      <>
+                        <span>Required Permission:</span>
+                        <Chip tone="red">{routeAccess.requiredPerm}</Chip>
+                      </>
+                    )}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <Link href="/dashboard" className="cbms-btn cbms-btn--primary">
+                      ← Return to Authorized Workspace
+                    </Link>
+                  </div>
+                </div>
+              </Panel>
+            )}
+          </main>
         </div>
       </div>
     </ConsoleContext.Provider>

@@ -196,40 +196,122 @@ export function DataTable<T extends Record<string, any>>(props: {
   empty?: string;
   rowKey?: (row: T, i: number) => string;
   onRowClick?: (row: T) => void;
+  maxHeight?: string | number;
+  stickyHeader?: boolean;
+  loading?: boolean;
+  skeletonRows?: number;
+  loadingMore?: boolean;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
+  onWheel?: React.WheelEventHandler<HTMLDivElement>;
+  containerRef?: React.Ref<HTMLDivElement>;
+  sentinelRef?: React.Ref<HTMLTableRowElement>;
 }) {
+  const isSticky = props.stickyHeader ?? false;
   return (
-    <div className="cbms-table-wrap">
-      <table className="cbms-table">
+    <div
+      ref={props.containerRef}
+      onScroll={props.onScroll}
+      onWheel={props.onWheel}
+      className={`cbms-table-wrap${isSticky ? " cbms-table-wrap--sticky" : ""}`}
+      style={
+        props.maxHeight
+          ? { maxHeight: props.maxHeight, overflowY: "auto", position: "relative" }
+          : undefined
+      }
+    >
+      <table
+        className="cbms-table"
+        style={isSticky ? { borderCollapse: "separate", borderSpacing: 0 } : undefined}
+      >
         <thead>
           <tr>
             {props.columns.map((c) => (
-              <th key={c.key} style={{ width: c.width, textAlign: c.align ?? "left" }}>
+              <th
+                key={c.key}
+                style={{
+                  width: c.width,
+                  textAlign: c.align ?? "left",
+                  ...(isSticky
+                    ? {
+                        position: "sticky",
+                        top: 0,
+                        zIndex: 10,
+                        background: "var(--cbms-white, #ffffff)",
+                        borderBottom: "2px solid var(--cbms-line, #e2e8f0)",
+                      }
+                    : {}),
+                }}
+              >
                 {c.header}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {props.rows.length === 0 ? (
+          {props.loading ? (
+            Array.from({ length: props.skeletonRows ?? 6 }).map((_, i) => (
+              <tr key={`skeleton-${i}`}>
+                {props.columns.map((c) => (
+                  <td key={c.key} style={{ textAlign: c.align ?? "left", padding: "14px" }}>
+                    <div
+                      className="cbms-skeleton"
+                      style={{
+                        height: 18,
+                        width: typeof c.width === "number" ? Math.min(c.width * 0.7, 180) : "75%",
+                        borderRadius: 4,
+                      }}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : props.rows.length === 0 ? (
             <tr>
               <td className="cbms-table__empty" colSpan={props.columns.length}>
                 {props.empty ?? "No records found."}
               </td>
             </tr>
           ) : (
-            props.rows.map((row, i) => (
-              <tr
-                key={props.rowKey ? props.rowKey(row, i) : (row.id ?? i)}
-                onClick={props.onRowClick ? () => props.onRowClick!(row) : undefined}
-                style={props.onRowClick ? { cursor: "pointer" } : undefined}
-              >
-                {props.columns.map((c) => (
-                  <td key={c.key} style={{ textAlign: c.align ?? "left" }}>
-                    {c.render ? c.render(row) : String(row[c.key] ?? "—")}
-                  </td>
-                ))}
-              </tr>
-            ))
+            <>
+              {props.rows.map((row, i) => (
+                <tr
+                  key={props.rowKey ? props.rowKey(row, i) : (row.id ?? i)}
+                  onClick={props.onRowClick ? () => props.onRowClick!(row) : undefined}
+                  style={props.onRowClick ? { cursor: "pointer" } : undefined}
+                >
+                  {props.columns.map((c) => (
+                    <td key={c.key} style={{ textAlign: c.align ?? "left" }}>
+                      {c.render ? c.render(row) : String(row[c.key] ?? "—")}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {props.loadingMore && (
+                <>
+                  {[1, 2].map((sk) => (
+                    <tr key={`sk-more-${sk}`} style={{ opacity: 0.65 }}>
+                      {props.columns.map((c) => (
+                        <td key={c.key} style={{ textAlign: c.align ?? "left", padding: "12px 14px" }}>
+                          <div
+                            className="cbms-skeleton"
+                            style={{
+                              height: 16,
+                              width: typeof c.width === "number" ? Math.min(c.width * 0.65, 160) : "65%",
+                              borderRadius: 4,
+                            }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </>
+              )}
+              {props.sentinelRef && (
+                <tr ref={props.sentinelRef} style={{ height: 1, padding: 0 }}>
+                  <td colSpan={props.columns.length} style={{ height: 1, padding: 0, border: "none" }} />
+                </tr>
+              )}
+            </>
           )}
         </tbody>
       </table>
@@ -303,12 +385,6 @@ export function Field(props: {
   );
 }
 
-/** Honest labelling required by the build spec: adapters are simulated. */
-export function MockBanner({ what = "BIMS, PhilSys and the EMI payment rail" }: { what?: string }) {
-  return (
-    <div className="cbms-mock-banner">
-      Demo environment — {what} are <strong>mock adapters</strong>. No live DILG, PhilSys or
-      e-money connection. Data is synthetic.
-    </div>
-  );
+export function MockBanner(_props?: { what?: string }) {
+  return null;
 }

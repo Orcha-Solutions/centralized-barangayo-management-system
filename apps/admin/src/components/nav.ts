@@ -28,6 +28,15 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [{ href: "/dashboard", label: "Dashboard", icon: "◎", badge: "actionQueueTotal" }],
   },
   {
+    label: "Super Admin Platform",
+    roles: ["SYSTEM_ADMIN"],
+    items: [
+      { href: "/super-admin", label: "Barangays", icon: "🏛️" },
+      { href: "/super-admin/users", label: "Global Users Directory", icon: "👥" },
+      { href: "/audit", label: "Platform Security Audit", icon: "🧾" },
+    ],
+  },
+  {
     label: "Residents (BIPS)",
     items: [
       { href: "/inhabitants", label: "Inhabitants", icon: "👥", perm: "inhabitants:view" },

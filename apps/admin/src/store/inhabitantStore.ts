@@ -19,8 +19,9 @@ export const useInhabitantStore = create<InhabitantState>((set, getStore) => ({
   fetchInhabitants: async () => {
     set({ loading: true, error: null });
     try {
-      const data = await get<Inhabitant[]>("/inhabitants");
-      set({ inhabitants: data, loading: false });
+      const data = await get<any>("/inhabitants");
+      const list = Array.isArray(data) ? data : (data?.data || []);
+      set({ inhabitants: list, loading: false });
     } catch (err: any) {
       set({ error: err.message || "Failed to fetch inhabitants", loading: false });
     }

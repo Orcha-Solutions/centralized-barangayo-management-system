@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "turbo run dev --parallel",
+    "dev:admin": "pnpm --filter @cbms/admin dev",
+    "dev:all": "powershell -ExecutionPolicy Bypass -File ./dev.ps1",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
