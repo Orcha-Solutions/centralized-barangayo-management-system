@@ -43,7 +43,7 @@ export function handleSafetyMock(ctx: MockContext): any {
       };
     }
 
-    const blotterDetailMatch = cleanPath.match(/\/blotter\/([^\/]+)$/);
+    const blotterDetailMatch = cleanPath.match(/\/blotters?\/([^\/]+)$/);
     if (blotterDetailMatch) {
       const bId = blotterDetailMatch[1];
       const list = store.BlotterEntry || [];
@@ -65,7 +65,7 @@ export function handleSafetyMock(ctx: MockContext): any {
       return item;
     }
 
-    if (cleanPath === "/blotter") {
+    if (cleanPath === "/blotter" || cleanPath === "/blotters") {
       let list = store.BlotterEntry || [];
       if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
         const filtered = list.filter(
@@ -74,6 +74,7 @@ export function handleSafetyMock(ctx: MockContext): any {
         if (filtered.length > 0) list = filtered;
       }
       return {
+        data: list,
         items: list,
         total: list.length,
         page: 1,
@@ -100,7 +101,7 @@ export function handleSafetyMock(ctx: MockContext): any {
   if (method === "POST") {
     const body = opts.body ? JSON.parse(opts.body as string) : {};
 
-    const blotterActionMatch = cleanPath.match(/\/blotter\/([^\/]+)\/actions$/);
+    const blotterActionMatch = cleanPath.match(/\/blotters?\/([^\/]+)\/actions$/);
     if (blotterActionMatch) {
       const bId = blotterActionMatch[1];
       const list = store.BlotterEntry || [];
@@ -143,17 +144,19 @@ export function handleSafetyMock(ctx: MockContext): any {
       return newAlert;
     }
 
-    if (cleanPath === "/blotter") {
+    if (cleanPath === "/blotter" || cleanPath === "/blotters") {
+      const entryNum = "BLT-2026-" + Math.floor(100 + Math.random() * 900);
       const newBlotter = {
         id: "blt-" + Math.random().toString(36).substring(2, 9),
-        incidentNo: "BLT-2026-" + Math.floor(100 + Math.random() * 900),
+        entryNo: body.entryNo || entryNum,
+        incidentNo: entryNum,
         category: body.category || "dispute",
         incidentAt: body.incidentAt || new Date().toISOString(),
         location: body.location || "Barangay Barangka",
         narrative: body.narrative || "",
         reportedBy: body.reportedBy || "Citizen",
         respondentName: body.respondentName || "",
-        status: "active",
+        status: body.status || "active",
         barangayId: currentUser.barangayId || "van6rdk",
         createdAt: new Date().toISOString(),
       };

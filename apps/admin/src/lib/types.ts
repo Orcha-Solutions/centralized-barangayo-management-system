@@ -1,4 +1,4 @@
-/** Shapes returned by the CBMS API (apps/api). Kept deliberately loose where the
+﻿/** Shapes returned by the CBMS API (apps/api). Kept deliberately loose where the
  *  API returns generic CRUD rows. */
 
 export interface Paged<T> {
@@ -349,6 +349,9 @@ export interface BlotterActionLog {
   statusAfter?: string | null;
   timestamp: string;
   documentRef?: string | null;
+  blotterId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BlotterEntry {
@@ -359,9 +362,16 @@ export interface BlotterEntry {
   location: string;
   narrative: string;
   reportedBy: string;
+  barangayId?: string;
+  complainantPhone?: string | null;
+  complainantInhabitantId?: string | null;
   respondentName?: string | null;
   isConfidential: boolean;
   status?: string;
+  recordedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  evidenceUrls?: string[];
   kpCase?: { id: string; caseNo: string; stage: string } | null;
   actionsTaken?: BlotterActionLog[];
 }
@@ -557,6 +567,11 @@ export interface Hazard {
   hazardType: string;
   riskLevel: string;
   notes?: string | null;
+  checkedInAt?: string | null;
+  servedAt?: string | null;
+  completedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ---------------------------------------------------------------- governance
@@ -684,12 +699,19 @@ export interface Announcement {
 }
 
 export interface Appointment {
+  barangayId?: string;
+  inhabitantId?: string | null;
   id: string;
   service: string;
   scheduledAt: string;
   queueNumber?: string | null;
   status: string;
   notes?: string | null;
+  checkedInAt?: string | null;
+  servedAt?: string | null;
+  completedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   inhabitant?: { firstName: string; lastName: string } | null;
 }
 

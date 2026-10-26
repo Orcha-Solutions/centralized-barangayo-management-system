@@ -41,7 +41,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/inhabitants", label: "Inhabitants", icon: "👥", perm: "inhabitants:view" },
       { href: "/households", label: "Households", icon: "🏠", perm: "inhabitants:view" },
-      { href: "/civil-registry", label: "Civil Registry", icon: "📝", perm: "inhabitants:view" },
     ],
   },
   {

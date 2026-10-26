@@ -1,483 +1,311 @@
 "use client";
 
 import * as React from "react";
-import { ApiError, patch, post, qs, useApi } from "@cbms/api-client";
-import {
-  Alert,
-  Button,
-  Chip,
-  DataTable,
-  Field,
-  PageHead,
-  Pagination,
-  Panel,
-  StatCard,
-  StatGrid,
-  StatusChip,
-  Toolbar,
-  dateTime,
-  fullName,
-  num,
-  titleize,
-} from "@cbms/ui";
-import { ActionResult, Async } from "../../../components/common";
+import { Alert, PageHead } from "@cbms/ui";
 import { useConsole } from "../../../components/Shell";
-import { APPOINTMENT_STATUSES } from "../../../lib/labels";
-import type { Appointment, Inhabitant, Paged } from "../../../lib/types";
-
-const SERVICES = ["certificate", "kp_hearing", "health", "general"] as const;
-
-const SERVICE_LABELS: Record<string, string> = {
-  certificate: "Certificate / clearance",
-  kp_hearing: "KP hearing",
-  health: "Health service",
-  general: "General transaction",
-};
-
-/** Queue discipline: booked → checked_in → serving → completed. */
-const NEXT_STEP: Record<string, { value: string; label: string }> = {
-  booked: { value: "checked_in", label: "Check in" },
-  checked_in: { value: "serving", label: "Start serving" },
-  serving: { value: "completed", label: "Complete" },
-};
-
-function isToday(iso: string): boolean {
-  const d = new Date(iso);
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
-}
+import { Toast } from "../../../components/Toast";
+import {
+  useInfiniteAppointmentsQuery,
+  useCreateAppointmentMutation,
+  useUpdateAppointmentMutation,
+  useDeleteAppointmentMutation,
+} from "../../../lib/appointment-queries";
+import { AppointmentToolbar } from "./components/AppointmentToolbar";
+import { AppointmentTable } from "./components/AppointmentTable";
+import { AppointmentCalendar } from "./components/calendar/AppointmentCalendar";
+import { AppointmentDrawer, type AppointmentDrawerFormData } from "./components/AppointmentDrawer";
+import { DeleteAppointmentModal } from "./components/DeleteAppointmentModal";
+import type { Appointment } from "../../../lib/types";
 
 export default function AppointmentsPage() {
   const { can } = useConsole();
-  const mayEncode = can("appointments:encode");
 
+  // Auth / RBAC permission validation
+  const mayBook =
+    can("appointments:book") ||
+    can("appointments:write") ||
+    can("appointments:manage") ||
+    can("appointments:encode");
+  const mayManage =
+    can("appointments:manage") ||
+    can("appointments:write") ||
+    can("appointments:encode");
+
+  // Filter & Sorting state
+  const [viewMode, setViewMode] = React.useState<"table" | "calendar">("table");
+  const [search, setSearch] = React.useState("");
   const [status, setStatus] = React.useState("all");
   const [service, setService] = React.useState("all");
-  const [page, setPage] = React.useState(1);
-  const [showNew, setShowNew] = React.useState(false);
-  const pageSize = 25;
+  const [sortBy, setSortBy] = React.useState("scheduledAt");
+  const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
 
-  const list = useApi<Paged<Appointment>>(
-    `/appointments${qs({ status, service, page, pageSize })}`,
-  );
+  // Modal / Drawer states
+  const [openDrawer, setOpenDrawer] = React.useState(false);
+  const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
+  const [bookInitialDate, setBookInitialDate] = React.useState<Date | null>(null);
+  const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
+  const [transactingId, setTransactingId] = React.useState<string | null>(null);
 
-  // ---- booking form -------------------------------------------------------
-  const [form, setForm] = React.useState({ service: "certificate", scheduledAt: "" });
-  const [personQ, setPersonQ] = React.useState("");
-  const [personSearch, setPersonSearch] = React.useState("");
-  const [picked, setPicked] = React.useState<Inhabitant | null>(null);
-  const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [ok, setOk] = React.useState<string | null>(null);
+  // Toast notification state
+  const [toast, setToast] = React.useState<{
+    open: boolean;
+    message: string;
+    description?: string;
+    tone: "success" | "danger" | "info";
+  }>({
+    open: false,
+    message: "",
+    description: "",
+    tone: "success",
+  });
 
-  const people = useApi<Paged<Inhabitant>>(
-    personSearch ? `/inhabitants${qs({ q: personSearch, pageSize: 6 })}` : null,
-  );
+  const showToast = (message: string, description?: string, tone: "success" | "danger" | "info" = "success") => {
+    setToast({ open: true, message, description, tone });
+  };
 
-  React.useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && showNew) {
-        setShowNew(false);
+  // React Query infinite query (min 20 records per batch in table view, 100 in calendar view)
+  const pageSize = viewMode === "calendar" ? 100 : 20;
+  const {
+    data: infiniteData,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: queryError,
+  } = useInfiniteAppointmentsQuery({
+    pageSize,
+    search,
+    status,
+    service,
+    sortBy,
+    sortOrder,
+  });
+
+  const createMutation = useCreateAppointmentMutation();
+  const updateMutation = useUpdateAppointmentMutation();
+  const deleteMutation = useDeleteAppointmentMutation();
+
+  // Deduplicate and flatten loaded appointment pages
+  const appointments = React.useMemo(() => {
+    if (!infiniteData?.pages) return [];
+    const list: Appointment[] = [];
+    const seen = new Set<string>();
+    for (const page of infiniteData.pages) {
+      for (const row of page.data ?? []) {
+        if (!row.id) {
+          list.push(row);
+        } else if (!seen.has(row.id)) {
+          seen.add(row.id);
+          list.push(row);
+        }
       }
     }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showNew]);
+    return list;
+  }, [infiniteData]);
 
-  async function book(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    setOk(null);
-    try {
-      await post<Appointment>("/appointments", {
-        service: form.service,
-        scheduledAt: new Date(form.scheduledAt).toISOString(),
-        ...(picked ? { inhabitantId: picked.id } : {}),
+  const totalAppointments = infiniteData?.pages?.[0]?.total ?? appointments.length;
+
+  // Header Sort Handler
+  const handleSort = (columnKey: string) => {
+    if (sortBy === columnKey) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(columnKey);
+      setSortOrder("desc");
+    }
+  };
+
+  // Submit Booking / Edit
+  const handleDrawerSubmit = async (formData: AppointmentDrawerFormData) => {
+    if (editingAppointment) {
+      await updateMutation.mutateAsync({
+        id: editingAppointment.id,
+        data: {
+          service: formData.service,
+          scheduledAt: formData.scheduledAt,
+          inhabitantId: formData.inhabitantId || null,
+          queueNumber: formData.queueNumber || null,
+          status: formData.status || "booked",
+          notes: formData.notes || "",
+        },
       });
-      setOk(
-        `Booked ${SERVICE_LABELS[form.service] ?? titleize(form.service)}${
-          picked ? ` for ${fullName(picked)}` : ""
-        }.`,
+      showToast(
+        "Appointment Updated",
+        `Ticket ${formData.queueNumber || editingAppointment.queueNumber || "record"} updated successfully.`,
+        "success"
       );
-      setForm({ service: "certificate", scheduledAt: "" });
-      setPicked(null);
-      setPersonQ("");
-      setPersonSearch("");
-      setShowNew(false);
-      list.reload();
-    } catch (err) {
-      setError((err as ApiError)?.message ?? "Could not book the appointment.");
-    } finally {
-      setBusy(false);
+    } else {
+      const created = await createMutation.mutateAsync({
+        service: formData.service,
+        scheduledAt: formData.scheduledAt,
+        inhabitantId: formData.inhabitantId,
+        queueNumber: formData.queueNumber,
+        status: formData.status || "booked",
+        notes: formData.notes,
+      });
+      showToast(
+        "Appointment Booked",
+        `Queue ticket ${created.queueNumber || "scheduled"} created for ${created.service}.`,
+        "success"
+      );
     }
-  }
+    setOpenDrawer(false);
+    setEditingAppointment(null);
+  };
 
-  async function move(a: Appointment, to: string) {
-    setBusy(true);
-    setError(null);
-    setOk(null);
+  // Quick Status Transition (Check in, Start serving, Complete, No show)
+  const handleMoveStatus = async (appointment: Appointment, newStatus: string) => {
+    setTransactingId(appointment.id);
     try {
-      await patch(`/appointments/${a.id}`, { status: to });
-      setOk(
-        `${a.queueNumber ?? "Appointment"} moved to “${titleize(to)}”.`,
+      await updateMutation.mutateAsync({
+        id: appointment.id,
+        data: { status: newStatus },
+      });
+      showToast(
+        "Status Updated",
+        `Ticket ${appointment.queueNumber || appointment.service} moved to "${newStatus.replace("_", " ")}".`,
+        "success"
       );
-      list.reload();
-    } catch (err) {
-      setError((err as ApiError)?.message ?? "Could not update the appointment.");
+    } catch (err: any) {
+      showToast("Update Failed", err?.message || "Failed to update appointment status.", "danger");
     } finally {
-      setBusy(false);
+      setTransactingId(null);
     }
-  }
+  };
 
-  const rows = list.data?.items ?? [];
-  const bookedToday = rows.filter((a) => a.status === "booked" && isToday(a.scheduledAt)).length;
-  const checkedIn = rows.filter((a) => a.status === "checked_in" || a.status === "serving").length;
-  const completed = rows.filter((a) => a.status === "completed").length;
-  const noShows = rows.filter((a) => a.status === "no_show").length;
+  // Typed Delete Confirmation
+  const handleDeleteConfirm = async () => {
+    if (!deletingAppointment) return;
+    setTransactingId(deletingAppointment.id);
+    try {
+      await deleteMutation.mutateAsync(deletingAppointment.id);
+      showToast(
+        "Appointment Deleted",
+        `Ticket ${deletingAppointment.queueNumber || deletingAppointment.service} permanently deleted.`,
+        "success"
+      );
+      setDeletingAppointment(null);
+    } catch (err: any) {
+      showToast("Delete Failed", err?.message || "Failed to delete appointment.", "danger");
+    } finally {
+      setTransactingId(null);
+    }
+  };
 
   return (
     <>
       <PageHead
-        title="Appointments & Queue"
-        subtitle="Scheduled transactions at the barangay hall. Check-in starts the service clock and completion stops it — this queue is where processing times come from."
+        title="Citizen Appointments & Queue Management"
+        subtitle="Scheduled citizen transactions at the barangay hall conforming to Republic Act 11032 Citizen's Charter and Anti-Red Tape Authority (ARTA) service clock standards."
         breadcrumb="Services"
         exclusive
-        actions={
-          mayEncode ? (
-            <Button variant="primary" onClick={() => setShowNew(true)}>
-              + Book
-            </Button>
-          ) : undefined
-        }
       />
 
-      <ActionResult error={error} success={ok} />
-
-      <StatGrid>
-        <StatCard
-          label="Booked today"
-          value={num(bookedToday)}
-          hint="Awaiting arrival at the hall"
-          icon="📅"
-        />
-        <StatCard
-          label="At the counter"
-          value={num(checkedIn)}
-          hint="Checked in or being served"
-          icon="🧍"
-          tone="gold"
-        />
-        <StatCard
-          label="Completed on this page"
-          value={num(completed)}
-          hint="Clock stopped — counts towards CSM"
-          icon="✅"
-          tone="green"
-        />
-        <StatCard
-          label="No-shows"
-          value={num(noShows)}
-          hint="Slots released back to the queue"
-          icon="🚫"
-          tone={noShows > 0 ? "red" : "navy"}
-        />
-      </StatGrid>
-
-      <Alert tone="info">
-        <strong>RA 11032 queue.</strong> The Ease of Doing Business Act requires a published,
-        auditable order of service. Every state change here is timestamped and audited, so the
-        queue doubles as the processing-time source behind the Citizen&apos;s Charter and the
-        Client Satisfaction Measurement — and it removes the fixer&apos;s only product, which is
-        jumping the line.
-      </Alert>
-
-      {/* ========================================================================= */}
-      {/* CONTENT DRAWER: BOOK AN APPOINTMENT (SLIDE-OVER FROM RIGHT) */}
-      {/* ========================================================================= */}
-      {showNew && mayEncode && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.45)",
-            zIndex: 1500,
-            display: "flex",
-            justifyContent: "flex-end",
-          }}
-          onClick={() => setShowNew(false)}
-        >
-          <div
-            style={{
-              width: "100%",
-              maxWidth: "520px",
-              backgroundColor: "var(--cbms-surface, #ffffff)",
-              height: "100%",
-              boxShadow: "-6px 0 25px rgba(0,0,0,0.2)",
-              display: "flex",
-              flexDirection: "column",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drawer Header */}
-            <div
-              style={{
-                padding: "16px 20px",
-                borderBottom: "1px solid var(--cbms-border)",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                backgroundColor: "rgba(0,0,0,0.02)",
-              }}
-            >
-              <div>
-                <h3 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 700, color: "var(--cbms-navy)" }}>
-                  📅 Book an Appointment
-                </h3>
-                <span style={{ fontSize: "0.8rem", color: "var(--cbms-muted)" }}>
-                  Schedule counter transaction · Republic Act 11032 Citizen&apos;s Charter
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowNew(false)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  fontSize: 20,
-                  cursor: "pointer",
-                  color: "var(--cbms-muted)",
-                  padding: "4px 8px",
-                  lineHeight: 1,
-                }}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Drawer Form Body */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
-              <form onSubmit={book} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <Field label="Service" hint="Category of transaction requested at the hall">
-                  <select
-                    className="cbms-select"
-                    value={form.service}
-                    onChange={(e) => setForm((f) => ({ ...f, service: e.target.value }))}
-                  >
-                    {SERVICES.map((s) => (
-                      <option key={s} value={s}>
-                        {SERVICE_LABELS[s]}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field
-                  label="Date & time"
-                  hint="The queue ticket number is assigned by the hall on the day."
-                >
-                  <input
-                    className="cbms-input"
-                    type="datetime-local"
-                    value={form.scheduledAt}
-                    onChange={(e) => setForm((f) => ({ ...f, scheduledAt: e.target.value }))}
-                    required
-                  />
-                </Field>
-
-                <Field
-                  label="Resident (optional)"
-                  hint="Leave blank for a walk-in booked at the counter without a resident record."
-                >
-                  {picked ? (
-                    <div className="adm-row" style={{ marginTop: 4 }}>
-                      <Chip tone="navy">{fullName(picked)}</Chip>
-                      <Button size="sm" type="button" onClick={() => setPicked(null)}>
-                        Clear
-                      </Button>
-                    </div>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div className="adm-row">
-                        <input
-                          className="cbms-input cbms-input--search"
-                          placeholder="Search resident by name or PhilSys no.…"
-                          value={personQ}
-                          onChange={(e) => setPersonQ(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              setPersonSearch(personQ.trim());
-                            }
-                          }}
-                        />
-                        <Button size="sm" type="button" onClick={() => setPersonSearch(personQ.trim())}>
-                          Search
-                        </Button>
-                      </div>
-
-                      {personSearch && (
-                        <div className="adm-chiprow" style={{ marginTop: 4, flexWrap: "wrap" }}>
-                          {people.loading && <span className="adm-muted">Searching…</span>}
-                          {!people.loading && !people.data?.items.length && (
-                            <span className="adm-muted">No resident matches “{personSearch}”.</span>
-                          )}
-                          {(people.data?.items ?? []).map((p) => (
-                            <Button
-                              key={p.id}
-                              size="sm"
-                              type="button"
-                              onClick={() => {
-                                setPicked(p);
-                                setPersonSearch("");
-                              }}
-                            >
-                              {fullName(p)}
-                            </Button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </Field>
-
-                <div
-                  style={{
-                    backgroundColor: "rgba(0,0,0,0.02)",
-                    border: "1px solid var(--cbms-border)",
-                    borderRadius: 6,
-                    padding: "12px 14px",
-                    fontSize: "0.82rem",
-                    color: "var(--cbms-muted)",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  ℹ️ <strong>RA 11032 Queue Discipline:</strong> Booked appointments generate an auditable queue ticket upon arrival. The check-in timestamp marks the start of the service clock for Anti-Red Tape Authority (ARTA) compliance.
-                </div>
-
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
-                  <Button type="button" onClick={() => setShowNew(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" variant="primary" disabled={busy || !form.scheduledAt}>
-                    {busy ? "Booking…" : "Book appointment"}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
+      {queryError && (
+        <div style={{ marginBottom: "1rem" }}>
+          <Alert tone="danger">
+            Failed to load appointments: {(queryError as Error)?.message || "Network error"}
+          </Alert>
         </div>
       )}
 
-      <div style={{ height: 16 }} />
+      {/* Toolbar: Search (>=3 chars), Status Filter, Service Filter, View Mode, Book Button */}
+      <AppointmentToolbar
+        search={search}
+        onSearchChange={setSearch}
+        status={status}
+        onStatusChange={setStatus}
+        service={service}
+        onServiceChange={setService}
+        totalAppointments={totalAppointments}
+        canBook={mayBook}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onOpenBook={() => {
+          setEditingAppointment(null);
+          setBookInitialDate(null);
+          setOpenDrawer(true);
+        }}
+      />
 
-      <Panel padded={false}>
-        <Toolbar>
-          <select
-            className="cbms-select"
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All statuses</option>
-            {APPOINTMENT_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {titleize(s)}
-              </option>
-            ))}
-          </select>
-          <select
-            className="cbms-select"
-            value={service}
-            onChange={(e) => {
-              setService(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All services</option>
-            {SERVICES.map((s) => (
-              <option key={s} value={s}>
-                {SERVICE_LABELS[s]}
-              </option>
-            ))}
-          </select>
-          <div className="cbms-toolbar__spacer" />
-          <span className="adm-muted">{num(list.data?.total)} appointment(s)</span>
-        </Toolbar>
+      {/* View Switcher: Table List View vs Interactive Calendar View */}
+      {viewMode === "table" ? (
+        <AppointmentTable
+          appointments={appointments}
+          isLoading={isLoading}
+          isFetchingNextPage={isFetchingNextPage}
+          hasNextPage={hasNextPage}
+          fetchNextPage={fetchNextPage}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          canManage={mayManage}
+          onEdit={(a) => {
+            setEditingAppointment(a);
+            setBookInitialDate(null);
+            setOpenDrawer(true);
+          }}
+          onDelete={(a) => setDeletingAppointment(a)}
+          onMoveStatus={handleMoveStatus}
+          transactingId={transactingId}
+        />
+      ) : (
+        <AppointmentCalendar
+          appointments={appointments}
+          isLoading={isLoading}
+          canManage={mayManage}
+          transactingId={transactingId}
+          onSelectAppointment={(a) => {
+            setEditingAppointment(a);
+            setBookInitialDate(null);
+            setOpenDrawer(true);
+          }}
+          onEdit={(a) => {
+            setEditingAppointment(a);
+            setBookInitialDate(null);
+            setOpenDrawer(true);
+          }}
+          onDelete={(a) => setDeletingAppointment(a)}
+          onMoveStatus={handleMoveStatus}
+          onBookDate={(d) => {
+            setEditingAppointment(null);
+            setBookInitialDate(d);
+            setOpenDrawer(true);
+          }}
+        />
+      )}
 
-        <Async loading={list.loading} error={list.error}>
-          <DataTable
-            columns={[
-              {
-                key: "queueNumber",
-                header: "Queue",
-                width: 90,
-                render: (a) =>
-                  a.queueNumber ? (
-                    <span className="cbms-table__primary">{a.queueNumber}</span>
-                  ) : (
-                    <span className="cbms-table__muted">Unassigned</span>
-                  ),
-              },
-              {
-                key: "resident",
-                header: "Resident",
-                render: (a) =>
-                  a.inhabitant ? (
-                    `${a.inhabitant.firstName} ${a.inhabitant.lastName}`
-                  ) : (
-                    <span className="cbms-table__muted">—</span>
-                  ),
-              },
-              {
-                key: "service",
-                header: "Service",
-                render: (a) => SERVICE_LABELS[a.service] ?? titleize(a.service),
-              },
-              { key: "scheduledAt", header: "Scheduled", render: (a) => dateTime(a.scheduledAt) },
-              { key: "status", header: "Status", render: (a) => <StatusChip status={a.status} /> },
-              {
-                key: "action",
-                header: "Action",
-                render: (a) => {
-                  if (!mayEncode) return <span className="cbms-table__muted">—</span>;
-                  const next = NEXT_STEP[a.status];
-                  if (!next) return <span className="cbms-table__muted">—</span>;
-                  return (
-                    <span className="adm-chiprow">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        disabled={busy}
-                        onClick={() => move(a, next.value)}
-                      >
-                        {next.label}
-                      </Button>
-                      <Button size="sm" disabled={busy} onClick={() => move(a, "no_show")}>
-                        No show
-                      </Button>
-                    </span>
-                  );
-                },
-              },
-            ]}
-            rows={rows}
-            empty="No appointments match this filter."
-          />
-        </Async>
+      {/* Slide-over Content Drawer for Booking / Editing */}
+      <AppointmentDrawer
+        open={openDrawer}
+        editingAppointment={editingAppointment}
+        initialDate={bookInitialDate}
+        busy={createMutation.isPending || updateMutation.isPending}
+        onClose={() => {
+          setOpenDrawer(false);
+          setEditingAppointment(null);
+          setBookInitialDate(null);
+        }}
+        onSubmit={handleDrawerSubmit}
+      />
 
-        <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
-      </Panel>
+      {/* Typed Delete Confirmation Modal */}
+      <DeleteAppointmentModal
+        open={Boolean(deletingAppointment)}
+        appointment={deletingAppointment}
+        busy={deleteMutation.isPending}
+        onCancel={() => setDeletingAppointment(null)}
+        onConfirm={handleDeleteConfirm}
+      />
+
+      {/* Post-transaction Toast Feedback */}
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        description={toast.description}
+        tone={toast.tone}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
     </>
   );
 }

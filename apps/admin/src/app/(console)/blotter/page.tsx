@@ -1,353 +1,309 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ApiError, post, qs, useApi } from "@cbms/api-client";
-import {
-  Alert,
-  Button,
-  Chip,
-  DataTable,
-  Field,
-  PageHead,
-  Pagination,
-  Panel,
-  StatusChip,
-  Toolbar,
-  dateTime,
-  num,
-  titleize,
-} from "@cbms/ui";
-import { ActionResult, Async } from "../../../components/common";
+import { PageHead, Alert } from "@cbms/ui";
 import { useConsole } from "../../../components/Shell";
-import { BLOTTER_CATEGORIES } from "../../../lib/labels";
-import type { BlotterEntry, Paged } from "../../../lib/types";
-import { BlotterTourGuide, BlotterGuideToggle } from "./BlotterTourGuide";
+import { Toast } from "../../../components/Toast";
+import {
+  useInfiniteBlottersQuery,
+  useCreateBlotterMutation,
+  useUpdateBlotterMutation,
+  useDeleteBlotterMutation,
+  useBulkCreateBlottersMutation,
+} from "../../../lib/blotter-queries";
+import { BlotterToolbar } from "./components/BlotterToolbar";
+import { BlotterTable } from "./components/BlotterTable";
+import { BlotterDrawer, type BlotterDrawerFormData } from "./components/BlotterDrawer";
+import { DeleteBlotterModal } from "./components/DeleteBlotterModal";
+import { BulkAddBlotterDrawer } from "./components/BulkAddBlotterDrawer";
+import { BlotterTourGuide } from "./BlotterTourGuide";
+import type { BlotterEntry } from "../../../lib/types";
 
 export default function BlotterPage() {
   const router = useRouter();
   const { can } = useConsole();
-  const [q, setQ] = React.useState("");
+
+  // RBAC Permission checks
+  const mayEncode = can("blotter:create") || can("blotter:write") || can("kp:encode") || can("vawc:encode");
+  const mayVawc = can("vawc:encode") || can("vawc:view");
+
+  // Query and Filtering State
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState("all");
-  const [page, setPage] = React.useState(1);
-  const [showNew, setShowNew] = React.useState(false);
-  const pageSize = 25;
+  const [status, setStatus] = React.useState("all");
+  const [sortBy, setSortBy] = React.useState<string>("incidentAt");
+  const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
+  const pageSize = 20; // Rule: minimum of 20 records to display
 
-  // Guide State (defaults to true on first visit, persisted in localStorage)
+  // Modal and Drawer States
+  const [openCreate, setOpenCreate] = React.useState(false);
+  const [editingEntry, setEditingEntry] = React.useState<BlotterEntry | null>(null);
+  const [openBulkAdd, setOpenBulkAdd] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<BlotterEntry | null>(null);
+
+  // Tour Guide State
   const [tourEnabled, setTourEnabled] = React.useState(false);
-
   React.useEffect(() => {
     try {
       const stored = localStorage.getItem("cbms.blotter_guide_enabled");
-      if (stored === null) {
-        setTourEnabled(true);
-      } else {
-        setTourEnabled(stored === "true");
-      }
+      if (stored === null) setTourEnabled(true);
+      else setTourEnabled(stored === "true");
     } catch {
       setTourEnabled(true);
     }
   }, []);
 
-  const handleToggleTour = (next: boolean) => {
-    setTourEnabled(next);
+  const handleToggleTour = (next?: boolean) => {
+    const val = typeof next === "boolean" ? next : !tourEnabled;
+    setTourEnabled(val);
     try {
-      localStorage.setItem("cbms.blotter_guide_enabled", String(next));
-    } catch {
-      // ignore
+      localStorage.setItem("cbms.blotter_guide_enabled", String(val));
+    } catch {}
+  };
+
+  // Toast Notification State
+  const [toast, setToast] = React.useState<{
+    open: boolean;
+    message: string;
+    description?: string;
+    tone: "success" | "danger" | "info";
+  }>({
+    open: false,
+    message: "",
+    description: "",
+    tone: "success",
+  });
+
+  const showToast = (message: string, description?: string, tone: "success" | "danger" | "info" = "success") => {
+    setToast({ open: true, message, description, tone });
+  };
+
+  // React Query Mutations
+  const createMutation = useCreateBlotterMutation();
+  const updateMutation = useUpdateBlotterMutation();
+  const deleteMutation = useDeleteBlotterMutation();
+  const bulkCreateMutation = useBulkCreateBlottersMutation();
+
+  // TanStack Infinite Query: Server-side infinite scroll & lazy loading
+  const {
+    data: infiniteData,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: queryError,
+    refetch,
+  } = useInfiniteBlottersQuery({
+    pageSize,
+    search,
+    category,
+    status,
+    sortBy,
+    sortOrder,
+  });
+
+  // Flatten and deduplicate all loaded pages of blotter incidents
+  const blottersList = React.useMemo(() => {
+    if (!infiniteData?.pages) return [];
+    const seen = new Set<string>();
+    const list: BlotterEntry[] = [];
+    for (const page of infiniteData.pages) {
+      for (const row of page.data ?? []) {
+        if (!row.id) {
+          list.push(row);
+        } else if (!seen.has(row.id)) {
+          seen.add(row.id);
+          list.push(row);
+        }
+      }
+    }
+    return list;
+  }, [infiniteData]);
+
+  const totalBlotters = infiniteData?.pages?.[0]?.total ?? 0;
+
+  // Sorting Handler
+  const handleSort = (columnKey: string) => {
+    if (sortBy === columnKey) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(columnKey);
+      setSortOrder("desc");
     }
   };
 
-  const list = useApi<Paged<BlotterEntry>>(
-    `/blotter${qs({ q: search, category, page, pageSize })}`,
-  );
-
-  const mayEncode = can("blotter:create") || can("kp:encode") || can("vawc:encode");
-  const mayVawc = can("vawc:encode") || can("vawc:view");
-
-  const [form, setForm] = React.useState({
-    category: "dispute",
-    incidentAt: "",
-    location: "",
-    narrative: "",
-    reportedBy: "",
-    respondentName: "",
-  });
-  const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [ok, setOk] = React.useState<string | null>(null);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    setOk(null);
-    try {
-      const created = await post<BlotterEntry>("/blotter", {
-        category: form.category,
-        incidentAt: new Date(form.incidentAt).toISOString(),
-        location: form.location.trim(),
-        narrative: form.narrative.trim(),
-        reportedBy: form.reportedBy.trim(),
-        ...(form.respondentName.trim() ? { respondentName: form.respondentName.trim() } : {}),
+  // Create / Edit Handler
+  const handleDrawerSubmit = async (formData: BlotterDrawerFormData) => {
+    if (editingEntry) {
+      await updateMutation.mutateAsync({
+        id: editingEntry.id,
+        data: {
+          category: formData.category,
+          incidentAt: new Date(formData.incidentAt).toISOString(),
+          location: formData.location.trim(),
+          narrative: formData.narrative.trim(),
+          reportedBy: formData.reportedBy.trim(),
+          complainantInhabitantId: formData.complainantInhabitantId || null,
+          complainantPhone: formData.complainantPhone?.trim() || "",
+          respondentName: formData.respondentName?.trim() || "",
+          isConfidential: formData.isConfidential,
+          status: formData.status,
+        },
       });
-      setOk(
-        `Blotter entry ${created.entryNo} recorded${
-          created.isConfidential ? " as a restricted VAWC record" : ""
-        }.`,
+      showToast("Blotter Updated", `Incident ${editingEntry.entryNo} updated successfully.`, "success");
+    } else {
+      const created = await createMutation.mutateAsync({
+        category: formData.category,
+        incidentAt: new Date(formData.incidentAt).toISOString(),
+        location: formData.location.trim(),
+        narrative: formData.narrative.trim(),
+        reportedBy: formData.reportedBy.trim(),
+        complainantInhabitantId: formData.complainantInhabitantId || null,
+        complainantPhone: formData.complainantPhone?.trim() || "",
+        respondentName: formData.respondentName?.trim() || "",
+        isConfidential: formData.isConfidential,
+        status: formData.status,
+      });
+      showToast(
+        "Incident Logged",
+        `Blotter entry ${created.entryNo} registered${created.isConfidential ? " (Restricted VAWC)" : ""}.`,
+        "success"
       );
-      setForm({
-        category: "dispute",
-        incidentAt: "",
-        location: "",
-        narrative: "",
-        reportedBy: "",
-        respondentName: "",
-      });
-      setShowNew(false);
-      list.reload();
-    } catch (err) {
-      setError((err as ApiError)?.message ?? "Could not record the entry.");
-    } finally {
-      setBusy(false);
+      setOpenCreate(false);
+      setEditingEntry(null);
+      if (created?.id) {
+        router.push(`/blotter/${created.id}`);
+      }
+      return;
     }
-  }
+    setOpenCreate(false);
+    setEditingEntry(null);
+  };
 
-  const categories = BLOTTER_CATEGORIES.filter((c) => c !== "vawc" || mayVawc);
+  // Delete Handler
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      showToast("Blotter Deleted", `Incident record ${deleteTarget.entryNo} has been removed.`, "danger");
+      setDeleteTarget(null);
+    } catch (err: any) {
+      showToast("Delete Failed", err?.message || "Could not delete blotter entry.", "danger");
+    }
+  };
+
+  // Bulk Ingest Handler
+  const handleBulkSubmit = async (entries: Partial<BlotterEntry>[]) => {
+    const res = await bulkCreateMutation.mutateAsync(entries);
+    showToast("Batch Ingestion Complete", `Successfully registered ${res.count} incident blotter records.`, "success");
+    setOpenBulkAdd(false);
+  };
 
   return (
     <>
-      <div id="tour-blotter-head">
-        <PageHead
-          title="Blotter"
-          subtitle="Incident record book. VAWC/VAC entries are confidential — narratives are redacted in the list and are visible only to the VAW desk and the Punong Barangay."
-          breadcrumb="Justice & Safety"
-          parity="KPISBH"
-          actions={
-            mayEncode ? (
-              <Button id="tour-blotter-new-btn" variant="primary" onClick={() => setShowNew((v) => !v)}>
-                {showNew ? "Close" : "+ New blotter entry"}
-              </Button>
-            ) : undefined
-          }
-        />
-      </div>
-
-      <ActionResult error={error} success={ok} />
-
-      {showNew && mayEncode && (
-        <div id="tour-blotter-encode-panel">
-          <Panel title="New blotter entry">
-            <form onSubmit={submit}>
-              <div className="adm-form-grid">
-                <Field
-                  label="Category"
-                  hint={
-                    mayVawc
-                      ? "VAWC entries are automatically flagged confidential."
-                      : "VAWC is unavailable — it requires the VAW desk role."
-                  }
-                >
-                  <select
-                    className="cbms-select"
-                    value={form.category}
-                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  >
-                    {categories.map((c) => (
-                      <option key={c} value={c}>
-                        {titleize(c)}
-                        {c === "vawc" ? " (restricted)" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Date & time of incident">
-                  <input
-                    className="cbms-input"
-                    type="datetime-local"
-                    value={form.incidentAt}
-                    onChange={(e) => setForm((f) => ({ ...f, incidentAt: e.target.value }))}
-                    required
-                  />
-                </Field>
-                <Field label="Location">
-                  <input
-                    className="cbms-input"
-                    value={form.location}
-                    onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                    placeholder="Purok, street, or landmark"
-                    required
-                  />
-                </Field>
-                <Field label="Reported by">
-                  <input
-                    className="cbms-input"
-                    value={form.reportedBy}
-                    onChange={(e) => setForm((f) => ({ ...f, reportedBy: e.target.value }))}
-                    required
-                  />
-                </Field>
-                <Field label="Respondent (optional)">
-                  <input
-                    className="cbms-input"
-                    value={form.respondentName}
-                    onChange={(e) => setForm((f) => ({ ...f, respondentName: e.target.value }))}
-                  />
-                </Field>
-              </div>
-              <Field label="Narrative" hint="Encrypted at rest. Minimum 10 characters.">
-                <textarea
-                  className="cbms-textarea"
-                  value={form.narrative}
-                  onChange={(e) => setForm((f) => ({ ...f, narrative: e.target.value }))}
-                  minLength={10}
-                  required
-                />
-              </Field>
-              {form.category === "vawc" && (
-                <Alert tone="warn">
-                  🔒 This entry will be stored as a restricted VAWC record: hidden from every role
-                  except the VAW desk and the Punong Barangay, and every read is audited.
-                </Alert>
-              )}
-              <Button type="submit" variant="primary" disabled={busy}>
-                {busy ? "Saving…" : "Record entry"}
-              </Button>
-            </form>
-          </Panel>
-          <div style={{ height: 16 }} />
-        </div>
-      )}
-
-      <Panel padded={false}>
-        <div id="tour-blotter-toolbar">
-          <Toolbar>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setPage(1);
-                setSearch(q.trim());
-              }}
-              style={{ display: "flex", gap: 8 }}
-            >
-              <input
-                className="cbms-input cbms-input--search"
-                placeholder="Search entry no., location or reporter…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-              <Button type="submit">Search</Button>
-            </form>
-            <select
-              className="cbms-select"
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="all">All categories</option>
-              {BLOTTER_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {titleize(c)}
-                </option>
-              ))}
-            </select>
-            <div className="cbms-toolbar__spacer" />
-            <span className="adm-muted">{num(list.data?.total)} entr(ies)</span>
-          </Toolbar>
-        </div>
-
-        <div id="tour-blotter-table">
-          <Async loading={list.loading} error={list.error}>
-            <DataTable
-              columns={[
-                {
-                  key: "entryNo",
-                  header: "Entry",
-                  render: (b) => (
-                    <span className="adm-chiprow">
-                      {b.isConfidential && <span title="Restricted record">🔒</span>}
-                      <Link
-                        href={`/blotter/${b.id}`}
-                        className="cbms-table__primary"
-                        style={{ fontWeight: 600, textDecoration: "underline" }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {b.entryNo}
-                      </Link>
-                    </span>
-                  ),
-                },
-                {
-                  key: "category",
-                  header: "Category",
-                  render: (b) => (
-                    <span className="adm-chiprow">
-                      <StatusChip status={b.category} />
-                      {b.isConfidential && <Chip tone="red">Restricted</Chip>}
-                    </span>
-                  ),
-                },
-                { key: "incidentAt", header: "Incident", render: (b) => dateTime(b.incidentAt) },
-                { key: "location", header: "Location" },
-                {
-                  key: "narrative",
-                  header: "Narrative",
-                  render: (b) =>
-                    b.isConfidential ? (
-                      <span className="adm-muted">[RESTRICTED — open the case to view]</span>
-                    ) : (
-                      <span className="cbms-table__muted">
-                        {b.narrative.length > 90 ? `${b.narrative.slice(0, 90)}…` : b.narrative}
-                      </span>
-                    ),
-                },
-                { key: "reportedBy", header: "Reported by" },
-                {
-                  key: "kpCase",
-                  header: "KP case",
-                  render: (b) =>
-                    b.kpCase ? (
-                      <a
-                        href={`/kp/${b.kpCase.id}`}
-                        className="adm-strong"
-                        style={{ textDecoration: "underline" }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {b.kpCase.caseNo}
-                      </a>
-                    ) : (
-                      <span className="cbms-table__muted">—</span>
-                    ),
-                },
-              ]}
-              rows={list.data?.items ?? []}
-              rowKey={(b) => b.id}
-              onRowClick={(b) => {
-                router.push(`/blotter/${b.id}`);
-              }}
-              empty="No blotter entries match this filter."
-            />
-          </Async>
-
-          <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
-        </div>
-      </Panel>
-
-      {/* Interactive Tour Guide & Static Floating Toggle */}
+      {/* Tour Guide */}
       <BlotterTourGuide
         enabled={tourEnabled}
         onToggle={handleToggleTour}
-        onOpenNew={() => setShowNew(true)}
-        onCloseNew={() => setShowNew(false)}
-        isNewOpen={showNew}
+        onOpenNew={() => setOpenCreate(true)}
       />
-      <BlotterGuideToggle
-        enabled={tourEnabled}
-        onToggle={handleToggleTour}
+
+      <div id="tour-blotter-head">
+        <PageHead
+          title="Official Barangay Blotter"
+          subtitle="Incident record book mirroring DILG KPISBH parity. VAWC/child protection entries are strictly confidential."
+          breadcrumb="Justice & Safety"
+          parity="KPISBH"
+        />
+      </div>
+
+      {queryError && (
+        <div style={{ marginBottom: "1rem" }}>
+          <Alert tone="danger">
+            Failed to load incident blotters: {(queryError as Error)?.message || "Network error"}
+          </Alert>
+        </div>
+      )}
+
+      {/* Search and Filters Toolbar */}
+      <BlotterToolbar
+        search={search}
+        onSearchChange={setSearch}
+        category={category}
+        onCategoryChange={setCategory}
+        status={status}
+        onStatusChange={setStatus}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={(col, ord) => {
+          setSortBy(col);
+          setSortOrder(ord);
+        }}
+        total={totalBlotters}
+        mayEncode={mayEncode}
+        onOpenCreate={() => {
+          setEditingEntry(null);
+          setOpenCreate(true);
+        }}
+        onOpenBulkAdd={() => setOpenBulkAdd(true)}
+        onToggleTour={handleToggleTour}
+        tourEnabled={tourEnabled}
+      />
+
+      {/* Infinite Scroll Blotter Table with Sticky Headers & Skeleton Loading */}
+      <div id="tour-blotter-table">
+        <BlotterTable
+          blotters={blottersList}
+          loading={isLoading}
+          total={totalBlotters}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          onLoadMore={() => fetchNextPage()}
+          mayEncode={mayEncode}
+        />
+      </div>
+
+      {/* Create / Edit Drawer */}
+      <BlotterDrawer
+        open={openCreate}
+        busy={createMutation.isPending || updateMutation.isPending}
+        editingEntry={editingEntry}
+        onClose={() => {
+          setOpenCreate(false);
+          setEditingEntry(null);
+        }}
+        onSubmit={handleDrawerSubmit}
+        mayVawc={mayVawc}
+      />
+
+      {/* Bulk Add Drawer */}
+      <BulkAddBlotterDrawer
+        open={openBulkAdd}
+        busy={bulkCreateMutation.isPending}
+        onClose={() => setOpenBulkAdd(false)}
+        onSubmit={handleBulkSubmit}
+      />
+
+      {/* Delete Confirmation Modal (typed confirmation input) */}
+      <DeleteBlotterModal
+        open={!!deleteTarget}
+        busy={deleteMutation.isPending}
+        entry={deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+      />
+
+      {/* Transaction Result Toast */}
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        description={toast.description}
+        tone={toast.tone}
+        onClose={() => setToast((p) => ({ ...p, open: false }))}
       />
     </>
   );
