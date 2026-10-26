@@ -256,6 +256,7 @@ html.dark .cbms-panel__title { color: var(--cbms-gold); }
   z-index: 10;
   background: var(--cbms-white);
   border-bottom: 2px solid var(--cbms-line);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 .cbms-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .cbms-table th {

@@ -6,6 +6,7 @@ import {
   api,
   createInvitation,
   createTenant,
+  deleteTenant,
   fetchRbacMe,
   fetchRbacPermissions,
   fetchRbacRoles,
@@ -321,6 +322,33 @@ export function useUpdateTenantMutation(tenantId: string) {
     onSuccess: (res) => {
       if (res?.tenant && activeTenant?.id === res.tenant.id) {
         setActiveTenant(res.tenant);
+      }
+      queryClient.invalidateQueries({
+        queryKey: RBAC_QUERY_KEYS.tenants,
+      });
+    },
+  });
+}
+
+/**
+ * React Query mutation to delete a Barangay Tenant (`DELETE /api/tenants/:id`).
+ */
+export function useDeleteTenantMutation() {
+  const queryClient = useQueryClient();
+  const setTenants = useRbacStore((s) => s.setTenants);
+  const tenants = useRbacStore((s) => s.tenants);
+  const activeTenant = useRbacStore((s) => s.activeTenant);
+  const setActiveTenant = useRbacStore((s) => s.setActiveTenant);
+
+  return useMutation({
+    mutationFn: async (tenantId: string) => {
+      return deleteTenant(tenantId);
+    },
+    onSuccess: (_, deletedId) => {
+      const remaining = tenants.filter((t) => t.id !== deletedId);
+      setTenants(remaining);
+      if (activeTenant?.id === deletedId && remaining.length > 0) {
+        setActiveTenant(remaining[0]);
       }
       queryClient.invalidateQueries({
         queryKey: RBAC_QUERY_KEYS.tenants,

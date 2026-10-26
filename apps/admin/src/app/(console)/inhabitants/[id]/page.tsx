@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useApi, post, DILG_CAUSE_OF_DEATH_CATEGORIES } from "@cbms/api-client";
+import { useApi, post, del, DILG_CAUSE_OF_DEATH_CATEGORIES } from "@cbms/api-client";
 import {
   Alert,
   Button,
@@ -24,6 +24,9 @@ import {
 import { Async, EmptyNote, Progress, SectorChips, SourceChip } from "../../../../components/common";
 import { useConsole } from "../../../../components/Shell";
 import type { Household, InhabitantDetail } from "../../../../lib/types";
+import { formatPhilippineMobile } from "../../../../lib/validation";
+import { DeleteInhabitantModal } from "./edit/components/DeleteInhabitantModal";
+import { DeceasedModal } from "./components/DeceasedModal";
 
 export default function InhabitantDetailPage() {
   const { can } = useConsole();
@@ -36,32 +39,43 @@ export default function InhabitantDetailPage() {
   const p = inh.data;
   const household = useApi<Household>(p?.householdId ? `/households/${p.householdId}` : null);
 
+  // Delete Modal State
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+  const [deleteBusy, setDeleteBusy] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
+
+  async function handleDelete() {
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await del(`/inhabitants/${id}`);
+      setShowDeleteModal(false);
+      router.push("/inhabitants");
+    } catch (err: any) {
+      setDeleteError(err?.message ?? "Could not delete inhabitant.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
   // Deceased Modal (BIMS Form A3)
   const [showDeceasedModal, setShowDeceasedModal] = React.useState(false);
-  const [deceasedDate, setDeceasedDate] = React.useState(new Date().toISOString().split("T")[0]);
-  const [immediateCause, setImmediateCause] = React.useState("");
-  const [underlyingCause, setUnderlyingCause] = React.useState(DILG_CAUSE_OF_DEATH_CATEGORIES[0]);
-  const [deceasedConsent, setDeceasedConsent] = React.useState(true);
   const [deceasedBusy, setDeceasedBusy] = React.useState(false);
   const [deceasedError, setDeceasedError] = React.useState<string | null>(null);
 
   const completeness = p?.completeness ?? 0;
   const tone = completeness >= 80 ? "green" : completeness >= 50 ? "gold" : "red";
 
-  async function submitDeceased(e: React.FormEvent) {
-    e.preventDefault();
-    if (!deceasedConsent) {
-      setDeceasedError("Consent is required under RA 10173.");
-      return;
-    }
+  async function submitDeceased(data: {
+    dateOfDeath: string;
+    immediateCause: string;
+    underlyingCause: string;
+  }) {
     setDeceasedBusy(true);
     setDeceasedError(null);
     try {
-      await post(`/inhabitants/${id}/deceased`, {
-        dateOfDeath: deceasedDate,
-        immediateCause,
-        underlyingCause,
-      });
+      await post(`/inhabitants/${id}/deceased`, data);
       setShowDeceasedModal(false);
       inh.reload();
     } catch (err: any) {
@@ -102,10 +116,21 @@ export default function InhabitantDetailPage() {
                 ✏️ Edit profile
               </button>
             )}
+            {mayEncode && (
+              <button
+                type="button"
+                className="cbms-btn"
+                onClick={() => setShowDeleteModal(true)}
+                style={{ color: "var(--cbms-red, #ce1126)" }}
+              >
+                🗑️ Delete profile
+              </button>
+            )}
           </div>
         }
       />
 
+      {deleteError && <Alert tone="danger">{deleteError}</Alert>}
       <Async loading={inh.loading} error={inh.error}>
         {!p ? (
           <EmptyNote>Record not found.</EmptyNote>
@@ -162,9 +187,89 @@ export default function InhabitantDetailPage() {
                 <Panel title="Contact, Occupation & Voter Registry">
                   <KeyValue
                     items={[
-                      ["Mobile Number", p.contactPhone ?? "—"],
-                      ["Email Address", p.contactEmail ?? "—"],
-                      ["Telephone", p.telephoneNumber ?? "—"],
+                      [
+                        "Mobile Number",
+                        p.contactPhone ? (
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <a
+                              href={`tel:${p.contactPhone.replace(/[^0-9+]/g, "")}`}
+                              style={{
+                                color: "var(--cbms-primary, #0038a8)",
+                                textDecoration: "underline",
+                                fontWeight: 600,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                              }}
+                              title="Click to call mobile number"
+                            >
+                              📱 {formatPhilippineMobile(p.contactPhone)}
+                            </a>
+                            <a
+                              href={`sms:${p.contactPhone.replace(/[^0-9+]/g, "")}`}
+                              className="cbms-chip"
+                              style={{
+                                fontSize: 11,
+                                padding: "2px 8px",
+                                textDecoration: "none",
+                                cursor: "pointer",
+                                backgroundColor: "rgba(0, 56, 168, 0.08)",
+                                color: "var(--cbms-primary, #0038a8)",
+                                border: "1px solid rgba(0, 56, 168, 0.2)",
+                                borderRadius: 12,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                              }}
+                              title="Click to send SMS message"
+                            >
+                              💬 SMS
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="adm-muted">Not provided</span>
+                        ),
+                      ],
+                      [
+                        "Email Address",
+                        p.contactEmail ? (
+                          <a
+                            href={`mailto:${p.contactEmail}`}
+                            style={{
+                              color: "var(--cbms-primary, #0038a8)",
+                              textDecoration: "underline",
+                              fontWeight: 500,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                            title="Click to send email"
+                          >
+                            ✉️ {p.contactEmail}
+                          </a>
+                        ) : (
+                          <span className="adm-muted">Not provided</span>
+                        ),
+                      ],
+                      [
+                        "Telephone",
+                        p.telephoneNumber ? (
+                          <a
+                            href={`tel:${p.telephoneNumber.replace(/[^0-9+]/g, "")}`}
+                            style={{
+                              color: "var(--cbms-primary, #0038a8)",
+                              textDecoration: "underline",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            ☎️ {p.telephoneNumber}
+                          </a>
+                        ) : (
+                          "—"
+                        ),
+                      ],
                       ["Occupation", p.occupation ?? "—"],
                       ["Education Level", p.educationLevel ?? "—"],
                       ["Monthly Income", p.monthlyIncome ? peso(p.monthlyIncome * 100) : "—"],
@@ -281,107 +386,21 @@ export default function InhabitantDetailPage() {
       </Async>
 
       {/* Deceased Modal Form A3 */}
-      {showDeceasedModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 2000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-          }}
-          onClick={() => setShowDeceasedModal(false)}
-        >
-          <div
-            style={{
-              backgroundColor: "var(--color-bg-card, #ffffff)",
-              borderRadius: "0.5rem",
-              padding: "1.5rem",
-              maxWidth: "500px",
-              width: "100%",
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ margin: "0 0 0.5rem 0", color: "#ef4444" }}>
-              ✝ Deceased Profile (BIMS Form A3)
-            </h3>
-            <p style={{ margin: "0 0 1rem 0", fontSize: "0.85rem", color: "#64748b" }}>
-              Record death certificate details for {p ? fullName(p) : "Inhabitant"} per DILG BIMS standard.
-            </p>
-
-            {deceasedError && <Alert tone="danger">{deceasedError}</Alert>}
-
-            <form onSubmit={submitDeceased} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Field label="Date of Death">
-                <input
-                  className="cbms-input"
-                  type="date"
-                  value={deceasedDate}
-                  onChange={(e) => setDeceasedDate(e.target.value)}
-                  required
-                />
-              </Field>
-
-              <Field label="Immediate Cause of Death" hint='As declared in death certificate (e.g. "Heart Attack")'>
-                <input
-                  className="cbms-input"
-                  value={immediateCause}
-                  onChange={(e) => setImmediateCause(e.target.value)}
-                  placeholder="e.g. Cardiopulmonary Arrest"
-                  required
-                />
-              </Field>
-
-              <Field label="Underlying Cause of Death (DILG Classification)">
-                <select
-                  className="cbms-select"
-                  value={underlyingCause}
-                  onChange={(e) => setUnderlyingCause(e.target.value)}
-                  required
-                >
-                  {DILG_CAUSE_OF_DEATH_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <div style={{ marginTop: 8 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem" }}>
-                  <input
-                    type="checkbox"
-                    checked={deceasedConsent}
-                    onChange={(e) => setDeceasedConsent(e.target.checked)}
-                    required
-                  />
-                  I certify that the above information is accurate and verified with civil registry records.
-                </label>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
-                <button
-                  type="button"
-                  className="cbms-btn"
-                  onClick={() => setShowDeceasedModal(false)}
-                >
-                  Cancel
-                </button>
-                <Button type="submit" variant="danger" disabled={deceasedBusy}>
-                  {deceasedBusy ? "Saving…" : "Confirm Deceased Record"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <DeceasedModal
+        open={showDeceasedModal}
+        name={p ? fullName(p) : "Inhabitant"}
+        busy={deceasedBusy}
+        error={deceasedError}
+        onClose={() => setShowDeceasedModal(false)}
+        onSubmit={submitDeceased}
+      />
+      <DeleteInhabitantModal
+        open={showDeleteModal}
+        busy={deleteBusy}
+        expectedName={p ? fullName(p) : ""}
+        onCancel={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+      />
     </>
   );
 }

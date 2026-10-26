@@ -188,6 +188,7 @@ export interface Column<T> {
   render?: (row: T) => React.ReactNode;
   width?: string | number;
   align?: "left" | "right" | "center";
+  sortable?: boolean;
 }
 
 export function DataTable<T extends Record<string, any>>(props: {
@@ -197,7 +198,11 @@ export function DataTable<T extends Record<string, any>>(props: {
   rowKey?: (row: T, i: number) => string;
   onRowClick?: (row: T) => void;
   maxHeight?: string | number;
+  minWidth?: string | number;
   stickyHeader?: boolean;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  onSort?: (columnKey: string) => void;
   loading?: boolean;
   skeletonRows?: number;
   loadingMore?: boolean;
@@ -221,30 +226,83 @@ export function DataTable<T extends Record<string, any>>(props: {
     >
       <table
         className="cbms-table"
-        style={isSticky ? { borderCollapse: "separate", borderSpacing: 0 } : undefined}
+        style={{
+          ...(isSticky ? { borderCollapse: "separate", borderSpacing: 0 } : {}),
+          ...(props.minWidth ? { minWidth: props.minWidth } : {}),
+        }}
       >
         <thead>
           <tr>
-            {props.columns.map((c) => (
-              <th
-                key={c.key}
-                style={{
-                  width: c.width,
-                  textAlign: c.align ?? "left",
-                  ...(isSticky
-                    ? {
-                        position: "sticky",
-                        top: 0,
-                        zIndex: 10,
-                        background: "var(--cbms-white, #ffffff)",
-                        borderBottom: "2px solid var(--cbms-line, #e2e8f0)",
-                      }
-                    : {}),
-                }}
-              >
-                {c.header}
-              </th>
-            ))}
+            {props.columns.map((c) => {
+              const isSorted = props.sortBy === c.key;
+              const isSortable = Boolean(c.sortable);
+              return (
+                <th
+                  key={c.key}
+                  onClick={isSortable ? () => props.onSort?.(c.key) : undefined}
+                  role={isSortable ? "button" : undefined}
+                  tabIndex={isSortable ? 0 : undefined}
+                  onKeyDown={
+                    isSortable
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            props.onSort?.(c.key);
+                          }
+                        }
+                      : undefined
+                  }
+                  aria-sort={
+                    isSortable
+                      ? isSorted
+                        ? props.sortOrder === "desc"
+                          ? "descending"
+                          : "ascending"
+                        : "none"
+                      : undefined
+                  }
+                  style={{
+                    width: c.width,
+                    textAlign: c.align ?? "left",
+                    cursor: isSortable ? "pointer" : "default",
+                    userSelect: isSortable ? "none" : "auto",
+                    ...(isSticky
+                      ? {
+                          position: "sticky",
+                          top: 0,
+                          zIndex: 10,
+                          background: "var(--cbms-white, #ffffff)",
+                          borderBottom: "2px solid var(--cbms-line, #e2e8f0)",
+                          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+                        }
+                      : {}),
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <span>{c.header}</span>
+                    {isSortable && (
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          fontSize: "0.75rem",
+                          color: isSorted ? "var(--cbms-navy, #0a2463)" : "var(--cbms-muted, #94a3b8)",
+                          fontWeight: isSorted ? 900 : 400,
+                          opacity: isSorted ? 1 : 0.45,
+                        }}
+                      >
+                        {isSorted ? (props.sortOrder === "desc" ? "▼" : "▲") : "⇅"}
+                      </span>
+                    )}
+                  </div>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -275,7 +333,7 @@ export function DataTable<T extends Record<string, any>>(props: {
             <>
               {props.rows.map((row, i) => (
                 <tr
-                  key={props.rowKey ? props.rowKey(row, i) : (row.id ?? i)}
+                  key={props.rowKey ? props.rowKey(row, i) : (row.id ? `${row.id}-${i}` : i)}
                   onClick={props.onRowClick ? () => props.onRowClick!(row) : undefined}
                   style={props.onRowClick ? { cursor: "pointer" } : undefined}
                 >

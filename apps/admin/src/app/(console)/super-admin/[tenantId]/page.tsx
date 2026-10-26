@@ -11,6 +11,7 @@ import { parseTenantSettings } from "./types";
 import { BarangayOverviewCard } from "./components/BarangayOverviewCard";
 import { BarangayOperationsCard } from "./components/BarangayOperationsCard";
 import { BarangayStaffRoster } from "./components/BarangayStaffRoster";
+import { DeleteBarangayModal } from "./components/DeleteBarangayModal";
 
 export default function TenantDetailPage() {
   const params = useParams();
@@ -22,6 +23,7 @@ export default function TenantDetailPage() {
   const { data: tenant, isLoading, error, refetch } = useSingleTenantQuery(tenantId);
 
   const [switchSuccess, setSwitchSuccess] = React.useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
 
   function handleSwitchWorkspace() {
     if (!tenant) return;
@@ -108,7 +110,7 @@ export default function TenantDetailPage() {
         title={tenant.name}
         breadcrumb={`Super Admin / Fleet / ${tenant.name}`}
         actions={
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <Link href="/super-admin" className="cbms-btn cbms-btn--secondary">
               ← Back to Fleet
             </Link>
@@ -128,6 +130,19 @@ export default function TenantDetailPage() {
             >
               Public Portal ↗
             </a>
+            <button
+              type="button"
+              className="cbms-btn"
+              onClick={() => setDeleteModalOpen(true)}
+              style={{
+                backgroundColor: "#fee2e2",
+                color: "#991b1b",
+                borderColor: "#fca5a5",
+                fontWeight: 600,
+              }}
+            >
+              🗑️ Delete Barangay
+            </button>
           </div>
         }
       />
@@ -145,6 +160,16 @@ export default function TenantDetailPage() {
         <BarangayOperationsCard settings={settings} />
         <BarangayStaffRoster tenant={tenant} />
       </div>
+
+      <DeleteBarangayModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        tenant={tenant}
+        onSuccess={() => {
+          setDeleteModalOpen(false);
+          router.push("/super-admin");
+        }}
+      />
     </>
   );
 }

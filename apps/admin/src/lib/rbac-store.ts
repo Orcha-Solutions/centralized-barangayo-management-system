@@ -104,8 +104,22 @@ export const useRbacStore = create<RbacState>((set, get) => ({
   hydrated: false,
 
   hydrateFromStorage: () => {
-    const storedUser = getStoredUser();
-    const storedTenant = getStoredTenant();
+    let storedUser = getStoredUser();
+    let storedTenant = getStoredTenant();
+    if (storedTenant?.id === "tnt-sanroque" || storedUser?.tenantId === "tnt-sanroque") {
+      const defaultTenant: TenantInfo = {
+        id: "tnt-barangka",
+        name: "Barangay Barangka",
+        code: "BRGY-BARANGKA",
+        subdomain: "barangka",
+        barangayId: "brgy-barangka",
+        cityId: "city-marikina",
+        mode: "shared_db",
+        status: "active",
+      };
+      storedUser = switchActiveTenant(defaultTenant);
+      storedTenant = defaultTenant;
+    }
     set({
       user: storedUser,
       activeTenant: storedTenant,

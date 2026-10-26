@@ -362,43 +362,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
               ☰
             </button>
             <div className="cbms-topbar__title">{title}</div>
-            {canSwitchTenant && tenants.length > 0 ? (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <select
-                  aria-label="Active Barangay Tenant"
-                  value={user?.tenantId || "tnt-barangka"}
-                  onChange={(e) => {
-                    const nextTenant = tenants.find((t) => t.id === e.target.value);
-                    if (nextTenant) {
-                      setActiveTenant(nextTenant);
-                      window.location.reload();
-                    }
-                  }}
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: "4px 10px",
-                    borderRadius: 999,
-                    border: "1px solid #cbd5e1",
-                    background: "#eef3fc",
-                    color: "var(--cbms-navy, #0a2463)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {tenants.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      🏛️ {t.name} ({t.subdomain})
-                    </option>
-                  ))}
-                </select>
-                <Chip tone="navy">DB: {mode}</Chip>
-              </div>
-            ) : (
-              <Chip tone={mode === "companion" || mode === "shared_db" ? "navy" : "gold"}>
-                🏛️ {barangayName} · {mode}
-              </Chip>
-            )}
-             <div className="cbms-topbar__spacer" />
+            <Chip tone={mode === "companion" || mode === "shared_db" ? "navy" : "gold"}>
+              🏛️ {barangayName} · {mode}
+            </Chip>
+            <div className="cbms-topbar__spacer" />
 
             {/* Quick Docs Link */}
             <Link

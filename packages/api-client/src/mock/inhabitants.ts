@@ -358,8 +358,8 @@ export function handleInhabitantsMock(ctx: MockContext): any {
     }
   }
 
-  // 3. PATCH requests
-  if (method === "PATCH") {
+  // 3. PATCH / PUT requests
+  if (method === "PATCH" || method === "PUT") {
     const body = opts.body ? JSON.parse(opts.body as string) : {};
 
     const inhMatch = cleanPath.match(/\/inhabitants\/([^\/]+)/);

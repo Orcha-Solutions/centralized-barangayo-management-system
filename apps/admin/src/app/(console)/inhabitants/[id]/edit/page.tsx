@@ -4,65 +4,52 @@ import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useInhabitantStore } from "../../../../../store/inhabitantStore";
 import { useHouseholdStore } from "../../../../../store/householdStore";
-import { qs, useApi, ApiError } from "@cbms/api-client";
+import { useApi, ApiError } from "@cbms/api-client";
+import { PageHead } from "@cbms/ui";
+import { ActionResult, Tabs } from "../../../../../components/common";
 import {
-  Alert,
-  Button,
-  DataTable,
-  Field,
-  PageHead,
-  Panel,
-  StatusChip,
-  date,
-  fullName,
-  peso,
-  titleize,
-} from "@cbms/ui";
-import { Async, ActionResult, Tabs } from "../../../../../components/common";
-import type { Household, Inhabitant } from "../../../../../lib/types";
+  EditInhabitantForm,
+  type EditInhabitantFormData,
+  type FlagKey,
+} from "./components/EditInhabitantForm";
+import { DeleteInhabitantModal } from "./components/DeleteInhabitantModal";
+import { ConfirmSaveModal } from "./components/ConfirmSaveModal";
+import { Toast } from "../../../../../components/Toast";
+import { validatePhilippineMobile, validateEmail } from "../../../../../lib/validation";
+import {
+  InhabitantHistoryTab,
+  type TimelineTransaction,
+} from "./components/InhabitantHistoryTab";
 
-const SECTOR_FLAGS: Array<{ key: FlagKey; label: string }> = [
-  { key: "isSenior", label: "Senior citizen" },
-  { key: "isPwd", label: "Person with disability" },
-  { key: "isSoloParent", label: "Solo parent" },
-  { key: "is4Ps", label: "4Ps beneficiary" },
-  { key: "isIndigenous", label: "Indigenous people" },
-  { key: "isDeceased", label: "Deceased" }
-];
-
-type FlagKey = "isSenior" | "isPwd" | "isSoloParent" | "is4Ps" | "isIndigenous" | "isDeceased";
 type TabKey = "edit" | "history";
-
-interface TimelineTransaction {
-  id: string;
-  type: string;
-  description: string;
-  amount: number;
-  status: string;
-  date: string;
-}
 
 export default function EditInhabitantPage() {
   const params = useParams();
   const router = useRouter();
   const id = String((params as Record<string, string | string[]>)?.id ?? "");
 
-  const { inhabitants, updateInhabitant, deleteInhabitant, fetchInhabitants } = useInhabitantStore();
+  const { inhabitants, updateInhabitant, deleteInhabitant, fetchInhabitants } =
+    useInhabitantStore();
   const { households, fetchHouseholds } = useHouseholdStore();
-  
-  // Delete Popup State
-  const [showDeletePopup, setShowDeletePopup] = React.useState(false);
-  const [showActionsDropdown, setShowActionsDropdown] = React.useState(false);
 
-  // Household search state
-  const [householdSearch, setHouseholdSearch] = React.useState("");
-  const [isSearchingHousehold, setIsSearchingHousehold] = React.useState(false);
-  
+  // Popups & Toast State
+  const [showDeletePopup, setShowDeletePopup] = React.useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = React.useState(false);
+  const [showActionsDropdown, setShowActionsDropdown] = React.useState(false);
+  const [toast, setToast] = React.useState<{
+    open: boolean;
+    message: string;
+    description?: string;
+    tone?: "success" | "danger" | "info";
+  }>({ open: false, message: "" });
+
   // Consolidated timeline data fetching
-  const history = useApi<TimelineTransaction[]>(id ? `/inhabitants/${id}/transactions` : null);
+  const history = useApi<TimelineTransaction[]>(
+    id ? `/inhabitants/${id}/transactions` : null
+  );
 
   const [tab, setTab] = React.useState<TabKey>("edit");
-  const [form, setForm] = React.useState({
+  const [form, setForm] = React.useState<EditInhabitantFormData>({
     firstName: "",
     middleName: "",
     lastName: "",
@@ -87,7 +74,7 @@ export default function EditInhabitantPage() {
     isSoloParent: false,
     is4Ps: false,
     isIndigenous: false,
-    isDeceased: false
+    isDeceased: false,
   });
 
   const [error, setError] = React.useState<string | null>(null);
@@ -102,12 +89,14 @@ export default function EditInhabitantPage() {
       if (households.length === 0) {
         await fetchHouseholds();
       }
+      setLoading(false);
     }
     loadData();
-  }, []);
+  }, [inhabitants.length, households.length, fetchInhabitants, fetchHouseholds]);
 
   React.useEffect(() => {
-    const inh = inhabitants.find((x: Inhabitant) => x.id === id);
+    if (!id || inhabitants.length === 0) return;
+    const inh = inhabitants.find((item) => item.id === id);
     if (inh) {
       setForm({
         firstName: inh.firstName || "",
@@ -116,52 +105,60 @@ export default function EditInhabitantPage() {
         suffix: inh.suffix || "",
         sex: inh.sex || "male",
         birthDate: inh.birthDate ? inh.birthDate.split("T")[0] : "",
-        birthPlace: inh.birthPlace || "",
+        birthPlace: (inh as any).birthPlace || "",
         civilStatus: inh.civilStatus || "single",
-        citizenship: inh.citizenship || "Filipino",
+        citizenship: (inh as any).citizenship || (inh as any).nationality || "Filipino",
         philsysNo: inh.philsysNo || "",
-        contactPhone: inh.contactPhone || "",
-        contactEmail: inh.contactEmail || "",
+        contactPhone: inh.contactPhone || (inh as any).phone || "",
+        contactEmail: inh.contactEmail || (inh as any).email || "",
         occupation: inh.occupation || "",
         educationLevel: inh.educationLevel || "",
         householdId: inh.householdId || "",
-        relationToHead: inh.relationToHead || "Head",
+        relationToHead: inh.relationToHead || "",
       });
       setFlags({
         isSenior: !!inh.isSenior,
         isPwd: !!inh.isPwd,
         isSoloParent: !!inh.isSoloParent,
         is4Ps: !!inh.is4Ps,
-        isIndigenous: !!inh.isIndigenous,
-        isDeceased: !!inh.isDeceased
+        isIndigenous: !!(inh as any).isIndigenous,
+        isDeceased: !!inh.isDeceased,
       });
       setLoading(false);
     }
   }, [inhabitants, id]);
 
-  const selectedHousehold = React.useMemo(() => {
-    if (!form.householdId) return null;
-    return households.find((h) => h.id === form.householdId);
-  }, [households, form.householdId]);
-
-  const matchedHouseholds = React.useMemo(() => {
-    if (!householdSearch.trim()) return households.slice(0, 15);
-    const query = householdSearch.toLowerCase();
-    return households.filter((h) => {
-      const no = h.householdNo?.toLowerCase() || "";
-      const addr = h.addressLine?.toLowerCase() || "";
-      const p = h.purok?.toLowerCase() || "";
-      const st = h.street?.toLowerCase() || "";
-      return no.includes(query) || addr.includes(query) || p.includes(query) || st.includes(query);
-    }).slice(0, 15);
-  }, [households, householdSearch]);
-
-  function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
-    setForm((f) => ({ ...f, [key]: value }));
+  function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setError(null);
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      setError("First name and Last name are required.");
+      return;
+    }
+    if (!form.birthDate) {
+      setError("Birth date is required.");
+      return;
+    }
+    if (form.contactPhone.trim()) {
+      const phoneVal = validatePhilippineMobile(form.contactPhone);
+      if (!phoneVal.isValid) {
+        setError(phoneVal.error || "Please enter a valid Philippine mobile number.");
+        return;
+      }
+    }
+    if (form.contactEmail.trim()) {
+      const emailVal = validateEmail(form.contactEmail);
+      if (!emailVal.isValid) {
+        setError(emailVal.error || "Please enter a valid email address.");
+        return;
+      }
+    }
+    setShowSaveConfirm(true);
   }
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleConfirmSave() {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -176,15 +173,27 @@ export default function EditInhabitantPage() {
         householdId: form.householdId || null,
         relationToHead: form.householdId ? form.relationToHead : null,
       });
-      router.push(`/inhabitants`);
+      setShowSaveConfirm(false);
+      const fullNameStr = `${form.firstName.trim()} ${form.lastName.trim()}`;
+      setToast({
+        open: true,
+        message: "Changes saved successfully!",
+        description: `Profile for ${fullNameStr} has been updated in the barangay registry.`,
+        tone: "success",
+      });
+      // Stay on page: refresh store and history without redirecting
+      fetchInhabitants();
+      history.reload();
     } catch (err) {
+      setShowSaveConfirm(false);
       setError(err instanceof ApiError ? err.message : "Could not save the changes.");
     } finally {
       setBusy(false);
     }
   }
 
-  async function confirmDelete() {
+  async function handleConfirmDelete() {
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -199,7 +208,11 @@ export default function EditInhabitantPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: "2rem", textAlign: "center" }}>Loading inhabitant details...</div>;
+    return (
+      <div style={{ padding: "2rem", textAlign: "center" }}>
+        Loading inhabitant details...
+      </div>
+    );
   }
 
   return (
@@ -211,7 +224,12 @@ export default function EditInhabitantPage() {
         parity="BIPS"
         actions={
           <div style={{ display: "flex", gap: "0.5rem", position: "relative" }}>
-            <button type="button" className="cbms-btn" onClick={() => router.push("/inhabitants")}>
+            <button
+              type="button"
+              className="cbms-btn"
+              disabled={busy}
+              onClick={() => router.push("/inhabitants")}
+            >
               Cancel
             </button>
             <div style={{ position: "relative" }}>
@@ -219,21 +237,29 @@ export default function EditInhabitantPage() {
                 type="button"
                 onClick={() => setShowActionsDropdown(!showActionsDropdown)}
                 className="cbms-btn cbms-btn--primary"
+                disabled={busy}
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: "0.25rem",
                   padding: "0.5rem 1rem",
                   fontSize: "0.875rem",
-                  cursor: "pointer"
+                  cursor: busy ? "not-allowed" : "pointer",
                 }}
               >
                 ⚙️ Actions ▾
               </button>
               {showActionsDropdown && (
                 <>
-                  <div 
-                    style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
+                  <div
+                    style={{
+                      position: "fixed",
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      zIndex: 100,
+                    }}
                     onClick={() => setShowActionsDropdown(false)}
                   />
                   <div
@@ -249,13 +275,16 @@ export default function EditInhabitantPage() {
                       minWidth: "180px",
                       display: "flex",
                       flexDirection: "column",
-                      padding: "0.25rem 0"
+                      padding: "0.25rem 0",
                     }}
                   >
                     <button
-                      type="submit"
-                      form="edit-inhabitant-form"
-                      onClick={() => setShowActionsDropdown(false)}
+                      type="button"
+                      onClick={() => {
+                        setShowActionsDropdown(false);
+                        const formEl = document.getElementById("edit-inhabitant-form") as HTMLFormElement;
+                        formEl?.requestSubmit();
+                      }}
                       disabled={busy}
                       style={{
                         padding: "0.6rem 1rem",
@@ -263,15 +292,17 @@ export default function EditInhabitantPage() {
                         border: "none",
                         background: "none",
                         fontSize: "0.85rem",
-                        cursor: "pointer",
+                        cursor: busy ? "not-allowed" : "pointer",
                         display: "flex",
                         alignItems: "center",
                         gap: "0.5rem",
                         color: "var(--color-text, #1b2430)",
-                        width: "100%"
+                        width: "100%",
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)")
+                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                     >
                       💾 Save Changes
                     </button>
@@ -288,15 +319,17 @@ export default function EditInhabitantPage() {
                         border: "none",
                         background: "none",
                         fontSize: "0.85rem",
-                        cursor: "pointer",
+                        cursor: busy ? "not-allowed" : "pointer",
                         display: "flex",
                         alignItems: "center",
                         gap: "0.5rem",
                         color: "var(--cbms-red, #ce1126)",
-                        width: "100%"
+                        width: "100%",
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)")
+                      }
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                     >
                       🗑️ Delete Profile
                     </button>
@@ -325,451 +358,48 @@ export default function EditInhabitantPage() {
       />
 
       <div style={{ display: tab === "edit" ? "block" : "none" }}>
-        <form onSubmit={save} id="edit-inhabitant-form">
-          <div className="cbms-grid-2" style={{ marginTop: "1rem" }}>
-            <Panel title="Identity">
-              <div className="adm-form-grid">
-                <Field label="First name">
-                  <input
-                    className="cbms-input"
-                    value={form.firstName}
-                    onChange={(e) => set("firstName", e.target.value)}
-                    required
-                  />
-                </Field>
-                <Field label="Middle name">
-                  <input
-                    className="cbms-input"
-                    value={form.middleName}
-                    onChange={(e) => set("middleName", e.target.value)}
-                  />
-                </Field>
-                <Field label="Last name">
-                  <input
-                    className="cbms-input"
-                    value={form.lastName}
-                    onChange={(e) => set("lastName", e.target.value)}
-                    required
-                  />
-                </Field>
-                <Field label="Suffix">
-                  <input
-                    className="cbms-input"
-                    value={form.suffix}
-                    onChange={(e) => set("suffix", e.target.value)}
-                    placeholder="Jr., III, …"
-                  />
-                </Field>
-                <Field label="Sex">
-                  <select
-                    className="cbms-select"
-                    value={form.sex}
-                    onChange={(e) => set("sex", e.target.value)}
-                  >
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </Field>
-                <Field label="Civil status">
-                  <select
-                    className="cbms-select"
-                    value={form.civilStatus}
-                    onChange={(e) => set("civilStatus", e.target.value)}
-                  >
-                    <option value="single">Single</option>
-                    <option value="married">Married</option>
-                    <option value="widowed">Widowed</option>
-                    <option value="separated">Separated</option>
-                    <option value="divorced">Divorced</option>
-                  </select>
-                </Field>
-                <Field label="Citizenship">
-                  <input
-                    className="cbms-input"
-                    value={form.citizenship}
-                    onChange={(e) => set("citizenship", e.target.value)}
-                    required
-                  />
-                </Field>
-                <Field label="Birth date">
-                  <input
-                    className="cbms-input"
-                    type="date"
-                    value={form.birthDate}
-                    onChange={(e) => set("birthDate", e.target.value)}
-                    required
-                  />
-                </Field>
-                <Field label="Birth place">
-                  <input
-                    className="cbms-input"
-                    value={form.birthPlace}
-                    onChange={(e) => set("birthPlace", e.target.value)}
-                  />
-                </Field>
-              </div>
-            </Panel>
-
-            <Panel title="Contact, Household Assignment & Sectoral">
-              <div className="adm-form-grid">
-                <Field label="PhilSys number (PCN)" hint="Optional — verified against a mock adapter.">
-                  <input
-                    className="cbms-input"
-                    value={form.philsysNo}
-                    onChange={(e) => set("philsysNo", e.target.value)}
-                  />
-                </Field>
-                <Field label="Mobile number">
-                  <input
-                    className="cbms-input"
-                    value={form.contactPhone}
-                    onChange={(e) => set("contactPhone", e.target.value)}
-                  />
-                </Field>
-                <Field label="Email Address">
-                  <input
-                    className="cbms-input"
-                    type="email"
-                    value={form.contactEmail}
-                    onChange={(e) => set("contactEmail", e.target.value)}
-                  />
-                </Field>
-                <Field label="Occupation">
-                  <input
-                    className="cbms-input"
-                    value={form.occupation}
-                    onChange={(e) => set("occupation", e.target.value)}
-                  />
-                </Field>
-                <Field label="Education level">
-                  <input
-                    className="cbms-input"
-                    value={form.educationLevel}
-                    onChange={(e) => set("educationLevel", e.target.value)}
-                  />
-                </Field>
-              </div>
-
-              {/* Searchable Household Assignment Section */}
-              <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--color-border, #e2e8f0)" }}>
-                <Field label="Household Folder & Address" hint="Attach resident to a household folder">
-                  {form.householdId && !isSearchingHousehold ? (
-                    <div
-                      style={{
-                        border: "1px solid var(--color-border, #e2e8f0)",
-                        borderRadius: "0.375rem",
-                        padding: "0.75rem",
-                        backgroundColor: "var(--color-bg-hover, #f8fafc)",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--color-text, #1b2430)" }}>
-                          🏠 {selectedHousehold?.householdNo || "Household " + form.householdId}
-                        </div>
-                        <div style={{ fontSize: "0.75rem", color: "var(--cbms-muted, #64748b)" }}>
-                          {selectedHousehold?.addressLine || "No address recorded"} · {selectedHousehold?.purok || "—"}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <button
-                          type="button"
-                          className="cbms-btn"
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                          onClick={() => {
-                            setIsSearchingHousehold(true);
-                            setHouseholdSearch("");
-                          }}
-                        >
-                          🔍 Change
-                        </button>
-                        <button
-                          type="button"
-                          className="cbms-btn"
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem", color: "var(--cbms-red, #ce1126)" }}
-                          onClick={() => {
-                            setForm((prev) => ({ ...prev, householdId: "", relationToHead: "" }));
-                            setIsSearchingHousehold(false);
-                          }}
-                        >
-                          ✕ Clear
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ position: "relative" }}>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <input
-                          className="cbms-input"
-                          placeholder="🔍 Type to search household no., street, address…"
-                          value={householdSearch}
-                          onChange={(e) => {
-                            setHouseholdSearch(e.target.value);
-                            setIsSearchingHousehold(true);
-                          }}
-                          onFocus={() => setIsSearchingHousehold(true)}
-                        />
-                        {form.householdId && (
-                          <button
-                            type="button"
-                            className="cbms-btn"
-                            style={{ padding: "0.5rem 0.75rem", fontSize: "0.8rem" }}
-                            onClick={() => setIsSearchingHousehold(false)}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-
-                      {isSearchingHousehold && (
-                        <>
-                          <div
-                            style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1100 }}
-                            onClick={() => setIsSearchingHousehold(false)}
-                          />
-                          <div
-                            style={{
-                              position: "absolute",
-                              top: "105%",
-                              left: 0,
-                              right: 0,
-                              backgroundColor: "var(--color-bg-card, #ffffff)",
-                              border: "1px solid var(--color-border, #e2e8f0)",
-                              borderRadius: "0.375rem",
-                              boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
-                              maxHeight: "200px",
-                              overflowY: "auto",
-                              zIndex: 1200,
-                            }}
-                          >
-                            <div
-                              style={{
-                                padding: "0.5rem 0.75rem",
-                                borderBottom: "1px solid var(--color-border, #e2e8f0)",
-                                fontSize: "0.75rem",
-                                color: "var(--cbms-muted, #64748b)",
-                                cursor: "pointer",
-                              }}
-                              onClick={() => {
-                                setForm((prev) => ({ ...prev, householdId: "", relationToHead: "" }));
-                                setIsSearchingHousehold(false);
-                                setHouseholdSearch("");
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)")}
-                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                            >
-                              — 🚫 Unassigned / Not in a Household —
-                            </div>
-                            {matchedHouseholds.length === 0 ? (
-                              <div style={{ padding: "0.75rem", fontSize: "0.8rem", color: "var(--cbms-muted, #64748b)" }}>
-                                No households match "{householdSearch}"
-                              </div>
-                            ) : (
-                              matchedHouseholds.map((h) => (
-                                <div
-                                  key={h.id}
-                                  style={{
-                                    padding: "0.6rem 0.75rem",
-                                    borderBottom: "1px solid var(--color-border, #f1f5f9)",
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                  }}
-                                  onClick={() => {
-                                    setForm((prev) => ({
-                                      ...prev,
-                                      householdId: h.id,
-                                      relationToHead: prev.relationToHead || "Head",
-                                    }));
-                                    setIsSearchingHousehold(false);
-                                    setHouseholdSearch("");
-                                  }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)")}
-                                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                                >
-                                  <div>
-                                    <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--color-text, #1b2430)" }}>
-                                      🏠 {h.householdNo}
-                                    </div>
-                                    <div style={{ fontSize: "0.75rem", color: "var(--cbms-muted, #64748b)" }}>
-                                      {h.addressLine || "No address line"}
-                                    </div>
-                                  </div>
-                                  <span style={{ fontSize: "0.75rem", color: "var(--cbms-muted, #64748b)", background: "var(--color-bg-hover, #f1f5f9)", padding: "0.2rem 0.4rem", borderRadius: "0.25rem" }}>
-                                    {h.purok || "Purok —"}
-                                  </span>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </Field>
-
-                {form.householdId && (
-                  <div style={{ marginTop: "0.75rem" }}>
-                    <Field label="Relation to Head of Household">
-                      <select
-                        className="cbms-select"
-                        value={form.relationToHead}
-                        onChange={(e) => setForm((prev) => ({ ...prev, relationToHead: e.target.value }))}
-                      >
-                        <option value="Head">Head of Household</option>
-                        <option value="Spouse">Spouse</option>
-                        <option value="Son">Son</option>
-                        <option value="Daughter">Daughter</option>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Brother">Brother</option>
-                        <option value="Sister">Sister</option>
-                        <option value="Grandfather">Grandfather</option>
-                        <option value="Grandmother">Grandmother</option>
-                        <option value="Grandson">Grandson</option>
-                        <option value="Granddaughter">Granddaughter</option>
-                        <option value="Son-in-Law">Son-in-Law</option>
-                        <option value="Daughter-in-Law">Daughter-in-Law</option>
-                        <option value="Relative">Other Relative</option>
-                        <option value="Househelper / Domestic">Househelper / Domestic Worker</option>
-                        <option value="Boarder / Non-Relative">Boarder / Non-Relative</option>
-                      </select>
-                    </Field>
-                  </div>
-                )}
-              </div>
-
-              <div className="cbms-label" style={{ marginTop: 12 }}>
-                Sectoral flags
-              </div>
-              <div className="adm-checks">
-                {SECTOR_FLAGS.map((f) => (
-                  <label key={f.key}>
-                    <input
-                      type="checkbox"
-                      checked={flags[f.key]}
-                      onChange={(e) => setFlags((s) => ({ ...s, [f.key]: e.target.checked }))}
-                    />
-                    {f.label}
-                  </label>
-                ))}
-              </div>
-            </Panel>
-          </div>
-        </form>
+        <EditInhabitantForm
+          form={form}
+          setForm={setForm}
+          flags={flags}
+          setFlags={setFlags}
+          households={households}
+          busy={busy}
+          onSave={handleSave}
+        />
       </div>
 
       <div style={{ display: tab === "history" ? "block" : "none" }}>
-        <div style={{ marginTop: "1rem" }}>
-          <Panel title="Citizen Transaction Ledger">
-            <Async loading={history.loading} error={history.error}>
-              <DataTable
-                columns={[
-                  {
-                    key: "date",
-                    header: "Date/Time",
-                    render: (r: TimelineTransaction) => (
-                      <>
-                        <div className="cbms-table__primary">{date(r.date)}</div>
-                        <div className="cbms-table__muted">
-                          {new Date(r.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </>
-                    )
-                  },
-                  {
-                    key: "description",
-                    header: "Transaction Description",
-                    render: (r: TimelineTransaction) => (
-                      <>
-                        <div className="cbms-table__primary">{r.description}</div>
-                        <div className="cbms-table__muted">Reference: {r.id}</div>
-                      </>
-                    )
-                  },
-                  {
-                    key: "amount",
-                    header: "Amount (PHP)",
-                    align: "right",
-                    render: (r: TimelineTransaction) => r.amount === 0 ? "Free" : peso(r.amount)
-                  },
-                  {
-                    key: "status",
-                    header: "Status",
-                    render: (r: TimelineTransaction) => <StatusChip status={r.status} />
-                  }
-                ]}
-                rows={history.data || []}
-                empty="No transactions on file for this inhabitant."
-              />
-            </Async>
-          </Panel>
-        </div>
+        <InhabitantHistoryTab
+          loading={history.loading}
+          error={history.error}
+          transactions={history.data || []}
+        />
       </div>
 
-      {/* Delete Popup Confirmation Dialog */}
-      {showDeletePopup && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 2000,
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "var(--color-bg-card, #ffffff)",
-              border: "1px solid var(--color-border, #e2e8f0)",
-              borderRadius: "0.5rem",
-              padding: "1.5rem",
-              width: "100%",
-              maxWidth: "400px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1.25rem",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-            }}
-          >
-            <div>
-              <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.1rem", fontWeight: "bold", color: "var(--cbms-red, #ce1126)" }}>
-                ⚠️ Delete Inhabitant Profile
-              </h3>
-              <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--cbms-muted, #64748b)", lineHeight: "1.4" }}>
-                Are you sure you want to delete this inhabitant's profile? This will remove their registration from the citizen database. This action is irreversible.
-              </p>
-            </div>
+      <DeleteInhabitantModal
+        open={showDeletePopup}
+        busy={busy}
+        expectedName={`${form.firstName} ${form.lastName}`.trim()}
+        onCancel={() => setShowDeletePopup(false)}
+        onConfirm={handleConfirmDelete}
+      />
 
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setShowDeletePopup(false)}
-                className="cbms-btn"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={confirmDelete}
-                className="cbms-btn"
-                style={{ backgroundColor: "var(--cbms-red, #ce1126)", color: "#fff", border: "none" }}
-              >
-                {busy ? "Deleting..." : "Confirm Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmSaveModal
+        open={showSaveConfirm}
+        busy={busy}
+        inhabitantName={`${form.firstName} ${form.lastName}`.trim()}
+        onCancel={() => setShowSaveConfirm(false)}
+        onConfirm={handleConfirmSave}
+      />
+
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        description={toast.description}
+        tone={toast.tone}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+      />
     </>
   );
 }

@@ -114,6 +114,14 @@ export async function updateTenant(
   });
 }
 
+export async function deleteTenant(
+  id: string,
+): Promise<{ message: string; id: string }> {
+  return realBackendFetch(`/tenants/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
 export async function getTenant(identifier: string): Promise<{ tenant: TenantInfo }> {
   return realBackendFetch(`/tenants/${encodeURIComponent(identifier)}`);
 }
