@@ -25,7 +25,7 @@ export function Toast({
       onClose();
     }, duration);
     return () => clearTimeout(timer);
-  }, [open, duration, onClose]);
+  }, [open, message, description, duration, onClose]);
 
   if (!open) return null;
 

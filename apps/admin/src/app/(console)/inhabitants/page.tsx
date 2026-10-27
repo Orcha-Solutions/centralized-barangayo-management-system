@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Alert, PageHead, Panel } from "@cbms/ui";
+import { Alert, PageHead, Panel, fullName } from "@cbms/ui";
+import { del } from "@cbms/api-client";
 import { useConsole } from "../../../components/Shell";
+import { Toast } from "../../../components/Toast";
 import { useHouseholdStore } from "../../../store/householdStore";
 import { useInfiniteInhabitantsQuery } from "../../../lib/inhabitants-queries";
 import { InhabitantsTourGuide } from "./InhabitantsTourGuide";
@@ -11,6 +13,8 @@ import { InhabitantsToolbar } from "./components/InhabitantsToolbar";
 import { InhabitantsTable } from "./components/InhabitantsTable";
 import { InhabitantRegisterDrawer } from "./components/InhabitantRegisterDrawer";
 import { BulkAddInhabitantsDrawer } from "./components/BulkAddInhabitantsDrawer";
+import { DeleteInhabitantModal } from "./[id]/edit/components/DeleteInhabitantModal";
+import type { Inhabitant } from "../../../lib/types";
 
 export default function InhabitantsPage() {
   const { can } = useConsole();
@@ -85,6 +89,36 @@ export default function InhabitantsPage() {
   const [openDrawer, setOpenDrawer] = React.useState(false);
   const [exportError, setExportError] = React.useState<string | null>(null);
   const [tourEnabled, setTourEnabled] = React.useState(false);
+
+  // Delete State & Toast
+  const [deleteTarget, setDeleteTarget] = React.useState<Inhabitant | null>(null);
+  const [deleteBusy, setDeleteBusy] = React.useState(false);
+  const [toast, setToast] = React.useState<{
+    open: boolean;
+    message: string;
+    description?: string;
+    tone?: "success" | "danger" | "info";
+  }>({ open: false, message: "" });
+
+  const showToast = (message: string, description?: string, tone: "success" | "danger" | "info" = "success") => {
+    setToast({ open: true, message, description, tone });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteBusy(true);
+    try {
+      await del(`/inhabitants/${deleteTarget.id}`);
+      const name = fullName(deleteTarget);
+      setDeleteTarget(null);
+      showToast("Inhabitant Deleted", `Profile for ${name} was permanently removed.`, "success");
+      refetch();
+    } catch (err: any) {
+      showToast("Deletion Failed", err?.message || "Failed to delete inhabitant.", "danger");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   React.useEffect(() => {
     try {
@@ -177,6 +211,7 @@ export default function InhabitantsPage() {
           hasNextPage={hasNextPage}
           isFetchingNextPage={isFetchingNextPage}
           onLoadMore={fetchNextPage}
+          onSelectDelete={mayEncode ? (inh) => setDeleteTarget(inh) : undefined}
         />
       </Panel>
 
@@ -191,6 +226,24 @@ export default function InhabitantsPage() {
         open={openBulkAdd}
         onClose={() => setOpenBulkAdd(false)}
         onSuccess={() => refetch()}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteInhabitantModal
+        open={Boolean(deleteTarget)}
+        busy={deleteBusy}
+        expectedName={deleteTarget ? fullName(deleteTarget) : ""}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        description={toast.description}
+        tone={toast.tone}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
       />
 
       {/* Interactive Tour Guide (Triggered via Actions > Guide) */}

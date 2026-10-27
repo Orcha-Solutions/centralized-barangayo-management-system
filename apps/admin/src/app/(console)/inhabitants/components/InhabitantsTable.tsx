@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DataTable, age, fullName } from "@cbms/ui";
 import { SectorChips, SourceChip } from "../../../../components/common";
@@ -17,6 +18,7 @@ interface InhabitantsTableProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   onLoadMore?: () => void;
+  onSelectDelete?: (inhabitant: Inhabitant) => void;
 }
 
 export function InhabitantsTable({
@@ -30,6 +32,7 @@ export function InhabitantsTable({
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
+  onSelectDelete,
 }: InhabitantsTableProps) {
   const router = useRouter();
   const sentinelRef = React.useRef<HTMLTableRowElement>(null);
@@ -76,11 +79,18 @@ export function InhabitantsTable({
           {
             key: "name",
             header: "Citizen",
-            width: "25%",
+            width: "23%",
             sortable: true,
             render: (r: Inhabitant) => (
               <>
-                <div className="cbms-table__primary">{fullName(r)}</div>
+                <Link
+                  href={`/inhabitants/${r.id}`}
+                  className="cbms-table__primary"
+                  style={{ textDecoration: "none", color: "var(--cbms-navy, #0a2463)", fontWeight: 700 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {fullName(r)}
+                </Link>
                 <div className="cbms-table__muted">
                   {r.philsysNo ? `PCN ${r.philsysNo}` : "No PhilSys on file"}
                 </div>
@@ -90,7 +100,7 @@ export function InhabitantsTable({
           {
             key: "sexAge",
             header: "Sex / Age",
-            width: "12%",
+            width: "11%",
             sortable: true,
             render: (r: Inhabitant) =>
               `${r.sex === "male" ? "M" : "F"} · ${age(r.birthDate) ?? "—"} y/o`,
@@ -98,7 +108,7 @@ export function InhabitantsTable({
           {
             key: "household",
             header: "Household / Address",
-            width: "28%",
+            width: "26%",
             sortable: true,
             render: (r: Inhabitant) =>
               r.household ? (
@@ -113,16 +123,75 @@ export function InhabitantsTable({
           {
             key: "sectors",
             header: "Sectoral",
-            width: "23%",
+            width: "19%",
             sortable: false,
             render: (r: Inhabitant) => <SectorChips row={r} />,
           },
           {
             key: "source",
             header: "Source",
-            width: "12%",
+            width: "11%",
             sortable: true,
             render: (r: Inhabitant) => <SourceChip source={r.source} />,
+          },
+          {
+            key: "actions",
+            header: "Actions",
+            width: "16%",
+            sortable: false,
+            render: (r: Inhabitant) => (
+              <div
+                style={{ display: "flex", gap: 5, alignItems: "center" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  title="View Inhabitant Dossier"
+                  onClick={() => router.push(`/inhabitants/${r.id}`)}
+                  className="cbms-btn"
+                  style={{
+                    fontSize: "11px",
+                    padding: "3px 8px",
+                    fontWeight: 600,
+                    color: "var(--cbms-navy, #0a2463)",
+                    cursor: "pointer",
+                  }}
+                >
+                  View
+                </button>
+                <button
+                  type="button"
+                  title="Edit Inhabitant Profile"
+                  onClick={() => router.push(`/inhabitants/${r.id}/edit`)}
+                  className="cbms-btn"
+                  style={{
+                    fontSize: "11px",
+                    padding: "3px 8px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Edit
+                </button>
+                {onSelectDelete && (
+                  <button
+                    type="button"
+                    title="Delete Inhabitant Record"
+                    onClick={() => onSelectDelete(r)}
+                    className="cbms-btn"
+                    style={{
+                      fontSize: "11px",
+                      padding: "3px 8px",
+                      fontWeight: 600,
+                      color: "#dc2626",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            ),
           },
         ]}
         rows={inhabitants}
@@ -130,7 +199,7 @@ export function InhabitantsTable({
         rowKey={(row, i) => (row.id ? `${row.id}-${i}` : `row-${i}`)}
         skeletonRows={20}
         empty={loading ? "Loading inhabitants..." : "No inhabitants match this filter."}
-        onRowClick={(r) => router.push(`/inhabitants/${r.id}/edit`)}
+        onRowClick={(r) => router.push(`/inhabitants/${r.id}`)}
         stickyHeader
         maxHeight={maxHeight}
         minWidth={780}

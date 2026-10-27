@@ -228,9 +228,9 @@ export default function EditInhabitantPage() {
               type="button"
               className="cbms-btn"
               disabled={busy}
-              onClick={() => router.push("/inhabitants")}
+              onClick={() => router.push(`/inhabitants/${id}`)}
             >
-              Cancel
+              ← Back to Profile
             </button>
             <div style={{ position: "relative" }}>
               <button

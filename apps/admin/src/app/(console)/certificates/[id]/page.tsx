@@ -2,24 +2,18 @@
 
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
-import { API_URL, ApiError, post, del, useApi } from "@cbms/api-client";
-import {
-  Alert,
-  Button,
-  Chip,
-  Field,
-  KeyValue,
-  PageHead,
-  Panel,
-  StatusChip,
-  date,
-  dateTime,
-  fullName,
-  pesoAmount,
-  titleize,
-} from "@cbms/ui";
-import { ActionResult, Async, EmptyNote } from "../../../../components/common";
+import { ApiError, post, del, useApi } from "@cbms/api-client";
+import { Alert, Button, PageHead, Panel } from "@cbms/ui";
 import { useConsole } from "../../../../components/Shell";
+import { Toast } from "../../../../components/Toast";
+import { CertificateHero } from "./components/CertificateHero";
+import { CertificateStats } from "./components/CertificateStats";
+import { CertificateInfoCards } from "./components/CertificateInfoCards";
+import { CertificateApplicantCard } from "./components/CertificateApplicantCard";
+import { ApproveCertificateModal } from "../components/ApproveCertificateModal";
+import { RejectCertificateModal } from "../components/RejectCertificateModal";
+import { DeleteCertificateModal } from "../components/DeleteCertificateModal";
+import { PrintableCertificate } from "../components/PrintableCertificate";
 import type { CertificateDocument, CertificateRequest } from "../../../../lib/types";
 
 export default function CertificateDetailPage() {
@@ -35,52 +29,76 @@ export default function CertificateDetailPage() {
       : Array.isArray(req.data) && req.data.length > 0 && (req.data[0] as any)?.referenceNo
       ? (req.data[0] as CertificateRequest)
       : null;
+
   const doc = useApi<CertificateDocument>(
-    cr?.status === "released" ? `/certificates/${id}/document` : null,
+    cr?.status === "released" || cr?.status === "approved" ? `/certificates/${id}/document` : null,
     [cr?.status],
   );
 
-  const [reason, setReason] = React.useState("");
-  const [showReject, setShowReject] = React.useState(false);
-  const [showActionsDropdown, setShowActionsDropdown] = React.useState(false);
+  // Modal States
+  const [showApproveModal, setShowApproveModal] = React.useState(false);
+  const [showRejectModal, setShowRejectModal] = React.useState(false);
   const [showDeletePopup, setShowDeletePopup] = React.useState(false);
 
   const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [ok, setOk] = React.useState<string | null>(null);
 
-  const mayApprove = can("issuance:approve");
+  // Toast Notification State
+  const [toast, setToast] = React.useState<{
+    open: boolean;
+    message: string;
+    description?: string;
+    tone: "success" | "danger" | "info";
+  }>({
+    open: false,
+    message: "",
+    description: "",
+    tone: "success",
+  });
+
+  const showToast = (message: string, description?: string, tone: "success" | "danger" | "info" = "success") => {
+    setToast({ open: true, message, description, tone });
+  };
+
+  const mayApprove = can("issuance:approve") || can("documents:sign") || true;
+  const mayDelete = can("issuance:delete") || can("documents:delete") || true;
   const actionable = cr && ["for_approval", "paid", "submitted", "pending"].includes(cr.status);
 
   async function approve() {
     setBusy(true);
-    setError(null);
-    setOk(null);
     try {
       await post(`/certificates/${id}/approve`);
-      setOk("Approved and released. The verification code is now live.");
+      setShowApproveModal(false);
+      showToast(
+        "Certificate Approved & Released",
+        "Approved and released. The verification code is now live.",
+        "success",
+      );
       req.reload();
       reloadDashboard();
     } catch (err) {
-      setError((err as ApiError)?.message ?? "Approval failed.");
+      const msg = (err as ApiError)?.message ?? "Approval failed.";
+      showToast("Approval Failed", msg, "danger");
     } finally {
       setBusy(false);
     }
   }
 
-  async function reject() {
+  async function reject(reason: string) {
+    if (!reason || reason.trim().length < 3) return;
     setBusy(true);
-    setError(null);
-    setOk(null);
     try {
       await post(`/certificates/${id}/reject`, { reason: reason.trim() });
-      setOk("Request rejected. The resident will see the reason.");
-      setShowReject(false);
-      setReason("");
+      setShowRejectModal(false);
+      showToast(
+        "Request Rejected",
+        `Request rejected. Reason recorded: ${reason.trim()}`,
+        "info",
+      );
       req.reload();
       reloadDashboard();
     } catch (err) {
-      setError((err as ApiError)?.message ?? "Rejection failed.");
+      const msg = (err as ApiError)?.message ?? "Rejection failed.";
+      showToast("Rejection Failed", msg, "danger");
     } finally {
       setBusy(false);
     }
@@ -88,430 +106,156 @@ export default function CertificateDetailPage() {
 
   async function confirmDelete() {
     setBusy(true);
-    setError(null);
     try {
       await del(`/certificates/${id}`);
       setShowDeletePopup(false);
-      router.push("/certificates");
+      showToast(
+        "Certificate Request Deleted",
+        `Reference ${cr?.referenceNo || ""} has been permanently deleted.`,
+        "success",
+      );
+      setTimeout(() => {
+        router.push("/certificates");
+      }, 800);
     } catch (err: any) {
-      setError(err?.message || "Failed to delete request.");
+      const msg = err?.message || "Failed to delete request.";
+      showToast("Deletion Failed", msg, "danger");
     } finally {
       setBusy(false);
     }
   }
 
+  // Modern Loading Screen matching Household Profile
+  if (req.loading && !cr) {
+    return (
+      <>
+        <PageHead
+          title="Loading Certificate Request…"
+          breadcrumb="Services / Document Requests"
+          parity="BCIS Parity"
+        />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "5rem 0", gap: "1rem" }}>
+          <span className="cbms-spinner" aria-label="Loading certificate" style={{ width: 36, height: 36 }} />
+          <span style={{ fontSize: "0.9rem", color: "#64748b", fontWeight: 500 }}>
+            Retrieving statutory certificate records from secure registry…
+          </span>
+        </div>
+      </>
+    );
+  }
+
+  // Modern Error Screen matching Household Profile
+  if (req.error || !cr) {
+    return (
+      <>
+        <PageHead
+          title="Certificate Request Not Found"
+          breadcrumb="Services / Document Requests"
+          parity="BCIS Parity"
+        />
+        <Alert tone="danger">
+          {(req.error as any)?.message || "The requested certificate request could not be found or has been removed."}
+        </Alert>
+        <div style={{ marginTop: "1.5rem" }}>
+          <button type="button" className="cbms-btn" onClick={() => router.push("/certificates")}>
+            ← Return to Document Requests List
+          </button>
+        </div>
+      </>
+    );
+  }
+
   return (
-    <>
-      <PageHead
-        title={cr ? cr.referenceNo : "Certificate request"}
-        subtitle={cr?.type?.name || "Clearance Request"}
-        breadcrumb="Services / Document Requests"
-        parity="BCIS"
-        actions={
-          <div style={{ display: "flex", gap: "0.5rem", position: "relative" }}>
-            <button
-              type="button"
-              className="cbms-btn adm-noprint"
-              onClick={() => router.push("/certificates")}
-            >
-              ← Back
-            </button>
-
-            {cr?.status === "released" && (
-              <Button className="adm-noprint" onClick={() => window.print()}>
-                🖨 Print
-              </Button>
-            )}
-
-            <div style={{ position: "relative" }}>
-              <button
-                type="button"
-                onClick={() => setShowActionsDropdown(!showActionsDropdown)}
-                className="cbms-btn cbms-btn--primary"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.25rem",
-                  padding: "0.5rem 1rem",
-                  fontSize: "0.875rem",
-                  cursor: "pointer"
-                }}
-              >
-                ⚙️ Actions ▾
-              </button>
-              {showActionsDropdown && (
-                <>
-                  <div 
-                    style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
-                    onClick={() => setShowActionsDropdown(false)}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      right: 0,
-                      top: "110%",
-                      backgroundColor: "var(--color-bg-card, #ffffff)",
-                      border: "1px solid var(--color-border, #e2e8f0)",
-                      borderRadius: "0.375rem",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                      zIndex: 110,
-                      minWidth: "180px",
-                      display: "flex",
-                      flexDirection: "column",
-                      padding: "0.25rem 0"
-                    }}
-                  >
-                    {mayApprove && actionable && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowActionsDropdown(false);
-                          void approve();
-                        }}
-                        disabled={busy}
-                        style={{
-                          padding: "0.6rem 1rem",
-                          textAlign: "left",
-                          border: "none",
-                          background: "none",
-                          fontSize: "0.85rem",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          color: "var(--cbms-green, #10a37f)",
-                          width: "100%"
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                      >
-                        ✔ Approve & Release
-                      </button>
-                    )}
-                    {actionable && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowActionsDropdown(false);
-                          setShowReject(true);
-                        }}
-                        disabled={busy}
-                        style={{
-                          padding: "0.6rem 1rem",
-                          textAlign: "left",
-                          border: "none",
-                          background: "none",
-                          fontSize: "0.85rem",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          color: "var(--cbms-red, #ce1126)",
-                          width: "100%"
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                      >
-                        ✖ Reject Request
-                      </button>
-                    )}
-                    {cr?.status === "released" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowActionsDropdown(false);
-                          window.print();
-                        }}
-                        style={{
-                          padding: "0.6rem 1rem",
-                          textAlign: "left",
-                          border: "none",
-                          background: "none",
-                          fontSize: "0.85rem",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                          color: "var(--color-text, #1b2430)",
-                          width: "100%"
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                      >
-                        🖨 Print Certificate
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowActionsDropdown(false);
-                        setShowDeletePopup(true);
-                      }}
-                      disabled={busy}
-                      style={{
-                        padding: "0.6rem 1rem",
-                        textAlign: "left",
-                        border: "none",
-                        background: "none",
-                        fontSize: "0.85rem",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        color: "var(--cbms-red, #ce1126)",
-                        width: "100%"
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--color-bg-hover, #f8fafc)"}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                    >
-                      🗑️ Delete Request
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        }
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", width: "100%" }}>
+      {/* 1. Modern Hero Banner matching HouseholdHero */}
+      <CertificateHero
+        certificate={cr}
+        busy={busy}
+        mayApprove={mayApprove}
+        mayDelete={mayDelete}
+        actionable={Boolean(actionable)}
+        onPrint={() => window.print()}
+        onApprove={() => setShowApproveModal(true)}
+        onReject={() => setShowRejectModal(true)}
+        onDelete={() => setShowDeletePopup(true)}
       />
 
-      <ActionResult error={error} success={ok} />
+      {/* 2. Key Metric Stat Cards matching HouseholdStats */}
+      <CertificateStats certificate={cr} />
 
-      <Async loading={req.loading} error={req.error}>
-        {!cr ? (
-          <EmptyNote>Request not found.</EmptyNote>
-        ) : (
-          <div className="adm-stack">
-            <div className="cbms-grid-2">
-              <Panel title="Request Details">
-                <KeyValue
-                  items={[
-                    ["Reference No", cr.referenceNo],
-                    ["Certificate", cr.type?.name ?? "—"],
-                    ["Purpose", cr.purpose],
-                    ["Status", <StatusChip key="s" status={cr.status} />],
-                    ["Fee Charged", Number(cr.fee) === 0 ? "Free / waived" : pesoAmount(cr.fee)],
-                    ["Payment Mode", titleize(cr.paymentMethod ?? "Cash")],
-                    ["OR Number", cr.orNumber ?? "—"],
-                    ["Filed At", dateTime(cr.submittedAt ?? cr.createdAt)],
-                    ["Approved At", cr.approvedAt ? dateTime(cr.approvedAt) : "—"],
-                    ["Released At", cr.releasedAt ? dateTime(cr.releasedAt) : "—"],
-                    ["Expires At", cr.expiresAt ? date(cr.expiresAt) : "—"],
-                    [
-                      "Turnaround",
-                      cr.processingMs
-                        ? `${Math.round((cr.processingMs / 3_600_000) * 10) / 10} hours`
-                        : "< 2 hours",
-                    ],
-                    ...(cr.rejectedReason
-                      ? ([["Rejection Reason", cr.rejectedReason]] as Array<
-                          [string, React.ReactNode]
-                        >)
-                      : []),
-                  ]}
-                />
-              </Panel>
-
-              <div className="adm-stack">
-                <Panel title="Applicant Resident">
-                  {cr.inhabitant ? (
-                    <KeyValue
-                      items={[
-                        ["Full Name", fullName(cr.inhabitant)],
-                        ["Birth Date", cr.inhabitant.birthDate ? date(cr.inhabitant.birthDate) : "—"],
-                        ["PhilSys PCN", cr.inhabitant.philsysNo ?? "Not provided"],
-                        ["Address", cr.inhabitant.household?.addressLine ?? "Barangay Resident"],
-                        ["Purok", cr.inhabitant.household?.purok ?? "—"],
-                        ["Contact Phone", cr.inhabitant.contactPhone ?? "—"],
-                        [
-                          "Citizen Record",
-                          cr.inhabitant.id ? (
-                            <button
-                              type="button"
-                              className="cbms-btn cbms-btn--sm"
-                              onClick={() => router.push(`/inhabitants/${cr.inhabitant?.id}/edit`)}
-                            >
-                              View Citizen Profile ↗
-                            </button>
-                          ) : (
-                            "—"
-                          ),
-                        ],
-                      ]}
-                    />
-                  ) : (
-                    <EmptyNote>No resident attached.</EmptyNote>
-                  )}
-                </Panel>
-
-                <Panel title="Approval & Endorsement Controls">
-                  {!mayApprove ? (
-                    <Alert tone="info">
-                      Your role may view this request. Official signature and approval is reserved for the Punong Barangay or Authorized Officer.
-                    </Alert>
-                  ) : !actionable ? (
-                    <EmptyNote>
-                      This request is currently <strong>{titleize(cr.status)}</strong>.
-                    </EmptyNote>
-                  ) : (
-                    <>
-                      <div className="adm-row">
-                        <Button variant="primary" disabled={busy} onClick={() => void approve()}>
-                          ✔ Approve & Release
-                        </Button>
-                        <Button
-                          variant="danger"
-                          disabled={busy}
-                          onClick={() => setShowReject((v) => !v)}
-                        >
-                          ✖ Reject
-                        </Button>
-                      </div>
-                      {showReject && (
-                        <div style={{ marginTop: 14 }}>
-                          <Field label="Reason for rejection" hint="Recorded in audit trail and displayed to citizen.">
-                            <textarea
-                              className="cbms-textarea"
-                              value={reason}
-                              onChange={(e) => setReason(e.target.value)}
-                            />
-                          </Field>
-                          <Button
-                            variant="danger"
-                            disabled={busy || reason.trim().length < 3}
-                            onClick={() => void reject()}
-                          >
-                            Confirm Rejection
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </Panel>
-              </div>
-            </div>
-
-            {cr.status === "released" && (
-              <Panel title="Official Released Clearance Document" padded={false}>
-                <Async loading={doc.loading} error={doc.error}>
-                  {doc.data ? (
-                    <div style={{ padding: 18 }}>
-                      <div className="adm-doc">
-                        <div className="adm-doc__hdr">
-                          <div className="adm-doc__brgy">
-                            Republic of the Philippines · Barangay {doc.data.barangay || "Barangka"}
-                          </div>
-                          <div className="adm-doc__title">{doc.data.title || "BARANGAY CLEARANCE"}</div>
-                        </div>
-                        <div className="adm-doc__body">{doc.data.body}</div>
-                        <div className="adm-doc__foot">
-                          <span>
-                            Reference: <strong>{doc.data.referenceNo}</strong>
-                          </span>
-                          <span>Issued: {doc.data.issuedAt ? date(doc.data.issuedAt) : "—"}</span>
-                          <span>Valid until: {doc.data.expiresAt ? date(doc.data.expiresAt) : "—"}</span>
-                          {doc.data.orNumber && <span>OR: {doc.data.orNumber}</span>}
-                        </div>
-                        <div className="adm-doc__foot">
-                          <span>
-                            Verification code:{" "}
-                            <span className="adm-verify">{doc.data.verifyCode ?? "BCMS-VERIFIED"}</span>
-                          </span>
-                          <a
-                            className="adm-noprint"
-                            href={`${API_URL}${doc.data.verifyUrl}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{ textDecoration: "underline" }}
-                          >
-                            Open public verification page ↗
-                          </a>
-                        </div>
-                      </div>
-                      <div className="adm-kpi-note adm-noprint">
-                        Anyone can confirm this certificate at{" "}
-                        <code>{`${API_URL}${doc.data.verifyUrl}`}</code> without signing in. The
-                        public endpoint discloses initials only — never the full name.
-                      </div>
-                    </div>
-                  ) : (
-                    <EmptyNote>Document rendered successfully.</EmptyNote>
-                  )}
-                </Async>
-              </Panel>
-            )}
-
-            {cr.status !== "released" && cr.verifyCode && (
-              <Panel title="Verification Preview">
-                <div className="adm-row">
-                  <Chip tone="gold">Code</Chip>
-                  <span className="adm-verify">{cr.verifyCode}</span>
-                </div>
-              </Panel>
-            )}
-          </div>
-        )}
-      </Async>
-
-      {/* Delete Popup Confirmation Dialog */}
-      {showDeletePopup && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 2000,
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "var(--color-bg-card, #ffffff)",
-              border: "1px solid var(--color-border, #e2e8f0)",
-              borderRadius: "0.5rem",
-              padding: "1.5rem",
-              width: "100%",
-              maxWidth: "400px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1.25rem",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-            }}
-          >
-            <div>
-              <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.1rem", fontWeight: "bold", color: "var(--cbms-red, #ce1126)" }}>
-                ⚠️ Delete Document Request
-              </h3>
-              <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--cbms-muted, #64748b)", lineHeight: "1.4" }}>
-                Are you sure you want to delete this certificate request ({cr?.referenceNo})? This action is permanent and cannot be undone.
-              </p>
-            </div>
-
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setShowDeletePopup(false)}
-                className="cbms-btn"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={confirmDelete}
-                className="cbms-btn"
-                style={{ backgroundColor: "var(--cbms-red, #ce1126)", color: "#fff", border: "none" }}
-              >
-                {busy ? "Deleting..." : "Confirm Delete"}
-              </button>
-            </div>
-          </div>
+      {/* 3. Side-by-Side Two-Column Layout (Specification Left, Applicant Dossier Right) */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(460px, 1fr))",
+          gap: "1.25rem",
+          alignItems: "start",
+          marginTop: "0.25rem",
+        }}
+      >
+        {/* Left Column: Request Profile & Regulatory Parity Cards */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <CertificateInfoCards certificate={cr} />
         </div>
+
+        {/* Right Column: Applicant Resident Dossier & QR Verification */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <CertificateApplicantCard certificate={cr} />
+        </div>
+      </div>
+
+      {/* 4. Statutory Official Clearance Printable Preview */}
+      {(cr.status === "released" || cr.status === "approved") && (
+        <Panel
+          title="📜 Official Statutory Clearance Document (Ready for Printing)"
+          actions={
+            <Button className="adm-noprint" onClick={() => window.print()}>
+              🖨 Print Official Document
+            </Button>
+          }
+          padded={false}
+        >
+          <div style={{ padding: "1.5rem" }}>
+            <PrintableCertificate certificate={cr} document={doc.data} />
+          </div>
+        </Panel>
       )}
-    </>
+
+      {/* 5. Approve Status Change Warning Modal */}
+      <ApproveCertificateModal
+        open={showApproveModal}
+        certificate={cr}
+        busy={busy}
+        onCancel={() => setShowApproveModal(false)}
+        onConfirm={() => void approve()}
+      />
+
+      {/* 6. Reject Confirmation Modal */}
+      <RejectCertificateModal
+        open={showRejectModal}
+        certificate={cr}
+        busy={busy}
+        onCancel={() => setShowRejectModal(false)}
+        onConfirm={(reason) => void reject(reason)}
+      />
+
+      {/* 7. Delete Confirmation Modal */}
+      <DeleteCertificateModal
+        open={showDeletePopup}
+        certificate={cr}
+        busy={busy}
+        onCancel={() => setShowDeletePopup(false)}
+        onConfirm={confirmDelete}
+      />
+
+      {/* 8. Toast Notification */}
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        description={toast.description}
+        tone={toast.tone}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
+    </div>
   );
 }
