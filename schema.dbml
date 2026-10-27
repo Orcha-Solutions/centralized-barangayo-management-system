@@ -624,6 +624,7 @@ Table BlotterEntry {
   complainantInhabitantId String
   respondentName String
   isConfidential Boolean [default: false]
+  isLocked Boolean [default: false]
   status String [default: 'active'] // active, resolved, endorsed, dismissed
   source RecordSource [default: 'CBMS']
   evidenceUrls String[] [default: '[]']
@@ -652,6 +653,7 @@ Table KpCase {
   description String
   stage KpStage [default: 'filed']
   isConfidential Boolean [default: false]
+  isLocked Boolean [default: false]
   filedAt DateTime [default: `now()`]
   mediationDueAt DateTime
   conciliationDueAt DateTime

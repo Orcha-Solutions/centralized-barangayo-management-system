@@ -44,12 +44,10 @@ try {
 
 # 2. Build or verify cbms-server.exe
 Write-Host "`n[2/3] Checking Go Backend Binary..." -ForegroundColor Yellow
-if (-not (Test-Path "$BackendDir\cbms-server.exe")) {
-  Write-Host "  Compiling cbms-server.exe in $BackendDir..." -ForegroundColor Yellow
-  Push-Location $BackendDir
-  go build -o cbms-server.exe ./cmd/server
-  Pop-Location
-}
+Write-Host "  Compiling latest cbms-server.exe in $BackendDir..." -ForegroundColor Yellow
+Push-Location $BackendDir
+go build -o cbms-server.exe ./cmd/server
+Pop-Location
 Write-Host "  ✅ Backend binary ready at $BackendDir\cbms-server.exe" -ForegroundColor Green
 
 # 3. Launching Jobs

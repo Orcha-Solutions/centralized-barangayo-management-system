@@ -1,105 +1,173 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
-import { ApiError, post, qs, useApi } from "@cbms/api-client";
-import {
-  Alert,
-  Button,
-  Chip,
-  DataTable,
-  Field,
-  PageHead,
-  Pagination,
-  Panel,
-  StatCard,
-  StatGrid,
-  StatusChip,
-  Toolbar,
-  date,
-  num,
-  titleize,
-} from "@cbms/ui";
-import { ActionResult, Async, DeadlineCell } from "../../../components/common";
+import { Alert, PageHead, StatCard, StatGrid, num } from "@cbms/ui";
 import { useConsole } from "../../../components/Shell";
-import { KP_STAGES } from "../../../lib/labels";
-import type { Bag, KpAtRisk, KpCase, Paged } from "../../../lib/types";
-import { KpTourGuide, KpGuideToggle } from "./KpTourGuide";
+import { Toast } from "../../../components/Toast";
+import {
+  useInfiniteKpCasesQuery,
+  useKpDeadlinesQuery,
+  useCreateKpCaseMutation,
+  useDeleteKpCaseMutation,
+} from "../../../lib/kp-queries";
+import { KpToolbar } from "./components/KpToolbar";
+import { KpTable } from "./components/KpTable";
+import { KpDrawer, type KpDrawerFormData } from "./components/KpDrawer";
+import { DeleteKpModal } from "./components/DeleteKpModal";
+import { KpTourGuide } from "./KpTourGuide";
+import type { KpCase } from "../../../lib/types";
 
 export default function KpPage() {
-  const router = useRouter();
   const { can, reloadDashboard } = useConsole();
+
+  // Auth / RBAC Permissions
+  const mayEncode = can("kp:encode") || can("kp:write") || can("kp:manage");
+  const mayManage = can("kp:manage") || can("kp:write");
+  const mayVawc = can("vawc:encode") || can("vawc:view");
+
+  // Filtering & Sorting State
+  const [search, setSearch] = React.useState("");
   const [stage, setStage] = React.useState("all");
-  const [page, setPage] = React.useState(1);
-  const [showNew, setShowNew] = React.useState(false);
-  const pageSize = 25;
+  const [sortBy, setSortBy] = React.useState("filedAt");
+  const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
 
-  // Guide State (defaults to true on first visit, persisted in localStorage)
+  // Drawer & Modal States
+  const [openDrawer, setOpenDrawer] = React.useState(false);
+  const [deletingCase, setDeletingCase] = React.useState<KpCase | null>(null);
+  const [transactingId, setTransactingId] = React.useState<string | null>(null);
+
+  // Toast State
+  const [toast, setToast] = React.useState<{
+    open: boolean;
+    message: string;
+    description?: string;
+    tone: "success" | "danger" | "info";
+  }>({
+    open: false,
+    message: "",
+    description: "",
+    tone: "success",
+  });
+
+  const showToast = (message: string, description?: string, tone: "success" | "danger" | "info" = "success") => {
+    setToast({ open: true, message, description, tone });
+  };
+
+  // Tour Guide State
   const [tourEnabled, setTourEnabled] = React.useState(false);
-
   React.useEffect(() => {
     try {
       const stored = localStorage.getItem("cbms.kp_guide_enabled");
-      if (stored === null) {
-        setTourEnabled(true);
-      } else {
-        setTourEnabled(stored === "true");
-      }
+      if (stored === null) setTourEnabled(true);
+      else setTourEnabled(stored === "true");
     } catch {
       setTourEnabled(true);
     }
   }, []);
 
-  const handleToggleTour = (next: boolean) => {
-    setTourEnabled(next);
+  const handleToggleTour = (next?: boolean) => {
+    const val = typeof next === "boolean" ? next : !tourEnabled;
+    setTourEnabled(val);
     try {
-      localStorage.setItem("cbms.kp_guide_enabled", String(next));
-    } catch {
-      // ignore
+      localStorage.setItem("cbms.kp_guide_enabled", String(val));
+    } catch {}
+  };
+
+  // TanStack React Query Infinite Scrolling (minimum 20 records per batch, 3-character search threshold)
+  const pageSize = 20;
+  const {
+    data: infiniteData,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: queryError,
+  } = useInfiniteKpCasesQuery({
+    pageSize,
+    search,
+    stage,
+    sortBy,
+    sortOrder,
+  });
+
+  // Statutory Deadlines Query
+  const deadlinesQuery = useKpDeadlinesQuery();
+
+  // Mutations
+  const createMutation = useCreateKpCaseMutation();
+  const deleteMutation = useDeleteKpCaseMutation();
+
+  // Flatten and deduplicate loaded pages
+  const cases = React.useMemo(() => {
+    if (!infiniteData?.pages) return [];
+    const list: KpCase[] = [];
+    const seen = new Set<string>();
+    for (const page of infiniteData.pages) {
+      for (const row of page.data ?? []) {
+        if (!row.id) {
+          list.push(row);
+        } else if (!seen.has(row.id)) {
+          seen.add(row.id);
+          list.push(row);
+        }
+      }
+    }
+    return list;
+  }, [infiniteData]);
+
+  const totalCases = infiniteData?.pages?.[0]?.total ?? cases.length;
+  const openCount = cases.filter((c) => ["filed", "mediation", "conciliation"].includes(c.stage)).length;
+  const breachedCount = deadlinesQuery.data?.breached ?? 0;
+  const warningCount = deadlinesQuery.data?.nearWarning ?? 0;
+
+  // Header Sort Handler
+  const handleSort = (columnKey: string) => {
+    if (sortBy === columnKey) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(columnKey);
+      setSortOrder("desc");
     }
   };
 
-  const list = useApi<Paged<KpCase>>(`/kp/cases${qs({ stage, page, pageSize })}`);
-  const deadlines = useApi<Bag<KpAtRisk> & { breached: number }>("/kp/deadlines");
+  // File New Case Handler
+  const handleDrawerSubmit = async (formData: KpDrawerFormData) => {
+    const created = await createMutation.mutateAsync({
+      subject: formData.subject,
+      description: formData.description,
+      respondentName: formData.respondentName,
+      complainantName: formData.complainantName,
+      isConfidential: formData.isConfidential,
+    });
 
-  const [form, setForm] = React.useState({
-    subject: "",
-    description: "",
-    respondentName: "",
-    isConfidential: false,
-  });
-  const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [ok, setOk] = React.useState<string | null>(null);
+    showToast(
+      "KP Case Filed",
+      `Case ${created.caseNo} filed successfully. Statutory 15-day mediation clock started today.`,
+      "success"
+    );
+    setOpenDrawer(false);
+    reloadDashboard();
+  };
 
-  const rows = list.data?.items ?? [];
-  const open = rows.filter((c) => ["filed", "mediation", "conciliation"].includes(c.stage)).length;
-  const breached = (deadlines.data?.items ?? []).filter((d) => d.breached).length;
-
-  async function fileCase(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    setOk(null);
+  // Delete Case Confirmation Handler
+  const handleDeleteConfirm = async () => {
+    if (!deletingCase) return;
+    setTransactingId(deletingCase.id);
     try {
-      const created = await post<KpCase>("/kp/cases", {
-        subject: form.subject.trim(),
-        description: form.description.trim(),
-        ...(form.respondentName.trim() ? { respondentName: form.respondentName.trim() } : {}),
-        isConfidential: form.isConfidential,
-      });
-      setOk(`Case ${created.caseNo} filed. The 15-day mediation clock started today.`);
-      setForm({ subject: "", description: "", respondentName: "", isConfidential: false });
-      setShowNew(false);
-      list.reload();
-      deadlines.reload();
+      await deleteMutation.mutateAsync(deletingCase.id);
+      showToast(
+        "Case Deleted",
+        `Case docket ${deletingCase.caseNo} has been permanently deleted.`,
+        "success"
+      );
+      setDeletingCase(null);
       reloadDashboard();
-    } catch (err) {
-      setError((err as ApiError)?.message ?? "Could not file the case.");
+    } catch (err: any) {
+      showToast("Delete Failed", err?.message || "Failed to delete KP case.", "danger");
     } finally {
-      setBusy(false);
+      setTransactingId(null);
     }
-  }
+  };
 
   return (
     <>
@@ -108,214 +176,104 @@ export default function KpPage() {
         subtitle="Case docket with the statutory clock of RA 7160 §410: 15 days mediation before the Punong Barangay, then 15 days conciliation by the Pangkat (extendable by 15)."
         breadcrumb="Justice & Safety"
         parity="KPISBH"
-        actions={
-          can("kp:encode") ? (
-            <Button id="tour-kp-new-btn" variant="primary" onClick={() => setShowNew((v) => !v)}>
-              {showNew ? "Close" : "+ File a case"}
-            </Button>
-          ) : undefined
-        }
       />
 
-      <ActionResult error={error} success={ok} />
+      {queryError && (
+        <div style={{ marginBottom: "1rem" }}>
+          <Alert tone="danger">
+            Failed to load KP cases: {(queryError as Error)?.message || "Network error"}
+          </Alert>
+        </div>
+      )}
 
+      {/* Statutory Clock Overview Stat Cards */}
       <div id="tour-kp-stats">
         <StatGrid>
-          <StatCard label="Cases on this page" value={num(list.data?.total)} icon="⚖️" />
-          <StatCard label="Open (clock running)" value={num(open)} icon="⏱️" tone="gold" />
+          <StatCard label="Cases on this page" value={num(totalCases)} icon="⚖️" />
+          <StatCard label="Open (clock running)" value={num(openCount)} icon="⏱️" tone="gold" />
           <StatCard
             label="Within 5 days of deadline"
-            value={num(deadlines.data?.items?.length)}
+            value={num(warningCount)}
             icon="⚠️"
             tone="gold"
           />
           <StatCard
             label="Breached"
-            value={num(breached)}
+            value={num(breachedCount)}
             icon="🚩"
-            tone={breached ? "red" : "green"}
-            hint="Past the statutory period"
+            tone={breachedCount > 0 ? "red" : "green"}
+            hint="Past statutory period"
           />
         </StatGrid>
       </div>
 
-      {showNew && (
-        <div id="tour-kp-encode-panel">
-          <Panel title="File a new KP case">
-            <form onSubmit={fileCase}>
-              <div className="adm-form-grid">
-                <Field label="Subject">
-                  <input
-                    className="cbms-input"
-                    value={form.subject}
-                    onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-                    minLength={3}
-                    required
-                  />
-                </Field>
-                <Field label="Respondent (non-resident allowed)">
-                  <input
-                    className="cbms-input"
-                    value={form.respondentName}
-                    onChange={(e) => setForm((f) => ({ ...f, respondentName: e.target.value }))}
-                  />
-                </Field>
-              </div>
-              <Field label="Description" hint="Encrypted at rest. Minimum 10 characters.">
-                <textarea
-                  className="cbms-textarea"
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  minLength={10}
-                  required
-                />
-              </Field>
-              {can("vawc:encode") && (
-                <label className="adm-row" style={{ marginBottom: 12, fontSize: 13 }}>
-                  <input
-                    type="checkbox"
-                    checked={form.isConfidential}
-                    onChange={(e) => setForm((f) => ({ ...f, isConfidential: e.target.checked }))}
-                  />
-                  Restricted (VAWC/VAC) — visible only to the VAW desk and the Punong Barangay
-                </label>
-              )}
-              <Button type="submit" variant="primary" disabled={busy}>
-                {busy ? "Filing…" : "File case"}
-              </Button>
-            </form>
-          </Panel>
-          <div style={{ height: 16 }} />
-        </div>
-      )}
 
-      <div id="tour-kp-statutory-alert">
-        {breached > 0 ? (
-          <Alert tone="danger">
-            {breached} case(s) have passed the RA 7160 §410 deadline. The Lupon must issue a
-            Certificate to File Action or document the delay.
-          </Alert>
-        ) : (
-          <div
-            style={{
-              padding: "10px 14px",
-              borderRadius: 6,
-              background: "#f0fdf4",
-              border: "1px solid #bbf7d0",
-              color: "#166534",
-              fontSize: "0.85rem",
-              marginBottom: 16,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span>⚖️</span>
-            <span>
-              <strong>Statutory Deadlines In Effect:</strong> All cases are currently within the 15-day mediation and conciliation windows under RA 7160 §410.
-            </span>
-          </div>
-        )}
+      {/* Toolbar: Server-Side Search, Stage Filter, and Actions dropdown (matching Inhabitants) */}
+      <div>
+        <KpToolbar
+          search={search}
+          onSearchChange={setSearch}
+          stage={stage}
+          onStageChange={setStage}
+          totalCases={totalCases}
+          canEncode={mayEncode}
+          onOpenFileCase={() => setOpenDrawer(true)}
+          tourEnabled={tourEnabled}
+          onToggleTour={handleToggleTour}
+        />
       </div>
 
-      <Panel padded={false}>
-        <div id="tour-kp-toolbar">
-          <Toolbar>
-            <select
-              className="cbms-select"
-              value={stage}
-              onChange={(e) => {
-                setStage(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="all">All stages</option>
-              {KP_STAGES.map((s) => (
-                <option key={s} value={s}>
-                  {titleize(s)}
-                </option>
-              ))}
-            </select>
-            <div className="cbms-toolbar__spacer" />
-            <span className="adm-muted">{num(list.data?.total)} case(s)</span>
-          </Toolbar>
-        </div>
+      {/* Table: Sticky Headers, Skeleton Loading, Infinite Scroll, Server-Side Sorting */}
+      <div id="tour-kp-table">
+        <KpTable
+          cases={cases}
+          isLoading={isLoading}
+          isFetchingNextPage={isFetchingNextPage}
+          hasNextPage={hasNextPage}
+          fetchNextPage={fetchNextPage}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          canManage={mayManage}
+          onDelete={(c) => setDeletingCase(c)}
+          transactingId={transactingId}
+        />
+      </div>
 
-        <div id="tour-kp-table">
-          <Async loading={list.loading} error={list.error}>
-            <DataTable
-              columns={[
-                {
-                  key: "caseNo",
-                  header: "Case",
-                  render: (c) => (
-                    <>
-                      <div className="cbms-table__primary">
-                        {c.caseNo} {c.isConfidential && "🔒"}
-                      </div>
-                      <div className="cbms-table__muted">
-                        {c.isConfidential ? "[RESTRICTED]" : c.subject}
-                      </div>
-                    </>
-                  ),
-                },
-                {
-                  key: "parties",
-                  header: "Parties",
-                  render: (c) => (
-                    <span className="adm-chiprow">
-                      {(c.parties ?? []).map((p) => (
-                        <Chip key={p.id} tone={p.role === "complainant" ? "blue" : "gray"}>
-                          {p.inhabitant
-                            ? `${p.inhabitant.firstName} ${p.inhabitant.lastName}`
-                            : (p.nameOverride ?? "—")}
-                        </Chip>
-                      ))}
-                      {(c.parties ?? []).length === 0 && <span className="cbms-table__muted">—</span>}
-                    </span>
-                  ),
-                },
-                { key: "stage", header: "Stage", render: (c) => <StatusChip status={c.stage} /> },
-                { key: "filedAt", header: "Filed", render: (c) => date(c.filedAt) },
-                {
-                  key: "deadline",
-                  header: "Statutory deadline",
-                  render: (c) => (
-                    <DeadlineCell
-                      dueAt={c.deadline?.dueAt}
-                      daysRemaining={c.deadline?.daysRemaining}
-                      breached={c.deadline?.breached}
-                    />
-                  ),
-                },
-                {
-                  key: "hearings",
-                  header: "Hearings",
-                  align: "right",
-                  render: (c) => num(c._count?.hearings ?? c.hearings?.length ?? 0),
-                },
-              ]}
-              rows={rows}
-              empty="No KP cases match this filter."
-              onRowClick={(c) => router.push(`/kp/${c.id}`)}
-            />
-          </Async>
+      {/* Slide-over Content Drawer for Filing New Cases */}
+      <KpDrawer
+        open={openDrawer}
+        busy={createMutation.isPending}
+        canVawc={mayVawc}
+        onClose={() => setOpenDrawer(false)}
+        onSubmit={handleDrawerSubmit}
+      />
 
-          <Pagination page={page} pageSize={pageSize} total={list.data?.total ?? 0} onPage={setPage} />
-        </div>
-      </Panel>
+      {/* Safe Deletion Modal with Typed Confirmation */}
+      <DeleteKpModal
+        open={Boolean(deletingCase)}
+        targetCase={deletingCase}
+        busy={deleteMutation.isPending}
+        onCancel={() => setDeletingCase(null)}
+        onConfirm={handleDeleteConfirm}
+      />
 
-      {/* Interactive Tour Guide & Static Floating Toggle */}
+      {/* Post-Transaction Toast Notification */}
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        description={toast.description}
+        tone={toast.tone}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
+
+      {/* Interactive Tour Guide Walkthrough */}
       <KpTourGuide
         enabled={tourEnabled}
         onToggle={handleToggleTour}
-        onOpenNew={() => setShowNew(true)}
-        onCloseNew={() => setShowNew(false)}
-        isNewOpen={showNew}
-      />
-      <KpGuideToggle
-        enabled={tourEnabled}
-        onToggle={handleToggleTour}
+        onOpenNew={() => setOpenDrawer(true)}
+        onCloseNew={() => setOpenDrawer(false)}
+        isNewOpen={openDrawer}
       />
     </>
   );

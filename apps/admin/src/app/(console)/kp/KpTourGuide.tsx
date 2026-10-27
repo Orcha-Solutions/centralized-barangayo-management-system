@@ -21,7 +21,7 @@ export const KP_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "kp-new-btn",
-    targetId: "tour-kp-new-btn",
+    targetId: "kp-actions-btn",
     title: "Data Encoding: File a New KP Case",
     badge: "Step 2 of 6 · Case Filing",
     roleIcon: "✍️",
@@ -83,7 +83,7 @@ export const KP_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "kp-statutory-alert",
-    targetId: "tour-kp-statutory-alert",
+    targetId: "tour-kp-stats",
     title: "Statutory Deadlines & Certificate to File Action (CFA)",
     badge: "Step 6 of 6 · Legal Remedies",
     roleIcon: "📜",

@@ -1,4 +1,4 @@
-﻿/** Shapes returned by the CBMS API (apps/api). Kept deliberately loose where the
+/** Shapes returned by the CBMS API (apps/api). Kept deliberately loose where the
  *  API returns generic CRUD rows. */
 
 export interface Paged<T> {
@@ -327,6 +327,7 @@ export interface KpCase {
   description?: string;
   stage: string;
   isConfidential: boolean;
+  isLocked?: boolean;
   filedAt: string;
   closedAt?: string | null;
   settlementTerms?: string | null;

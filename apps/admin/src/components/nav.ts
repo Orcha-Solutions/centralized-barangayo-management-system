@@ -54,13 +54,14 @@ export const NAV_GROUPS: NavGroup[] = [
         badge: "certificatesForApproval",
       },
       { href: "/appointments", label: "Appointments", icon: "📅", perm: "appointments:view" },
-      {
-        href: "/concerns",
-        label: "Concerns 311",
-        icon: "📣",
-        perm: "concerns:view",
-        badge: "openConcerns",
-      },
+      // Hidden for now
+      // {
+      //   href: "/concerns",
+      //   label: "Concerns 311",
+      //   icon: "📣",
+      //   perm: "concerns:view",
+      //   badge: "openConcerns",
+      // },
     ],
   },
   {

@@ -41,8 +41,51 @@ export function AppointmentToolbar({
   viewMode,
   onViewModeChange,
 }: AppointmentToolbarProps) {
+  const [inputValue, setInputValue] = React.useState(search);
+
+  // Sync internal input when external search prop changes
+  React.useEffect(() => {
+    setInputValue(search);
+  }, [search]);
+
+  // Debounced server search trigger: requires at least 3 characters or empty string to reset
+  React.useEffect(() => {
+    const trimmed = inputValue.trim();
+    if (trimmed.length === 0) {
+      if (search !== "") {
+        onSearchChange("");
+      }
+      return;
+    }
+    if (trimmed.length < 3) {
+      // Rule: At least 3 characters must be inputted before API triggers
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      onSearchChange(trimmed);
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [inputValue, search, onSearchChange]);
+
+  const handleClear = () => {
+    setInputValue("");
+    onSearchChange("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const trimmed = inputValue.trim();
+      if (trimmed.length === 0 || trimmed.length >= 3) {
+        onSearchChange(trimmed);
+      }
+    }
+  };
+
+  const isSearchPending = inputValue.trim().length > 0 && inputValue.trim().length < 3;
   const isSearchActive = search.trim().length >= 3;
-  const isSearchPending = search.trim().length > 0 && search.trim().length < 3;
 
   return (
     <div
@@ -58,20 +101,21 @@ export function AppointmentToolbar({
         marginBottom: "1rem",
       }}
     >
-      {/* Search Input with 3-char minimum threshold */}
+      {/* Search Input with 3-char minimum threshold & 350ms debounce */}
       <div style={{ position: "relative", minWidth: 260, flex: 1 }}>
         <input
           type="text"
           className="cbms-input"
-          placeholder="🔍 Search queue #, service, notes (min 3 chars)..."
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          style={{ width: "100%", paddingRight: search ? "2rem" : "0.75rem" }}
+          placeholder="🔍 Server search: queue #, citizen, service, notes (min 3 chars)..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          style={{ width: "100%", paddingRight: inputValue ? "2rem" : "0.75rem" }}
         />
-        {search && (
+        {inputValue && (
           <button
             type="button"
-            onClick={() => onSearchChange("")}
+            onClick={handleClear}
             style={{
               position: "absolute",
               right: 8,
@@ -90,7 +134,12 @@ export function AppointmentToolbar({
         )}
         {isSearchPending && (
           <div style={{ fontSize: "0.72rem", color: "#f59e0b", position: "absolute", top: "100%", left: 2, marginTop: 2 }}>
-            ⚠️ Type at least 3 characters to search...
+            ⚠️ Type at least 3 characters to trigger server-side search...
+          </div>
+        )}
+        {isSearchActive && (
+          <div style={{ fontSize: "0.72rem", color: "#0284c7", position: "absolute", top: "100%", left: 2, marginTop: 2 }}>
+            ✓ Server search active for &ldquo;{search}&rdquo;
           </div>
         )}
       </div>

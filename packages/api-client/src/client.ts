@@ -61,7 +61,9 @@ export function isLiveBackendEndpoint(cleanPath: string): boolean {
     cleanPath === "/appointments" ||
     cleanPath.startsWith("/appointments/") ||
     cleanPath === "/appointment" ||
-    cleanPath.startsWith("/appointment/")
+    cleanPath.startsWith("/appointment/") ||
+    cleanPath === "/kp" ||
+    cleanPath.startsWith("/kp/")
   );
 }
 
@@ -238,6 +240,8 @@ export async function api<T = any>(
 export const get = <T = any,>(path: string) => api<T>(path);
 export const post = <T = any,>(path: string, body?: unknown) =>
   api<T>(path, { method: "POST", body: JSON.stringify(body ?? {}) });
+export const put = <T = any,>(path: string, body?: unknown) =>
+  api<T>(path, { method: "PUT", body: JSON.stringify(body ?? {}) });
 export const patch = <T = any,>(path: string, body?: unknown) =>
   api<T>(path, { method: "PATCH", body: JSON.stringify(body ?? {}) });
 export const del = <T = any,>(path: string) => api<T>(path, { method: "DELETE" });

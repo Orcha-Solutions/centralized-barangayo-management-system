@@ -41,18 +41,20 @@ export function AppointmentTable({
   onMoveStatus,
   transactingId,
 }: AppointmentTableProps) {
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
   // Intersection Observer for Infinite Scrolling
   const observerRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     if (!hasNextPage || isFetchingNextPage) return;
+    const container = containerRef.current;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
           fetchNextPage();
         }
       },
-      { threshold: 0.1 }
+      { root: container, threshold: 0.1, rootMargin: "150px" }
     );
 
     const currentRef = observerRef.current;
@@ -77,11 +79,27 @@ export function AppointmentTable({
     );
   };
 
+  const stickyThBase: React.CSSProperties = {
+    position: "sticky",
+    top: 0,
+    zIndex: 10,
+    backgroundColor: "#f8fafc",
+    padding: "0.75rem 1rem",
+    fontWeight: 600,
+    color: "#475569",
+    borderBottom: "2px solid #cbd5e1",
+    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+    whiteSpace: "nowrap",
+  };
+
   return (
     <div
+      ref={containerRef}
+      className="cbms-table-wrap cbms-table-wrap--sticky"
       style={{
         width: "100%",
         overflowX: "auto",
+        overflowY: "auto",
         border: "1px solid var(--color-border, #e2e8f0)",
         borderRadius: "0.5rem",
         backgroundColor: "#ffffff",
@@ -92,38 +110,24 @@ export function AppointmentTable({
       <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, textAlign: "left", fontSize: "0.875rem" }}>
         {/* Sticky Headers */}
         <thead style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "#f8fafc" }}>
-          <tr style={{ borderBottom: "2px solid #cbd5e1" }}>
+          <tr>
             <th
               style={{
-                padding: "0.75rem 1rem",
+                ...stickyThBase,
                 cursor: "pointer",
-                fontWeight: 600,
-                color: "#475569",
-                borderBottom: "1px solid #e2e8f0",
                 width: 140,
-                whiteSpace: "nowrap",
               }}
               onClick={() => onSort("queueNumber")}
             >
               Queue No. {renderSortArrow("queueNumber")}
             </th>
-            <th
-              style={{
-                padding: "0.75rem 1rem",
-                fontWeight: 600,
-                color: "#475569",
-                borderBottom: "1px solid #e2e8f0",
-              }}
-            >
+            <th style={stickyThBase}>
               Resident / Citizen
             </th>
             <th
               style={{
-                padding: "0.75rem 1rem",
+                ...stickyThBase,
                 cursor: "pointer",
-                fontWeight: 600,
-                color: "#475569",
-                borderBottom: "1px solid #e2e8f0",
               }}
               onClick={() => onSort("service")}
             >
@@ -131,11 +135,8 @@ export function AppointmentTable({
             </th>
             <th
               style={{
-                padding: "0.75rem 1rem",
+                ...stickyThBase,
                 cursor: "pointer",
-                fontWeight: 600,
-                color: "#475569",
-                borderBottom: "1px solid #e2e8f0",
               }}
               onClick={() => onSort("scheduledAt")}
             >
@@ -143,11 +144,8 @@ export function AppointmentTable({
             </th>
             <th
               style={{
-                padding: "0.75rem 1rem",
+                ...stickyThBase,
                 cursor: "pointer",
-                fontWeight: 600,
-                color: "#475569",
-                borderBottom: "1px solid #e2e8f0",
                 width: 130,
               }}
               onClick={() => onSort("status")}
@@ -156,10 +154,7 @@ export function AppointmentTable({
             </th>
             <th
               style={{
-                padding: "0.75rem 1rem",
-                fontWeight: 600,
-                color: "#475569",
-                borderBottom: "1px solid #e2e8f0",
+                ...stickyThBase,
                 textAlign: "right",
                 width: 220,
               }}

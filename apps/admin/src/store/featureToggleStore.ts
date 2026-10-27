@@ -63,7 +63,7 @@ export const DASHBOARD_WIDGETS: DashboardWidgetConfig[] = [
     description: "Live citizen issue reporting stream with category classification, filing timestamp, and RA 11032 SLA breach indicator.",
     category: "services",
     categoryLabel: "Services",
-    defaultVisible: true,
+    defaultVisible: false,
     icon: "📣",
   },
   {
