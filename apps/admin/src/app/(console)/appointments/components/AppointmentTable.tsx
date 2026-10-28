@@ -6,6 +6,7 @@ import type { Appointment } from "../../../../lib/types";
 
 export interface AppointmentTableProps {
   appointments: Appointment[];
+  total?: number;
   isLoading: boolean;
   isFetchingNextPage: boolean;
   hasNextPage: boolean | undefined;
@@ -28,6 +29,7 @@ const NEXT_STATUS: Record<string, { value: string; label: string; icon: string }
 
 export function AppointmentTable({
   appointments,
+  total: totalProp,
   isLoading,
   isFetchingNextPage,
   hasNextPage,
@@ -41,6 +43,7 @@ export function AppointmentTable({
   onMoveStatus,
   transactingId,
 }: AppointmentTableProps) {
+  const total = totalProp ?? appointments.length;
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   // Intersection Observer for Infinite Scrolling
   const observerRef = React.useRef<HTMLDivElement | null>(null);
@@ -58,22 +61,18 @@ export function AppointmentTable({
     );
 
     const currentRef = observerRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+    if (currentRef) observer.observe(currentRef);
 
     return () => {
       if (currentRef) observer.unobserve(currentRef);
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Sort indicator icon
-  const renderSortArrow = (column: string) => {
-    if (sortBy !== column) {
-      return <span style={{ opacity: 0.3, marginLeft: "0.25rem", fontSize: "0.75rem" }}>↕</span>;
-    }
+  // Sort indicator helper
+  const renderSortIndicator = (columnKey: string) => {
+    if (sortBy !== columnKey) return null;
     return (
-      <span style={{ color: "var(--color-primary, #0369a1)", marginLeft: "0.25rem", fontWeight: 700 }}>
+      <span style={{ color: "#0284c7", marginLeft: "0.25rem", fontWeight: 700 }}>
         {sortOrder === "asc" ? "▲" : "▼"}
       </span>
     );
@@ -94,262 +93,306 @@ export function AppointmentTable({
 
   return (
     <div
-      ref={containerRef}
-      className="cbms-table-wrap cbms-table-wrap--sticky"
       style={{
         width: "100%",
-        overflowX: "auto",
-        overflowY: "auto",
         border: "1px solid var(--color-border, #e2e8f0)",
         borderRadius: "0.5rem",
         backgroundColor: "#ffffff",
-        maxHeight: "calc(100vh - 280px)",
-        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, textAlign: "left", fontSize: "0.875rem" }}>
-        {/* Sticky Headers */}
-        <thead style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "#f8fafc" }}>
-          <tr>
-            <th
-              style={{
-                ...stickyThBase,
-                cursor: "pointer",
-                width: 140,
-              }}
-              onClick={() => onSort("queueNumber")}
-            >
-              Queue No. {renderSortArrow("queueNumber")}
-            </th>
-            <th style={stickyThBase}>
-              Resident / Citizen
-            </th>
-            <th
-              style={{
-                ...stickyThBase,
-                cursor: "pointer",
-              }}
-              onClick={() => onSort("service")}
-            >
-              Service {renderSortArrow("service")}
-            </th>
-            <th
-              style={{
-                ...stickyThBase,
-                cursor: "pointer",
-              }}
-              onClick={() => onSort("scheduledAt")}
-            >
-              Scheduled Date & Time {renderSortArrow("scheduledAt")}
-            </th>
-            <th
-              style={{
-                ...stickyThBase,
-                cursor: "pointer",
-                width: 130,
-              }}
-              onClick={() => onSort("status")}
-            >
-              Status {renderSortArrow("status")}
-            </th>
-            <th
-              style={{
-                ...stickyThBase,
-                textAlign: "right",
-                width: 220,
-              }}
-            >
-              Actions
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {/* Skeleton Loading State */}
-          {isLoading && appointments.length === 0 ? (
-            Array.from({ length: 6 }).map((_, idx) => (
-              <tr key={`skel-${idx}`} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 16, width: 85, backgroundColor: "#e2e8f0", borderRadius: 4, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 16, width: 140, backgroundColor: "#e2e8f0", borderRadius: 4, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 16, width: 120, backgroundColor: "#e2e8f0", borderRadius: 4, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 16, width: 150, backgroundColor: "#e2e8f0", borderRadius: 4, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 22, width: 75, backgroundColor: "#e2e8f0", borderRadius: 12, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem", textAlign: "right" }}>
-                  <div style={{ height: 28, width: 120, backgroundColor: "#e2e8f0", borderRadius: 4, marginLeft: "auto", animation: "pulse 1.5s infinite" }} />
+      <div
+        ref={containerRef}
+        className="cbms-table-wrap cbms-table-wrap--sticky"
+        style={{
+          width: "100%",
+          overflowX: "auto",
+          overflowY: "auto",
+          maxHeight: "calc(100vh - 320px)",
+          position: "relative",
+        }}
+      >
+        <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, textAlign: "left", fontSize: "0.875rem" }}>
+          {/* Sticky Headers with Server-side Sorting */}
+          <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
+            <tr>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer", width: 130 }}
+                onClick={() => onSort("queueNumber")}
+              >
+                Ticket / Queue # {renderSortIndicator("queueNumber")}
+              </th>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer", width: 190 }}
+                onClick={() => onSort("scheduledAt")}
+              >
+                Schedule {renderSortIndicator("scheduledAt")}
+              </th>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer" }}
+                onClick={() => onSort("service")}
+              >
+                Service / Purpose {renderSortIndicator("service")}
+              </th>
+              <th style={stickyThBase}>
+                Resident / Inhabitant
+              </th>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer", width: 140 }}
+                onClick={() => onSort("status")}
+              >
+                Status {renderSortIndicator("status")}
+              </th>
+              <th style={stickyThBase}>
+                Internal Notes
+              </th>
+              <th style={{ ...stickyThBase, width: 220, textAlign: "right" }}>
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && appointments.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+                  <div style={{ display: "inline-block", animation: "spin 1s linear infinite", fontSize: "1.5rem" }}>🔄</div>
+                  <div style={{ marginTop: "0.5rem" }}>Loading appointments registry...</div>
                 </td>
               </tr>
-            ))
-          ) : appointments.length === 0 ? (
-            <tr>
-              <td colSpan={6} style={{ padding: "3rem 1rem", textAlign: "center", color: "#64748b" }}>
-                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📅</div>
-                <strong>No appointments found matching this criteria.</strong>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.85rem" }}>
-                  Try adjusting filters or scheduling a new citizen appointment.
-                </p>
-              </td>
-            </tr>
-          ) : (
-            appointments.map((a, idx) => {
-              const isBusy = transactingId === a.id;
-              const next = NEXT_STATUS[a.status];
+            ) : appointments.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+                  <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📅</div>
+                  <div>No scheduled appointments match the current filters.</div>
+                </td>
+              </tr>
+            ) : (
+              appointments.map((a) => {
+                const residentName = a.inhabitant
+                  ? `${a.inhabitant.firstName} ${a.inhabitant.lastName}`
+                  : "Walk-in Guest";
+                const nextAction = NEXT_STATUS[a.status];
+                const isBusy = transactingId === a.id;
 
-              return (
-                <tr
-                  key={a.id || idx}
-                  style={{
-                    borderBottom: "1px solid #f1f5f9",
-                    backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fbfcfe",
-                    transition: "background-color 0.15s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f0f9ff";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = idx % 2 === 0 ? "#ffffff" : "#fbfcfe";
-                  }}
-                >
-                  {/* Queue Number */}
-                  <td style={{ padding: "0.85rem 1rem", fontWeight: 700, color: "#0369a1" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                      <span>🎫</span>
-                      <span>{a.queueNumber || "Unassigned"}</span>
-                    </div>
-                  </td>
+                return (
+                  <tr
+                    key={a.id}
+                    style={{
+                      borderBottom: "1px solid #f1f5f9",
+                      transition: "background-color 0.15s ease",
+                      opacity: isBusy ? 0.6 : 1,
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  >
+                    {/* Ticket / Queue # */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          color: "#0369a1",
+                          fontFamily: "monospace",
+                          fontSize: "0.95rem",
+                          backgroundColor: "#f0f9ff",
+                          padding: "0.2rem 0.5rem",
+                          borderRadius: "0.25rem",
+                          border: "1px solid #bae6fd",
+                        }}
+                      >
+                        {a.queueNumber || "No Ticket"}
+                      </span>
+                    </td>
 
-                  {/* Resident */}
-                  <td style={{ padding: "0.85rem 1rem" }}>
-                    {a.inhabitant ? (
-                      <div>
-                        <strong>{a.inhabitant.firstName} {a.inhabitant.lastName}</strong>
-                        {a.notes && (
-                          <div style={{ fontSize: "0.78rem", color: "#64748b", marginTop: "0.15rem" }}>
-                            {a.notes}
-                          </div>
+                    {/* Schedule */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                      <div style={{ fontWeight: 600, color: "#1e293b" }}>
+                        {dateTime(a.scheduledAt)}
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                        {new Date(a.scheduledAt) < new Date() && !["completed", "cancelled", "no_show"].includes(a.status) ? (
+                          <span style={{ color: "#b91c1c", fontWeight: 600 }}>⚠️ Past due</span>
+                        ) : (
+                          "Desk appointment"
                         )}
                       </div>
-                    ) : (
-                      <div>
-                        <span style={{ color: "#64748b" }}>Walk-in Citizen</span>
-                        {a.notes && (
-                          <div style={{ fontSize: "0.78rem", color: "#64748b", marginTop: "0.15rem" }}>
-                            {a.notes}
-                          </div>
+                    </td>
+
+                    {/* Service / Purpose */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          fontWeight: 600,
+                          color: "#0f172a",
+                          maxWidth: "260px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={a.service}
+                      >
+                        {a.service}
+                      </span>
+                    </td>
+
+                    {/* Resident */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <div style={{ fontWeight: 500, color: "#1e293b" }}>{residentName}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                        {"Verified Citizen"}
+                      </div>
+                    </td>
+
+                    {/* Status */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <StatusChip status={a.status} />
+                    </td>
+
+                    {/* Notes */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <span
+                        style={{
+                          fontSize: "0.8rem",
+                          color: "#64748b",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {a.notes || "—"}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle", textAlign: "right" }}>
+                      <div style={{ display: "inline-flex", gap: "0.4rem", alignItems: "center" }}>
+                        {canManage && nextAction && (
+                          <button
+                            type="button"
+                            className="cbms-btn cbms-btn--secondary"
+                            style={{
+                              fontSize: "0.76rem",
+                              padding: "0.25rem 0.6rem",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.25rem",
+                              fontWeight: 600,
+                            }}
+                            disabled={isBusy}
+                            onClick={() => onMoveStatus(a, nextAction.value)}
+                            title={`Advance ticket to ${nextAction.label}`}
+                          >
+                            <span>{nextAction.icon}</span>
+                            <span>{nextAction.label}</span>
+                          </button>
+                        )}
+                        {canManage && (
+                          <button
+                            type="button"
+                            className="cbms-btn"
+                            style={{ fontSize: "0.76rem", padding: "0.25rem 0.5rem" }}
+                            disabled={isBusy}
+                            onClick={() => onEdit(a)}
+                            title="Edit Appointment"
+                          >
+                            ✏️ Edit
+                          </button>
+                        )}
+                        {canManage && (
+                          <button
+                            type="button"
+                            className="cbms-btn cbms-btn--danger"
+                            style={{ fontSize: "0.76rem", padding: "0.25rem 0.45rem" }}
+                            disabled={isBusy}
+                            onClick={() => onDelete(a)}
+                            title="Delete Appointment"
+                          >
+                            🗑️
+                          </button>
                         )}
                       </div>
-                    )}
-                  </td>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
 
-                  {/* Service */}
-                  <td style={{ padding: "0.85rem 1rem", fontWeight: 500, color: "#1e293b" }}>
-                    {a.service}
-                  </td>
+        {/* Infinite Scroll Trigger Sentinel */}
+        <div ref={observerRef} style={{ height: 1 }} />
+      </div>
 
-                  {/* Scheduled Date & Time */}
-                  <td style={{ padding: "0.85rem 1rem", color: "#334155" }}>
-                    <div>{dateTime(a.scheduledAt)}</div>
-                    {a.checkedInAt && (
-                      <div style={{ fontSize: "0.75rem", color: "#0284c7" }}>
-                        Clock started: {dateTime(a.checkedInAt)}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Status */}
-                  <td style={{ padding: "0.85rem 1rem" }}>
-                    <StatusChip status={a.status} />
-                  </td>
-
-                  {/* Actions */}
-                  <td style={{ padding: "0.85rem 1rem", textAlign: "right" }}>
-                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "0.35rem" }}>
-                      {/* Step Advancement */}
-                      {canManage && next && (
-                        <button
-                          type="button"
-                          className="cbms-btn cbms-btn--primary"
-                          style={{ fontSize: "0.76rem", padding: "0.25rem 0.55rem" }}
-                          disabled={isBusy}
-                          onClick={() => onMoveStatus(a, next.value)}
-                          title={`Move to ${titleize(next.value)}`}
-                        >
-                          {isBusy ? "..." : `${next.icon} ${next.label}`}
-                        </button>
-                      )}
-
-                      {/* No Show */}
-                      {canManage && (a.status === "booked" || a.status === "checked_in") && (
-                        <button
-                          type="button"
-                          className="cbms-btn"
-                          style={{ fontSize: "0.76rem", padding: "0.25rem 0.45rem", color: "#dc2626" }}
-                          disabled={isBusy}
-                          onClick={() => onMoveStatus(a, "no_show")}
-                          title="Mark as No Show"
-                        >
-                          🚫
-                        </button>
-                      )}
-
-                      {/* Edit */}
-                      {canManage && (
-                        <button
-                          type="button"
-                          className="cbms-btn"
-                          style={{ fontSize: "0.76rem", padding: "0.25rem 0.45rem" }}
-                          disabled={isBusy}
-                          onClick={() => onEdit(a)}
-                          title="Edit Appointment"
-                        >
-                          ✏️
-                        </button>
-                      )}
-
-                      {/* Delete */}
-                      {canManage && (
-                        <button
-                          type="button"
-                          className="cbms-btn cbms-btn--danger"
-                          style={{ fontSize: "0.76rem", padding: "0.25rem 0.45rem" }}
-                          disabled={isBusy}
-                          onClick={() => onDelete(a)}
-                          title="Delete Appointment"
-                        >
-                          🗑️
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
+      {/* Infinite Scroll & Lazy Loading Status Footer */}
+      <div
+        className="cbms-pagination"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 18px",
+          borderTop: "1px solid var(--cbms-line, #e2e8f0)",
+          fontSize: "12.5px",
+          color: "var(--cbms-muted, #64748b)",
+          background: "var(--cbms-white, #ffffff)",
+          flexWrap: "wrap",
+          gap: 10,
+        }}
+      >
+        <div>
+          Showing <strong>{appointments.length.toLocaleString()}</strong> of{" "}
+          <strong>{total.toLocaleString()}</strong> appointments
+          {appointments.length > 0 && total > appointments.length && (
+            <span style={{ marginLeft: 8, fontSize: "11.5px", opacity: 0.8 }}>
+              (Scroll down to lazy load more)
+            </span>
           )}
-        </tbody>
-      </table>
+        </div>
 
-      {/* Infinite Scroll Trigger Sentinel */}
-      <div ref={observerRef} style={{ padding: "1rem", textAlign: "center" }}>
-        {isFetchingNextPage && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", color: "#0369a1", fontSize: "0.85rem" }}>
-            <span style={{ animation: "spin 1s linear infinite" }}>🔄</span>
-            <span>Loading more appointments...</span>
-          </div>
-        )}
-        {!hasNextPage && appointments.length > 0 && (
-          <div style={{ fontSize: "0.78rem", color: "#94a3b8" }}>
-            All appointments loaded ({appointments.length} total)
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {isFetchingNextPage && (
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                color: "var(--cbms-navy, #0a2463)",
+                fontWeight: 600,
+                fontSize: "12px",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 13,
+                  height: 13,
+                  border: "2px solid rgba(10, 36, 99, 0.25)",
+                  borderTopColor: "var(--cbms-navy, #0a2463)",
+                  borderRadius: "50%",
+                  animation: "cbms-spin 0.8s linear infinite",
+                }}
+              />
+              <span>Loading next 20 records...</span>
+            </div>
+          )}
+
+          {!hasNextPage && appointments.length > 0 && (
+            <span
+              style={{
+                fontSize: "11.5px",
+                fontWeight: 600,
+                color: "#166534",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                padding: "2px 8px",
+                borderRadius: 999,
+              }}
+            >
+              ✓ All {total.toLocaleString()} appointments loaded
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

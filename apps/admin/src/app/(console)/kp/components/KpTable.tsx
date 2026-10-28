@@ -8,6 +8,7 @@ import type { KpCase } from "../../../../lib/types";
 
 export interface KpTableProps {
   cases: KpCase[];
+  total?: number;
   isLoading: boolean;
   isFetchingNextPage: boolean;
   hasNextPage: boolean;
@@ -22,6 +23,7 @@ export interface KpTableProps {
 
 export function KpTable({
   cases,
+  total: totalProp,
   isLoading,
   isFetchingNextPage,
   hasNextPage,
@@ -34,6 +36,7 @@ export function KpTable({
   transactingId,
 }: KpTableProps) {
   const router = useRouter();
+  const total = totalProp ?? cases.length;
   const sentinelRef = React.useRef<HTMLTableRowElement>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -268,36 +271,53 @@ export function KpTable({
         }}
       >
         <div>
-          Showing <strong>{cases.length}</strong> loaded case(s)
+          Showing <strong>{cases.length.toLocaleString()}</strong> of{" "}
+          <strong>{total.toLocaleString()}</strong> cases
+          {cases.length > 0 && total > cases.length && (
+            <span style={{ marginLeft: 8, fontSize: "11.5px", opacity: 0.8 }}>
+              (Scroll down to lazy load more)
+            </span>
+          )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {isFetchingNextPage && (
-            <span
+            <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
                 color: "var(--cbms-navy, #0a2463)",
                 fontWeight: 600,
+                fontSize: "12px",
               }}
             >
-              <span className="cbms-spinner" style={{ width: 14, height: 14 }} />
-              Loading more records...
-            </span>
-          )}
-          {hasNextPage && !isFetchingNextPage && (
-            <button
-              type="button"
-              className="cbms-btn cbms-btn--sm"
-              onClick={() => fetchNextPage()}
-              style={{ fontSize: "12px", padding: "4px 12px" }}
-            >
-              Scroll or Click to Load Next 20
-            </button>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 13,
+                  height: 13,
+                  border: "2px solid rgba(10, 36, 99, 0.25)",
+                  borderTopColor: "var(--cbms-navy, #0a2463)",
+                  borderRadius: "50%",
+                  animation: "cbms-spin 0.8s linear infinite",
+                }}
+              />
+              <span>Loading next 20 records...</span>
+            </div>
           )}
           {!hasNextPage && cases.length > 0 && !isLoading && (
-            <span style={{ color: "#94a3b8", fontSize: "11.5px" }}>
-              ✓ All {cases.length} case docket(s) loaded
+            <span
+              style={{
+                fontSize: "11.5px",
+                fontWeight: 600,
+                color: "#166534",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                padding: "2px 8px",
+                borderRadius: 999,
+              }}
+            >
+              ✓ All {total.toLocaleString()} cases loaded
             </span>
           )}
         </div>

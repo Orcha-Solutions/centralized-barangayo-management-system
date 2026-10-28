@@ -227,6 +227,7 @@ export default function KpPage() {
       <div id="tour-kp-table">
         <KpTable
           cases={cases}
+          total={totalCases}
           isLoading={isLoading}
           isFetchingNextPage={isFetchingNextPage}
           hasNextPage={hasNextPage}

@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Alert, Field, pesoAmount, fullName } from "@cbms/ui";
+import { Alert, Field, pesoAmount } from "@cbms/ui";
+import { InhabitantSearchDropdown } from "./InhabitantSearchDropdown";
 import type { CertificateType, Inhabitant } from "../../../../lib/types";
 
 export interface CertificateDrawerFormData {
@@ -21,7 +22,7 @@ export interface CertificateDrawerProps {
   busy: boolean;
   error: string | null;
   certificateTypes: CertificateType[];
-  inhabitants: Inhabitant[];
+  inhabitants?: Inhabitant[];
 }
 
 export function CertificateDrawer({
@@ -31,8 +32,8 @@ export function CertificateDrawer({
   busy,
   error,
   certificateTypes,
-  inhabitants,
 }: CertificateDrawerProps) {
+  const [selectedInhabitant, setSelectedInhabitant] = React.useState<Inhabitant | null>(null);
   const [inhabitantId, setInhabitantId] = React.useState("");
   const [typeId, setTypeId] = React.useState(certificateTypes[0]?.id || "ct-clearance");
   const [purpose, setPurpose] = React.useState("");
@@ -41,9 +42,16 @@ export function CertificateDrawer({
   const [orNumber, setOrNumber] = React.useState("");
   const [remarks, setRemarks] = React.useState("");
 
-  // Inhabitant filter search
-  const [inhabitantSearch, setInhabitantSearch] = React.useState("");
-  const [isSearchingInhabitant, setIsSearchingInhabitant] = React.useState(false);
+  // Reset form when drawer closes
+  React.useEffect(() => {
+    if (!open) {
+      setSelectedInhabitant(null);
+      setInhabitantId("");
+      setPurpose("");
+      setOrNumber("");
+      setRemarks("");
+    }
+  }, [open]);
 
   // Sync fee when certificate type changes
   const handleTypeChange = (selectedTypeId: string) => {
@@ -53,23 +61,6 @@ export function CertificateDrawer({
       setFee(found.fee);
     }
   };
-
-  const selectedCitizen = React.useMemo(() => {
-    if (!inhabitantId) return null;
-    return inhabitants.find((i) => i.id === inhabitantId);
-  }, [inhabitants, inhabitantId]);
-
-  const filteredInhabitants = React.useMemo(() => {
-    if (!inhabitantSearch.trim()) return inhabitants.slice(0, 15);
-    const query = inhabitantSearch.toLowerCase();
-    return inhabitants
-      .filter((i) => {
-        const name = `${i.firstName ?? ""} ${i.lastName ?? ""}`.toLowerCase();
-        const pcn = i.philsysNo?.toLowerCase() || "";
-        return name.includes(query) || pcn.includes(query);
-      })
-      .slice(0, 15);
-  }, [inhabitants, inhabitantSearch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,7 +96,7 @@ export function CertificateDrawer({
       <div
         style={{
           width: "100%",
-          maxWidth: "520px",
+          maxWidth: "540px",
           backgroundColor: "#ffffff",
           height: "100%",
           boxShadow: "-4px 0 20px rgba(0,0,0,0.15)",
@@ -157,93 +148,25 @@ export function CertificateDrawer({
           )}
 
           <form id="cert-form" onSubmit={handleSubmit}>
-            {/* Applicant Citizen Selection */}
-            <Field label="Applicant Resident / Inhabitant *" hint="Select verified resident from barangay registry">
-              {selectedCitizen && !isSearchingInhabitant ? (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "0.75rem",
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: "0.375rem",
+            {/* Applicant Citizen Selection with Lazy-Loaded Search */}
+            <Field
+              label="Applicant Resident / Inhabitant *"
+              hint="Search by resident name, PhilSys Card Number (PCN), or contact phone"
+            >
+              <div style={{ marginTop: "0.25rem" }}>
+                <InhabitantSearchDropdown
+                  selectedInhabitant={selectedInhabitant}
+                  onSelect={(inh) => {
+                    setSelectedInhabitant(inh);
+                    setInhabitantId(inh.id);
                   }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, color: "#0f172a" }}>
-                      {fullName(selectedCitizen as any)}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                      {selectedCitizen.philsysNo ? `PCN ${selectedCitizen.philsysNo}` : "Registered Inhabitant"}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsSearchingInhabitant(true)}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#0369a1",
-                      fontSize: "0.8rem",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Change
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="text"
-                    className="cbms-input"
-                    placeholder="Type name or PhilSys Card Number to find resident..."
-                    value={inhabitantSearch}
-                    onChange={(e) => setInhabitantSearch(e.target.value)}
-                    style={{ marginBottom: "0.5rem", width: "100%" }}
-                  />
-                  <div
-                    style={{
-                      maxHeight: "150px",
-                      overflowY: "auto",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "0.375rem",
-                      backgroundColor: "#ffffff",
-                    }}
-                  >
-                    {filteredInhabitants.length === 0 ? (
-                      <div style={{ padding: "0.75rem", fontSize: "0.8rem", color: "#64748b", textAlign: "center" }}>
-                        No matching residents found in registry.
-                      </div>
-                    ) : (
-                      filteredInhabitants.map((citizen) => (
-                        <div
-                          key={citizen.id}
-                          onClick={() => {
-                            setInhabitantId(citizen.id);
-                            setIsSearchingInhabitant(false);
-                          }}
-                          style={{
-                            padding: "0.5rem 0.75rem",
-                            borderBottom: "1px solid #f1f5f9",
-                            cursor: "pointer",
-                            fontSize: "0.85rem",
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f0f9ff")}
-                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                        >
-                          <strong>{fullName(citizen as any)}</strong>
-                          <span style={{ fontSize: "0.75rem", color: "#64748b", marginLeft: "0.5rem" }}>
-                            {citizen.philsysNo ? `PCN ${citizen.philsysNo}` : ""}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
+                  onClear={() => {
+                    setSelectedInhabitant(null);
+                    setInhabitantId("");
+                  }}
+                  disabled={busy}
+                />
+              </div>
             </Field>
 
             {/* Certificate Type */}

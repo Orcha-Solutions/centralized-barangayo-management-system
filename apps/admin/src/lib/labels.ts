@@ -167,11 +167,16 @@ export const TICKET_STATUSES = [
 
 export const DISASTER_STATUSES = ["monitoring", "active", "recovery", "closed"] as const;
 
+export const SOS_KINDS = ["medical", "fire", "crime", "flood", "general"] as const;
+
+export const SOS_STATUSES = ["active", "acknowledged", "dispatched", "resolved", "false_alarm", "test"] as const;
+
 export const SOS_KIND_ICON: Record<string, string> = {
   medical: "🚑",
   fire: "🔥",
   crime: "🚔",
   flood: "🌊",
+  general: "🚨",
 };
 
 export const TXN_TYPES = [

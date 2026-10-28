@@ -9,6 +9,7 @@ import type { CertificateRequest } from "../../../../lib/types";
 
 export interface CertificateTableProps {
   certificates: CertificateRequest[];
+  total?: number;
   isLoading: boolean;
   isFetchingNextPage: boolean;
   hasNextPage: boolean | undefined;
@@ -26,6 +27,7 @@ export interface CertificateTableProps {
 
 export function CertificateTable({
   certificates,
+  total: totalProp,
   isLoading,
   isFetchingNextPage,
   hasNextPage,
@@ -35,6 +37,7 @@ export function CertificateTable({
   onSort,
 }: CertificateTableProps) {
   const router = useRouter();
+  const total = totalProp ?? certificates.length;
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const observerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -52,9 +55,7 @@ export function CertificateTable({
     );
 
     const currentRef = observerRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+    if (currentRef) observer.observe(currentRef);
 
     return () => {
       if (currentRef) observer.unobserve(currentRef);
@@ -62,10 +63,8 @@ export function CertificateTable({
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Sort indicator helper
-  const renderSortIndicator = (column: string) => {
-    if (sortBy !== column) {
-      return <span style={{ opacity: 0.35, marginLeft: "0.25rem", fontSize: "0.75rem" }}>↕</span>;
-    }
+  const renderSortIndicator = (columnKey: string) => {
+    if (sortBy !== columnKey) return null;
     return (
       <span style={{ color: "#0284c7", marginLeft: "0.25rem", fontWeight: 700 }}>
         {sortOrder === "asc" ? "▲" : "▼"}
@@ -88,241 +87,299 @@ export function CertificateTable({
 
   return (
     <div
-      ref={containerRef}
-      className="cbms-table-wrap cbms-table-wrap--sticky"
       style={{
         width: "100%",
-        overflowX: "auto",
-        overflowY: "auto",
         border: "1px solid var(--color-border, #e2e8f0)",
         borderRadius: "0.5rem",
         backgroundColor: "#ffffff",
-        maxHeight: "calc(100vh - 280px)",
-        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, textAlign: "left", fontSize: "0.875rem" }}>
-        {/* Sticky Headers with Server-side Sort */}
-        <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
-          <tr>
-            <th
-              style={{ ...stickyThBase, cursor: "pointer", width: 160 }}
-              onClick={() => onSort("referenceNo")}
-            >
-              Reference {renderSortIndicator("referenceNo")}
-            </th>
-            <th
-              style={{ ...stickyThBase, cursor: "pointer" }}
-              onClick={() => onSort("typeId")}
-            >
-              Certificate Type {renderSortIndicator("typeId")}
-            </th>
-            <th style={stickyThBase}>
-              Applicant / Resident
-            </th>
-            <th style={stickyThBase}>
-              Purpose
-            </th>
-            <th
-              style={{ ...stickyThBase, cursor: "pointer", textAlign: "right", width: 100 }}
-              onClick={() => onSort("fee")}
-            >
-              Fee {renderSortIndicator("fee")}
-            </th>
-            <th
-              style={{ ...stickyThBase, cursor: "pointer", width: 130 }}
-              onClick={() => onSort("status")}
-            >
-              Status {renderSortIndicator("status")}
-            </th>
-            <th
-              style={{ ...stickyThBase, cursor: "pointer", width: 140 }}
-              onClick={() => onSort("createdAt")}
-            >
-              Submitted {renderSortIndicator("createdAt")}
-            </th>
-            <th style={{ ...stickyThBase, textAlign: "right", minWidth: 160, width: 170 }}>
-              Actions
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {/* Skeleton Loading State */}
-          {isLoading && certificates.length === 0 ? (
-            Array.from({ length: 6 }).map((_, idx) => (
-              <tr key={`skel-cert-${idx}`} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 16, width: 100, backgroundColor: "#e2e8f0", borderRadius: 4, animation: "pulse 1.5s infinite" }} />
-                  <div style={{ height: 12, width: 70, backgroundColor: "#e2e8f0", borderRadius: 4, marginTop: 6, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 16, width: 140, backgroundColor: "#e2e8f0", borderRadius: 4, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 16, width: 130, backgroundColor: "#e2e8f0", borderRadius: 4, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 16, width: 110, backgroundColor: "#e2e8f0", borderRadius: 4, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem", textAlign: "right" }}>
-                  <div style={{ height: 16, width: 50, backgroundColor: "#e2e8f0", borderRadius: 4, marginLeft: "auto", animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 22, width: 75, backgroundColor: "#e2e8f0", borderRadius: 12, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem" }}>
-                  <div style={{ height: 14, width: 80, backgroundColor: "#e2e8f0", borderRadius: 4, animation: "pulse 1.5s infinite" }} />
-                </td>
-                <td style={{ padding: "1rem", textAlign: "right" }}>
-                  <div style={{ height: 28, width: 130, backgroundColor: "#e2e8f0", borderRadius: 4, marginLeft: "auto", animation: "pulse 1.5s infinite" }} />
+      <div
+        ref={containerRef}
+        className="cbms-table-wrap cbms-table-wrap--sticky"
+        style={{
+          width: "100%",
+          overflowX: "auto",
+          overflowY: "auto",
+          maxHeight: "calc(100vh - 320px)",
+          position: "relative",
+        }}
+      >
+        <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, textAlign: "left", fontSize: "0.875rem" }}>
+          {/* Sticky Headers with Server-side Sort */}
+          <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
+            <tr>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer", width: 160 }}
+                onClick={() => onSort("referenceNo")}
+              >
+                Tracking / Ref # {renderSortIndicator("referenceNo")}
+              </th>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer" }}
+                onClick={() => onSort("residentName")}
+              >
+                Citizen / Applicant {renderSortIndicator("residentName")}
+              </th>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer" }}
+                onClick={() => onSort("typeId")}
+              >
+                Document Type {renderSortIndicator("typeId")}
+              </th>
+              <th style={stickyThBase}>
+                Stated Purpose
+              </th>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer", width: 110 }}
+                onClick={() => onSort("fee")}
+              >
+                Fee / OR {renderSortIndicator("fee")}
+              </th>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer", width: 130 }}
+                onClick={() => onSort("status")}
+              >
+                Status {renderSortIndicator("status")}
+              </th>
+              <th
+                style={{ ...stickyThBase, cursor: "pointer", width: 120 }}
+                onClick={() => onSort("createdAt")}
+              >
+                Date Filed {renderSortIndicator("createdAt")}
+              </th>
+              <th style={{ ...stickyThBase, width: 110, textAlign: "right" }}>
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading && certificates.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+                  <div style={{ display: "inline-block", animation: "spin 1s linear infinite", fontSize: "1.5rem" }}>🔄</div>
+                  <div style={{ marginTop: "0.5rem" }}>Loading statutory certificate registry...</div>
                 </td>
               </tr>
-            ))
-          ) : certificates.length === 0 ? (
-            <tr>
-              <td colSpan={8} style={{ padding: "3.5rem 1rem", textAlign: "center", color: "#64748b" }}>
-                <div style={{ fontSize: "2.2rem", marginBottom: "0.5rem" }}>📄</div>
-                <strong>No certificate requests match this filter.</strong>
-                <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.85rem" }}>
-                  Adjust your search or filter keywords, or record a new clearance request.
-                </p>
-              </td>
-            </tr>
-          ) : (
-            certificates.map((c, idx) => {
-              return (
-                <tr
-                  key={c.id || idx}
-                  style={{
-                    borderBottom: "1px solid #f1f5f9",
-                    backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fbfcfe",
-                    transition: "background-color 0.15s ease",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => router.push(`/certificates/${c.id}`)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#f0f9ff";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = idx % 2 === 0 ? "#ffffff" : "#fbfcfe";
-                  }}
-                >
-                  {/* Reference No */}
-                  <td style={{ padding: "0.85rem 1rem" }}>
-                    <Link
-                      href={`/certificates/${c.id}`}
-                      style={{ fontWeight: 700, color: "#0369a1", textDecoration: "none" }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {c.referenceNo}
-                    </Link>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.15rem" }}>
-                      {date(c.createdAt || c.submittedAt)}
-                    </div>
-                  </td>
+            ) : certificates.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ padding: "3rem", textAlign: "center", color: "#64748b" }}>
+                  <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📄</div>
+                  <div>No document clearance requests match the specified filters.</div>
+                </td>
+              </tr>
+            ) : (
+              certificates.map((cert) => {
+                const applicantName = cert.inhabitant ? fullName(cert.inhabitant as any) : "Non-Registered / Walk-in";
+                const isFree = Number(cert.fee) === 0;
 
-                  {/* Certificate Type */}
-                  <td style={{ padding: "0.85rem 1rem" }}>
-                    <div style={{ fontWeight: 600, color: "#1e293b" }}>
-                      {c.type?.name ?? "Barangay Clearance"}
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                      {c.type?.code ?? "BC"} {c.paymentMethod ? `· ${c.paymentMethod.replace(/_/g, " ")}` : ""}
-                    </div>
-                  </td>
-
-                  {/* Resident / Inhabitant */}
-                  <td style={{ padding: "0.85rem 1rem" }}>
-                    {c.inhabitant ? (
-                      <div>
-                        <div style={{ fontWeight: 600, color: "#0f172a" }}>
-                          {fullName(c.inhabitant as any)}
-                        </div>
-                        <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                          {c.inhabitant.philsysNo ? `PCN ${c.inhabitant.philsysNo}` : "Registered Resident"}
+                return (
+                  <tr
+                    key={cert.id}
+                    style={{
+                      borderBottom: "1px solid #f1f5f9",
+                      transition: "background-color 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f8fafc")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  >
+                    {/* Reference # */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                        <Link
+                          href={`/certificates/${cert.id}`}
+                          style={{
+                            fontWeight: 700,
+                            color: "#0369a1",
+                            textDecoration: "none",
+                            fontSize: "0.85rem",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                          onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
+                        >
+                          {cert.referenceNo}
+                        </Link>
+                        <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+                          <SourceChip source={cert.source || "CBMS"} />
                         </div>
                       </div>
-                    ) : (
-                      <span style={{ color: "#64748b" }}>Walk-in Resident</span>
-                    )}
-                  </td>
+                    </td>
 
-                  {/* Purpose */}
-                  <td style={{ padding: "0.85rem 1rem", color: "#334155" }}>
-                    <div>{c.purpose || "—"}</div>
-                    {c.orNumber && (
-                      <div style={{ fontSize: "0.74rem", color: "#16a34a", marginTop: "0.15rem" }}>
-                        OR #{c.orNumber}
+                    {/* Citizen / Applicant */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <div style={{ fontWeight: 600, color: "#1e293b" }}>{applicantName}</div>
+                      <div style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                        {cert.inhabitant?.philsysNo
+                          ? `PCN ${cert.inhabitant.philsysNo}`
+                          : cert.inhabitant?.contactPhone || "Barangay Jurisdiction"}
                       </div>
-                    )}
-                  </td>
+                    </td>
 
-                  {/* Fee */}
-                  <td style={{ padding: "0.85rem 1rem", textAlign: "right", fontWeight: 600 }}>
-                    {Number(c.fee) === 0 ? (
-                      <span style={{ color: "#16a34a" }}>Free</span>
-                    ) : (
-                      pesoAmount(c.fee)
-                    )}
-                  </td>
-
-                  {/* Status */}
-                  <td style={{ padding: "0.85rem 1rem" }}>
-                    <StatusChip status={c.status} />
-                  </td>
-
-                  {/* Submitted Date */}
-                  <td style={{ padding: "0.85rem 1rem", color: "#475569", fontSize: "0.8rem" }}>
-                    {date(c.submittedAt || c.createdAt)}
-                    <div style={{ marginTop: "0.15rem" }}>
-                      <SourceChip source={c.source ?? "DESK"} />
-                    </div>
-                  </td>
-
-                  {/* Actions: View Certificate */}
-                  <td style={{ padding: "0.85rem 1rem", textAlign: "right" }} onClick={(e) => e.stopPropagation()}>
-                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
-                      <Link
-                        href={`/certificates/${c.id}`}
-                        className="cbms-btn"
+                    {/* Document Type */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <span
                         style={{
-                          fontSize: "0.78rem",
-                          padding: "0.35rem 0.75rem",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.35rem",
                           fontWeight: 600,
-                          textDecoration: "none",
-                          whiteSpace: "nowrap",
-                          width: "auto",
+                          color: "#0f172a",
+                          display: "inline-block",
                         }}
-                        title="View Certificate Details, Print & Actions"
                       >
-                        👁️ View Certificate
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })
-          )}
-        </tbody>
-      </table>
+                        {cert.type?.name || "Clearance"}
+                      </span>
+                      {cert.type?.validityDays && (
+                        <div style={{ fontSize: "0.72rem", color: "#64748b" }}>
+                          Valid {cert.type.validityDays} days
+                        </div>
+                      )}
+                    </td>
 
-      {/* Infinite Scroll Trigger Sentinel */}
-      <div ref={observerRef} style={{ padding: "1rem", textAlign: "center" }}>
-        {isFetchingNextPage && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", color: "#0369a1", fontSize: "0.85rem" }}>
-            <span style={{ animation: "spin 1s linear infinite" }}>🔄</span>
-            <span>Loading more certificate requests...</span>
-          </div>
-        )}
-        {!hasNextPage && certificates.length > 0 && (
-          <div style={{ fontSize: "0.78rem", color: "#94a3b8" }}>
-            All certificate records loaded ({certificates.length} total)
-          </div>
-        )}
+                    {/* Stated Purpose */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <span
+                        style={{
+                          color: "#334155",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          fontSize: "0.82rem",
+                        }}
+                        title={cert.purpose}
+                      >
+                        {cert.purpose}
+                      </span>
+                    </td>
+
+                    {/* Fee / OR */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <div style={{ fontWeight: 600, color: isFree ? "#16a34a" : "#0f172a" }}>
+                        {isFree ? "Free" : pesoAmount(cert.fee)}
+                      </div>
+                      {cert.orNumber ? (
+                        <div style={{ fontSize: "0.72rem", color: "#0369a1" }}>
+                          OR: {cert.orNumber}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                          {cert.paymentMethod === "waived" ? "Waived (RA 11261)" : "Pending OR"}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Status */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle" }}>
+                      <StatusChip status={cert.status} />
+                    </td>
+
+                    {/* Date Filed */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                      <div style={{ color: "#334155" }}>{date(cert.createdAt)}</div>
+                      <div style={{ fontSize: "0.72rem", color: "#94a3b8" }}>
+                        {new Date(cert.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </td>
+
+                    {/* Actions */}
+                    <td style={{ padding: "0.85rem 1rem", verticalAlign: "middle", textAlign: "right" }}>
+                      <div style={{ display: "inline-flex", gap: "0.35rem" }}>
+                        <Link
+                          href={`/certificates/${cert.id}`}
+                          className="cbms-btn cbms-btn--secondary"
+                          style={{
+                            fontSize: "0.78rem",
+                            padding: "0.3rem 0.6rem",
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.25rem",
+                          }}
+                          title="View Certificate Details, Print & Actions"
+                        >
+                          👁️ View
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+
+        {/* Infinite Scroll Trigger Sentinel */}
+        <div ref={observerRef} style={{ height: 1 }} />
+      </div>
+
+      {/* Infinite Scroll & Lazy Loading Status Footer */}
+      <div
+        className="cbms-pagination"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "10px 18px",
+          borderTop: "1px solid var(--cbms-line, #e2e8f0)",
+          fontSize: "12.5px",
+          color: "var(--cbms-muted, #64748b)",
+          background: "var(--cbms-white, #ffffff)",
+          flexWrap: "wrap",
+          gap: 10,
+        }}
+      >
+        <div>
+          Showing <strong>{certificates.length.toLocaleString()}</strong> of{" "}
+          <strong>{total.toLocaleString()}</strong> document requests
+          {certificates.length > 0 && total > certificates.length && (
+            <span style={{ marginLeft: 8, fontSize: "11.5px", opacity: 0.8 }}>
+              (Scroll down to lazy load more)
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {isFetchingNextPage && (
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                color: "var(--cbms-navy, #0a2463)",
+                fontWeight: 600,
+                fontSize: "12px",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 13,
+                  height: 13,
+                  border: "2px solid rgba(10, 36, 99, 0.25)",
+                  borderTopColor: "var(--cbms-navy, #0a2463)",
+                  borderRadius: "50%",
+                  animation: "cbms-spin 0.8s linear infinite",
+                }}
+              />
+              <span>Loading next 20 records...</span>
+            </div>
+          )}
+
+          {!hasNextPage && certificates.length > 0 && (
+            <span
+              style={{
+                fontSize: "11.5px",
+                fontWeight: 600,
+                color: "#166534",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                padding: "2px 8px",
+                borderRadius: 999,
+              }}
+            >
+              ✓ All {total.toLocaleString()} document requests loaded
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

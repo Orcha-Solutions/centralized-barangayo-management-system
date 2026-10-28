@@ -232,6 +232,7 @@ export default function AppointmentsPage() {
       {viewMode === "table" ? (
         <AppointmentTable
           appointments={appointments}
+          total={totalAppointments}
           isLoading={isLoading}
           isFetchingNextPage={isFetchingNextPage}
           hasNextPage={hasNextPage}

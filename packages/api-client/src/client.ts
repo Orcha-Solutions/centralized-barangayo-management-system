@@ -67,7 +67,9 @@ export function isLiveBackendEndpoint(cleanPath: string): boolean {
     cleanPath === "/certificates" ||
     cleanPath.startsWith("/certificates/") ||
     cleanPath === "/certificate-types" ||
-    cleanPath.startsWith("/certificate-types/")
+    cleanPath.startsWith("/certificate-types/") ||
+    cleanPath === "/sos" ||
+    cleanPath.startsWith("/sos/")
   );
 }
 

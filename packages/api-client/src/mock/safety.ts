@@ -132,10 +132,15 @@ export function handleSafetyMock(ctx: MockContext): any {
     if (cleanPath === "/sos") {
       const newAlert = {
         id: "sos-" + Math.random().toString(36).substring(2, 9),
+        kind: body.kind || "general",
+        note: body.note || "",
+        latitude: body.latitude ?? null,
+        longitude: body.longitude ?? null,
+        isTest: !!body.isTest,
         location: body.location || "Unknown location",
         status: "active",
         barangayId: currentUser.barangayId || "barangka",
-        inhabitantId: currentUser.inhabitantId || "res1-inhabitant",
+        inhabitantId: body.inhabitantId || currentUser.inhabitantId || "res1-inhabitant",
         createdAt: new Date().toISOString(),
       };
       if (!store.SosAlert) store.SosAlert = [];

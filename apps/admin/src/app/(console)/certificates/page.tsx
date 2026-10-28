@@ -14,7 +14,7 @@ import {
 import { CertificateToolbar } from "./components/CertificateToolbar";
 import { CertificateTable } from "./components/CertificateTable";
 import { CertificateDrawer, type CertificateDrawerFormData } from "./components/CertificateDrawer";
-import { LguPermitsTab } from "./components/LguPermitsTab";
+// Note: LguPermitsTab is preserved in ./components/LguPermitsTab.tsx for future city-level integration
 import type { CertificateRequest } from "../../../lib/types";
 
 export default function CertificatesPage() {
@@ -22,9 +22,6 @@ export default function CertificatesPage() {
 
   // Auth / RBAC permission validation
   const mayCreate = can("issuance:create") || can("issuance:encode") || can("documents:issue") || true;
-
-  // Active Tab: Barangay Clearances vs LGU Endorsements
-  const [activeTab, setActiveTab] = React.useState<"barangay" | "lgu">("barangay");
 
   // Inhabitant store for drawer citizen search
   const { inhabitants, fetchInhabitants } = useInhabitantStore();
@@ -113,7 +110,7 @@ export default function CertificatesPage() {
     }
   };
 
-  // Submit New Certificate Request
+  // Handle New Clearance Creation from Drawer
   const handleDrawerSubmit = async (formData: CertificateDrawerFormData) => {
     setDrawerBusy(true);
     setDrawerError(null);
@@ -124,18 +121,18 @@ export default function CertificatesPage() {
         purpose: formData.purpose,
         fee: formData.fee,
         paymentMethod: formData.paymentMethod,
-        orNumber: formData.orNumber || null,
-        remarks: formData.remarks || null,
+        orNumber: formData.orNumber || undefined,
+        remarks: formData.remarks || undefined,
       });
 
       setShowDrawer(false);
       showToast(
         "Clearance Request Created",
-        `Reference ${created.referenceNo} recorded successfully for ${formData.purpose}.`,
+        `Tracking Ref: ${created.referenceNo}. Request is now awaiting verification / payment.`,
         "success"
       );
     } catch (err: any) {
-      setDrawerError(err.message || "Failed to submit clearance request.");
+      setDrawerError(err?.message || "Failed to create certificate request. Please check input details.");
     } finally {
       setDrawerBusy(false);
     }
@@ -144,130 +141,96 @@ export default function CertificatesPage() {
   return (
     <>
       <PageHead
-        title="Document Requests"
-        subtitle="Issuance management — intake, local barangay clearances, and municipal LGU building or business permit endorsements."
-        breadcrumb="Services"
+        title="Document Requests & Clearances"
+        subtitle="Manage resident requests for barangay clearances, indigency, residency certifications, and statutory endorsements."
+        breadcrumb="Services / Document Requests"
         parity="BCIS"
+        actions={
+          mayCreate ? (
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                type="button"
+                className="cbms-btn cbms-btn--primary"
+                onClick={() => {
+                  setDrawerError(null);
+                  setShowDrawer(true);
+                }}
+              >
+                + New Request
+              </button>
+            </div>
+          ) : undefined
+        }
       />
 
-      {/* Tab bar toggle */}
-      <div
-        style={{
-          display: "flex",
-          gap: "1rem",
-          borderBottom: "2px solid var(--cbms-line, #e2e8f0)",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setActiveTab("barangay")}
-          style={{
-            background: "none",
-            border: "none",
-            padding: "0.75rem 1.25rem",
-            fontSize: "1rem",
-            fontWeight: activeTab === "barangay" ? "bold" : "normal",
-            color: activeTab === "barangay" ? "var(--cbms-navy, #0a2463)" : "var(--cbms-muted, #64748b)",
-            borderBottom: activeTab === "barangay" ? "3px solid var(--cbms-navy, #0a2463)" : "3px solid transparent",
-            cursor: "pointer",
-            marginBottom: "-2px",
+      {/* KPI Analytics StatGrid */}
+      <StatGrid>
+        <StatCard label="Total requests" value={num(statsData?.total ?? totalRecords)} icon="📄" />
+        <StatCard
+          label="For approval"
+          value={num(statsData?.pendingApproval ?? 0)}
+          icon="✍️"
+          tone="red"
+          hint="Requires digital or wet signature"
+        />
+        <StatCard
+          label="Awaiting payment"
+          value={num(statsData?.awaitingPayment ?? 0)}
+          icon="💳"
+          tone="gold"
+        />
+        <StatCard
+          label="Released"
+          value={num(statsData?.released ?? 0)}
+          icon="✅"
+          tone="green"
+        />
+        <StatCard
+          label="Median processing"
+          value={`${statsData?.medianProcessingHours ?? 2.5} h`}
+          icon="⏱️"
+          hint="Compliant with Citizen's Charter"
+        />
+        <StatCard
+          label="RA 11032"
+          value={<Chip tone="green">Compliant</Chip>}
+          icon="⚖️"
+          tone="green"
+          hint="Ease of Doing Business SLA"
+        />
+      </StatGrid>
+
+      <Panel padded={false}>
+        {/* Toolbar with 3-char server-side search */}
+        <CertificateToolbar
+          search={search}
+          onSearchChange={setSearch}
+          status={status}
+          onStatusChange={setStatus}
+          typeId={typeId}
+          onTypeIdChange={setTypeId}
+          certificateTypes={certificateTypes}
+          totalRecords={totalRecords}
+          onNewRequest={() => {
+            setDrawerError(null);
+            setShowDrawer(true);
           }}
-        >
-          📄 Barangay Clearances ({num(totalRecords)})
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("lgu")}
-          style={{
-            background: "none",
-            border: "none",
-            padding: "0.75rem 1.25rem",
-            fontSize: "1rem",
-            fontWeight: activeTab === "lgu" ? "bold" : "normal",
-            color: activeTab === "lgu" ? "var(--cbms-navy, #0a2463)" : "var(--cbms-muted, #64748b)",
-            borderBottom: activeTab === "lgu" ? "3px solid var(--cbms-navy, #0a2463)" : "3px solid transparent",
-            cursor: "pointer",
-            marginBottom: "-2px",
-          }}
-        >
-          🏛️ LGU Permits & Endorsements
-        </button>
-      </div>
+          canCreate={mayCreate}
+        />
 
-      {activeTab === "barangay" ? (
-        <>
-          {/* KPI Analytics StatGrid */}
-          <StatGrid>
-            <StatCard label="Total requests" value={num(statsData?.total ?? totalRecords)} icon="📄" />
-            <StatCard
-              label="For approval"
-              value={num(statsData?.pendingApproval ?? 0)}
-              icon="✍️"
-              tone="red"
-              hint="Requires digital or wet signature"
-            />
-            <StatCard
-              label="Awaiting payment"
-              value={num(statsData?.awaitingPayment ?? 0)}
-              icon="💳"
-              tone="gold"
-            />
-            <StatCard
-              label="Released"
-              value={num(statsData?.released ?? 0)}
-              icon="✅"
-              tone="green"
-            />
-            <StatCard
-              label="Median processing"
-              value={`${statsData?.medianProcessingHours ?? 2.5} h`}
-              icon="⏱️"
-              hint="Compliant with Citizen's Charter"
-            />
-            <StatCard
-              label="RA 11032"
-              value={<Chip tone="green">Compliant</Chip>}
-              icon="⚖️"
-              tone="green"
-              hint="Ease of Doing Business SLA"
-            />
-          </StatGrid>
-
-          <Panel padded={false}>
-            {/* Toolbar with 3-char server-side search */}
-            <CertificateToolbar
-              search={search}
-              onSearchChange={setSearch}
-              status={status}
-              onStatusChange={setStatus}
-              typeId={typeId}
-              onTypeIdChange={setTypeId}
-              certificateTypes={certificateTypes}
-              totalRecords={totalRecords}
-              onNewRequest={() => {
-                setDrawerError(null);
-                setShowDrawer(true);
-              }}
-              canCreate={mayCreate}
-            />
-
-            {/* Sticky Header, Sortable, Infinite Scroll Table with Skeleton Loading */}
-            <CertificateTable
-              certificates={certificates}
-              isLoading={isLoading}
-              isFetchingNextPage={isFetchingNextPage}
-              hasNextPage={hasNextPage}
-              fetchNextPage={fetchNextPage}
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              onSort={handleSort}
-            />
-          </Panel>
-        </>
-      ) : (
-        <LguPermitsTab />
-      )}
+        {/* Sticky Header, Sortable, Infinite Scroll Table with Skeleton Loading */}
+        <CertificateTable
+          certificates={certificates}
+          total={totalRecords}
+          isLoading={isLoading}
+          isFetchingNextPage={isFetchingNextPage}
+          hasNextPage={hasNextPage}
+          fetchNextPage={fetchNextPage}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+        />
+      </Panel>
 
       {/* Drawer for New Clearance Request */}
       <CertificateDrawer
@@ -282,7 +245,7 @@ export default function CertificatesPage() {
         inhabitants={inhabitants}
       />
 
-      {/* Toast Notification */}
+      {/* Post-Transaction Toast */}
       <Toast
         open={toast.open}
         message={toast.message}

@@ -1,271 +1,338 @@
 "use client";
 
 import * as React from "react";
-import { ApiError, post, useApi } from "@cbms/api-client";
-import {
-  Alert,
-  Button,
-  Chip,
-  Field,
-  PageHead,
-  Panel,
-  StatCard,
-  StatGrid,
-  StatusChip,
-  dateTime,
-  num,
-  relative,
-} from "@cbms/ui";
-import { ActionResult, Async, EmptyNote } from "../../../components/common";
+import { PageHead, Alert, StatGrid, StatCard, num } from "@cbms/ui";
 import { useConsole } from "../../../components/Shell";
-import { SOS_KIND_ICON } from "../../../lib/labels";
-import type { Bag, SosAlert } from "../../../lib/types";
-
-/** Minutes elapsed since an alert was raised. */
-function minutesSince(iso: string): number {
-  return Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-}
+import { Toast } from "../../../components/Toast";
+import {
+  useInfiniteSosAlertsQuery,
+  useSosStatsQuery,
+  useCreateSosMutation,
+  useUpdateSosMutation,
+  useDeleteSosMutation,
+  useSosRealtimeStream,
+  type CreateSosPayload,
+} from "../../../lib/sos-queries";
+import { SosToolbar } from "./components/SosToolbar";
+import { SosTable } from "./components/SosTable";
+import { SosHistoryDrawer } from "./components/SosHistoryDrawer";
+import { SosDrawer, type SosDrawerFormData } from "./components/SosDrawer";
+import { DeleteSosModal } from "./components/DeleteSosModal";
+import { SosRespondModal } from "./components/SosRespondModal";
+import type { SosAlert } from "../../../lib/types";
 
 export default function SosPage() {
   const { can } = useConsole();
-  const mayRespond = can("sos:encode");
 
-  const list = useApi<Bag<SosAlert>>("/sos");
+  // Auth & RBAC Permission checks
+  const mayRespond = can("sos:respond") || can("emergency:alert");
+  const mayEncode = can("sos:create") || can("emergency:alert") || can("sos:respond");
+  const mayDelete = can("sos:delete") || can("emergency:alert");
 
-  const [busyId, setBusyId] = React.useState<string | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [ok, setOk] = React.useState<string | null>(null);
-  const [noteFor, setNoteFor] = React.useState<string | null>(null);
-  const [note, setNote] = React.useState("");
+  // Query and Filtering State
+  const [search, setSearch] = React.useState("");
+  const [status, setStatus] = React.useState("all");
+  const [kind, setKind] = React.useState("all");
+  const [sortBy, setSortBy] = React.useState<string>("createdAt");
+  const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("desc");
+  const pageSize = 20; // Rule: minimum of 20 records to display
 
-  // A dispatch board should not go stale while someone is watching it.
-  React.useEffect(() => {
-    const t = window.setInterval(() => list.reload(), 20000);
-    return () => window.clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Modals & Action States
+  const [openCreate, setOpenCreate] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<SosAlert | null>(null);
+  const [respondTarget, setRespondTarget] = React.useState<SosAlert | null>(null);
+  const [respondActionStatus, setRespondActionStatus] = React.useState<string>("acknowledged");
+  const [selectedAlertForHistory, setSelectedAlertForHistory] = React.useState<SosAlert | null>(null);
 
-  const alerts = list.data?.items ?? [];
-  const live = alerts.filter((a) => a.status === "active" && !a.isTest);
-  const dispatched = alerts.filter((a) => a.status === "dispatched");
-  const tests = alerts.filter((a) => a.isTest || a.status === "test");
+  // Toast Notification State
+  const [toast, setToast] = React.useState<{
+    open: boolean;
+    message: string;
+    description?: string;
+    tone: "success" | "danger" | "info";
+  }>({
+    open: false,
+    message: "",
+    description: "",
+    tone: "success",
+  });
 
-  async function respond(a: SosAlert, status: string, responseNote?: string) {
-    setBusyId(a.id);
-    setError(null);
-    setOk(null);
-    try {
-      await post(`/sos/${a.id}/respond`, {
-        status,
-        ...(responseNote ? { responseNote } : {}),
-      });
-      setOk(`Alert marked “${status.replace("_", " ")}”.`);
-      setNoteFor(null);
-      setNote("");
-      list.reload();
-    } catch (err) {
-      setError((err as ApiError)?.message ?? "Could not update the alert.");
-    } finally {
-      setBusyId(null);
+  const showToast = (message: string, description?: string, tone: "success" | "danger" | "info" = "success") => {
+    setToast({ open: true, message, description, tone });
+  };
+
+  // Realtime SSE Live Connection (No extra third-party libraries needed)
+  const { connected } = useSosRealtimeStream();
+
+  // Stats Query
+  const { data: stats } = useSosStatsQuery();
+
+  // React Query Mutations
+  const createMutation = useCreateSosMutation();
+  const updateMutation = useUpdateSosMutation();
+  const deleteMutation = useDeleteSosMutation();
+
+  // Infinite Query: Server-side infinite scroll & lazy loading
+  const {
+    data: infiniteData,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: queryError,
+  } = useInfiniteSosAlertsQuery({
+    pageSize,
+    search,
+    status,
+    kind,
+    sortBy,
+    sortOrder,
+  });
+
+  // Flatten & deduplicate alerts
+  const alertsList = React.useMemo(() => {
+    if (!infiniteData?.pages) return [];
+    const seen = new Set<string>();
+    const list: SosAlert[] = [];
+    for (const page of infiniteData.pages) {
+      const rows = page.data ?? page.items ?? [];
+      for (const row of rows) {
+        if (!row.id) {
+          list.push(row);
+        } else if (!seen.has(row.id)) {
+          seen.add(row.id);
+          list.push(row);
+        }
+      }
     }
-  }
+    return list;
+  }, [infiniteData]);
 
-  function AlertCard({ a }: { a: SosAlert }) {
-    const mins = minutesSince(a.createdAt);
-    const urgent = a.status === "active" && mins >= 5 && !a.isTest;
-    return (
-      <div className={`adm-sos-card${urgent ? " adm-sos-card--urgent" : ""}`}>
-        <div className="adm-sos-card__head">
-          <span className="adm-sos-card__icon">{SOS_KIND_ICON[a.kind] ?? "🚨"}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="adm-sos-card__kind">
-              {a.kind.toUpperCase()}
-              {a.isTest && (
-                <>
-                  {" "}
-                  <Chip tone="gray">TEST</Chip>
-                </>
-              )}
-            </div>
-            <div className="adm-muted">
-              {a.inhabitant
-                ? `${a.inhabitant.firstName} ${a.inhabitant.lastName}`
-                : "Unidentified caller"}
-              {a.inhabitant?.contactPhone ? ` · ${a.inhabitant.contactPhone}` : ""}
-            </div>
-          </div>
-          <StatusChip status={a.status} />
-        </div>
+  const totalAlerts = Number(infiniteData?.pages?.[0]?.total ?? 0);
 
-        <div className="adm-sos-card__meta">
-          <span title={dateTime(a.createdAt)}>
-            ⏱ {mins < 1 ? "just now" : `${mins} min ago`}
-          </span>
-          {a.latitude != null && a.longitude != null && (
-            <a
-              className="adm-strong"
-              style={{ textDecoration: "underline" }}
-              href={`https://www.google.com/maps?q=${a.latitude},${a.longitude}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              📍 {a.latitude.toFixed(5)}, {a.longitude.toFixed(5)}
-            </a>
-          )}
-        </div>
+  // Sorting Handler
+  const handleSort = (columnKey: string) => {
+    if (sortBy === columnKey) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(columnKey);
+      setSortOrder("desc");
+    }
+  };
 
-        {a.note && <p className="adm-sos-card__note">“{a.note}”</p>}
-        {a.responseNote && (
-          <p className="adm-muted" style={{ marginBottom: 0 }}>
-            Response: {a.responseNote}
-          </p>
-        )}
+  // Create SOS Alert
+  const handleCreateSubmit = async (formData: SosDrawerFormData) => {
+    try {
+      const created = await createMutation.mutateAsync({
+        inhabitantId: formData.inhabitantId || undefined,
+        kind: formData.kind,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
+        note: formData.note,
+        isTest: formData.isTest,
+      });
+      const alertId = created?.id ? String(created.id).slice(0, 8) : "NEW";
+      const alertKind = (created?.kind || formData.kind || "general").toUpperCase();
+      showToast(
+        "Emergency Broadcast Sent",
+        `Alert #${alertId} (${alertKind}) triggered successfully.`,
+        "success"
+      );
+      setOpenCreate(false);
+    } catch (err: any) {
+      showToast("Broadcast Failed", err?.message || "Failed to trigger SOS alert.", "danger");
+    }
+  };
 
-        {mayRespond && !["resolved", "false_alarm"].includes(a.status) && (
-          <div className="adm-sos-card__actions">
-            {a.status === "active" && (
-              <Button
-                size="sm"
-                disabled={busyId === a.id}
-                onClick={() => respond(a, "acknowledged")}
-              >
-                Acknowledge
-              </Button>
-            )}
-            {["active", "acknowledged"].includes(a.status) && (
-              <Button
-                size="sm"
-                variant="primary"
-                disabled={busyId === a.id}
-                onClick={() => respond(a, "dispatched")}
-              >
-                Dispatch responder
-              </Button>
-            )}
-            <Button
-              size="sm"
-              variant="gold"
-              disabled={busyId === a.id}
-              onClick={() => {
-                setNoteFor(a.id);
-                setNote("");
-              }}
-            >
-              Resolve…
-            </Button>
-            <Button
-              size="sm"
-              disabled={busyId === a.id}
-              onClick={() => respond(a, "false_alarm")}
-            >
-              False alarm
-            </Button>
-          </div>
-        )}
+  // Open Respond Modal or Quick Ack
+  const handleInitiateRespond = (alert: SosAlert, targetStatus: string) => {
+    setRespondTarget(alert);
+    setRespondActionStatus(targetStatus);
+  };
 
-        {noteFor === a.id && (
-          <div style={{ marginTop: 10 }}>
-            <Field label="What happened?">
-              <textarea
-                className="cbms-textarea"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Tanod team responded; resident brought to the health center."
-              />
-            </Field>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Button
-                size="sm"
-                variant="primary"
-                disabled={busyId === a.id || note.trim().length < 3}
-                onClick={() => respond(a, "resolved", note.trim())}
-              >
-                Mark resolved
-              </Button>
-              <Button size="sm" onClick={() => setNoteFor(null)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
+  // Confirm Respond / Status Update
+  const handleConfirmRespond = async (responseNote: string) => {
+    if (!respondTarget) return;
+    try {
+      await updateMutation.mutateAsync({
+        id: respondTarget.id,
+        data: {
+          status: respondActionStatus,
+          ...(responseNote ? { responseNote } : {}),
+        },
+      });
+      const alertId = respondTarget.id ? String(respondTarget.id).slice(0, 8) : "";
+      showToast(
+        "Incident Status Updated",
+        `Alert #${alertId} marked as “${respondActionStatus.replace("_", " ")}”.`,
+        "success"
+      );
+
+      // Keep drawer in sync if open for this alert
+      if (selectedAlertForHistory?.id === respondTarget.id) {
+        setSelectedAlertForHistory((prev) =>
+          prev ? { ...prev, status: respondActionStatus, responseNote: responseNote || prev.responseNote } : null
+        );
+      }
+
+      setRespondTarget(null);
+    } catch (err: any) {
+      showToast("Update Failed", err?.message || "Could not update the alert status.", "danger");
+    }
+  };
+
+  // Confirm Delete
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      const alertId = deleteTarget.id ? String(deleteTarget.id).slice(0, 8) : "";
+      showToast(
+        "Alert Removed",
+        `Emergency record #${alertId} has been deleted.`,
+        "danger"
+      );
+      if (selectedAlertForHistory?.id === deleteTarget.id) {
+        setSelectedAlertForHistory(null);
+      }
+      setDeleteTarget(null);
+    } catch (err: any) {
+      showToast("Delete Failed", err?.message || "Could not delete emergency alert.", "danger");
+    }
+  };
+
+  const busyAlertId = updateMutation.isPending ? updateMutation.variables?.id ?? null : null;
 
   return (
     <>
       <PageHead
-        title="SOS dispatch board"
-        subtitle="Live panic alerts raised from the resident app. The board refreshes every 20 seconds."
-        breadcrumb="Justice & Safety"
-        exclusive
-        actions={<Button onClick={() => list.reload()}>↻ Refresh</Button>}
+        title="Emergency SOS & Dispatch Console"
+        subtitle="Real-time incident response command, BDRRMC telemetry, and active siren alerts."
+        breadcrumb="Disaster & Safety"
+        parity="BDRRMC"
       />
 
-      <ActionResult error={error} success={ok} />
+      {/* KPI Stats Grid */}
+      <div style={{ marginBottom: "1rem" }}>
+        <StatGrid>
+          <StatCard
+            label="Active Emergencies"
+            value={num(stats?.active ?? 0)}
+            hint="Requiring immediate response"
+            tone={(stats?.active ?? 0) > 0 ? "red" : undefined}
+          />
+          <StatCard
+            label="Dispatched Units"
+            value={num(stats?.dispatched ?? 0)}
+            hint="En route or on scene"
+            tone={(stats?.dispatched ?? 0) > 0 ? "navy" : undefined}
+          />
+          <StatCard
+            label="Resolved Cases"
+            value={num(stats?.resolved ?? 0)}
+            hint="Closed incidents"
+            tone={(stats?.resolved ?? 0) > 0 ? "green" : undefined}
+          />
+          <StatCard
+            label="Median Response Time"
+            value={stats?.medianResponseMinutes ? `${stats.medianResponseMinutes.toFixed(1)}m` : "—"}
+            hint="From beacon to dispatch"
+          />
+        </StatGrid>
+      </div>
 
-      <StatGrid>
-        <StatCard
-          label="Live alerts"
-          value={num(live.length)}
-          hint="Awaiting acknowledgement"
-          icon="🚨"
-          tone={live.length > 0 ? "red" : "green"}
-        />
-        <StatCard
-          label="Responder dispatched"
-          value={num(dispatched.length)}
-          hint="En route"
-          icon="🚓"
-          tone="gold"
-        />
-        <StatCard
-          label="Test alerts"
-          value={num(tests.length)}
-          hint="Drills — not real emergencies"
-          icon="🧪"
-        />
-        <StatCard
-          label="On the board"
-          value={num(alerts.length)}
-          hint="Active, acknowledged and dispatched"
-          icon="📋"
-        />
-      </StatGrid>
-
-      {live.length > 0 && (
-        <Alert tone="danger">
-          <strong>{live.length}</strong> unacknowledged emergency
-          {live.length === 1 ? "" : " alerts"}. Acknowledge to let the resident know help is coming.
-        </Alert>
+      {queryError && (
+        <div style={{ marginBottom: "1rem" }}>
+          <Alert tone="danger">
+            Failed to load emergency alerts: {(queryError as Error)?.message || "Network error"}
+          </Alert>
+        </div>
       )}
 
-      <Async loading={list.loading} error={list.error}>
-        {alerts.length === 0 ? (
-          <Panel>
-            <EmptyNote>
-              No open alerts. Raise a <strong>test</strong> alert from the resident app to see the
-              board light up.
-            </EmptyNote>
-          </Panel>
-        ) : (
-          <div className="adm-sos-grid">
-            {[...alerts]
-              .sort((a, b) => {
-                // Real emergencies first, then oldest first.
-                const rank = (x: SosAlert) =>
-                  x.isTest ? 2 : x.status === "active" ? 0 : 1;
-                const r = rank(a) - rank(b);
-                return r !== 0
-                  ? r
-                  : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-              })
-              .map((a) => (
-                <AlertCard key={a.id} a={a} />
-              ))}
-          </div>
-        )}
-      </Async>
+      {/* Search and Filters Toolbar */}
+      <SosToolbar
+        search={search}
+        onSearchChange={setSearch}
+        status={status}
+        onStatusChange={setStatus}
+        kind={kind}
+        onKindChange={setKind}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={(col, ord) => {
+          setSortBy(col);
+          setSortOrder(ord);
+        }}
+        total={totalAlerts}
+        mayEncode={mayEncode}
+        onOpenCreate={() => setOpenCreate(true)}
+        connected={connected}
+      />
+
+      {/* Infinite Scroll Table with Skeleton Loading and Sticky Header */}
+      <SosTable
+        alerts={alertsList}
+        loading={isLoading}
+        total={totalAlerts}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        onLoadMore={() => fetchNextPage()}
+        onSelectDelete={(alert) => setDeleteTarget(alert)}
+        onRespond={handleInitiateRespond}
+        onRowClick={(alert) => setSelectedAlertForHistory(alert)}
+        busyId={busyAlertId}
+        mayRespond={mayRespond}
+        mayDelete={mayDelete}
+      />
+
+      {/* Slide-over Right Content Drawer: Dispatch History & Incident Dossier */}
+      <SosHistoryDrawer
+        open={!!selectedAlertForHistory}
+        alert={selectedAlertForHistory}
+        onClose={() => setSelectedAlertForHistory(null)}
+        onRespond={handleInitiateRespond}
+        mayRespond={mayRespond}
+        busy={updateMutation.isPending}
+      />
+
+      {/* Trigger SOS Drawer */}
+      <SosDrawer
+        open={openCreate}
+        busy={createMutation.isPending}
+        onClose={() => setOpenCreate(false)}
+        onSubmit={handleCreateSubmit}
+      />
+
+      {/* Respond / Dispatch Modal */}
+      <SosRespondModal
+        open={!!respondTarget}
+        busy={updateMutation.isPending}
+        alert={respondTarget}
+        targetStatus={respondActionStatus}
+        onCancel={() => setRespondTarget(null)}
+        onSubmit={handleConfirmRespond}
+      />
+
+      {/* Delete Confirmation Modal (typed confirmation input) */}
+      <DeleteSosModal
+        open={!!deleteTarget}
+        busy={deleteMutation.isPending}
+        alert={deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        description={toast.description}
+        tone={toast.tone}
+        onClose={() => setToast((p) => ({ ...p, open: false }))}
+      />
     </>
   );
 }

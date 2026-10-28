@@ -244,36 +244,53 @@ export function BlotterTable({
         }}
       >
         <div>
-          Showing <strong>{blotters.length}</strong> of <strong>{total}</strong> loaded incidents
+          Showing <strong>{blotters.length.toLocaleString()}</strong> of{" "}
+          <strong>{total.toLocaleString()}</strong> incidents
+          {blotters.length > 0 && total > blotters.length && (
+            <span style={{ marginLeft: 8, fontSize: "11.5px", opacity: 0.8 }}>
+              (Scroll down to lazy load more)
+            </span>
+          )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {isFetchingNextPage && (
-            <span
+            <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
                 color: "var(--cbms-navy, #0a2463)",
                 fontWeight: 600,
+                fontSize: "12px",
               }}
             >
-              <span className="cbms-spinner" style={{ width: 14, height: 14 }} />
-              Loading more records…
-            </span>
-          )}
-          {hasNextPage && !isFetchingNextPage && (
-            <button
-              type="button"
-              className="cbms-btn cbms-btn--sm"
-              onClick={onLoadMore}
-              style={{ fontSize: "12px", padding: "4px 12px" }}
-            >
-              Scroll or Click to Load Next 20
-            </button>
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 13,
+                  height: 13,
+                  border: "2px solid rgba(10, 36, 99, 0.25)",
+                  borderTopColor: "var(--cbms-navy, #0a2463)",
+                  borderRadius: "50%",
+                  animation: "cbms-spin 0.8s linear infinite",
+                }}
+              />
+              <span>Loading next 20 records...</span>
+            </div>
           )}
           {!hasNextPage && blotters.length > 0 && !loading && (
-            <span style={{ color: "#94a3b8", fontSize: "11.5px" }}>
-              ✓ All {total} blotter records loaded
+            <span
+              style={{
+                fontSize: "11.5px",
+                fontWeight: 600,
+                color: "#166534",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                padding: "2px 8px",
+                borderRadius: 999,
+              }}
+            >
+              ✓ All {total.toLocaleString()} incidents loaded
             </span>
           )}
         </div>

@@ -52,6 +52,9 @@ const PERMISSION_SYNONYMS: Record<string, string[]> = {
   "disaster:create": ["emergency:alert"],
   "sos:view": ["emergency:read"],
   "sos:respond": ["emergency:alert"],
+  "sos:create": ["emergency:alert"],
+  "sos:update": ["emergency:alert"],
+  "sos:delete": ["emergency:alert"],
 
   "vawc:view": ["vawc:read"],
   "vawc:create": ["vawc:write"],

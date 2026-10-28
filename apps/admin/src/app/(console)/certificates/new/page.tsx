@@ -2,21 +2,19 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ApiError, post, qs, useApi } from "@cbms/api-client";
+import { ApiError, post, useApi } from "@cbms/api-client";
 import {
   Alert,
   Button,
   Chip,
-  DataTable,
   Field,
   PageHead,
   Panel,
-  age,
-  fullName,
   pesoAmount,
 } from "@cbms/ui";
-import { ActionResult, Async, EmptyNote } from "../../../../components/common";
-import type { Bag, CertificateRequest, CertificateType, Inhabitant, Paged } from "../../../../lib/types";
+import { ActionResult, Async } from "../../../../components/common";
+import { InhabitantSearchDropdown } from "../components/InhabitantSearchDropdown";
+import type { Bag, CertificateRequest, CertificateType, Inhabitant } from "../../../../lib/types";
 
 export default function NewCertificatePage() {
   const router = useRouter();
@@ -24,16 +22,9 @@ export default function NewCertificatePage() {
 
   const [typeId, setTypeId] = React.useState("");
   const [purpose, setPurpose] = React.useState("");
-  const [q, setQ] = React.useState("");
-  const [search, setSearch] = React.useState("");
   const [picked, setPicked] = React.useState<Inhabitant | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-
-  const results = useApi<Paged<Inhabitant>>(
-    search ? `/inhabitants${qs({ q: search, pageSize: 8 })}` : null,
-    [search],
-  );
 
   const selected = (types.data?.items ?? []).find((t) => t.id === typeId) ?? null;
 
@@ -128,70 +119,15 @@ export default function NewCertificatePage() {
             </Async>
           </Panel>
 
-          <Panel title="2 · Resident">
-            {picked ? (
-              <div>
-                <div className="adm-row" style={{ marginBottom: 10 }}>
-                  <strong className="adm-strong">{fullName(picked)}</strong>
-                  <Chip tone="gray">{age(picked.birthDate) ?? "—"} yrs</Chip>
-                  {picked.household?.purok && <Chip tone="navy">Purok {picked.household.purok}</Chip>}
-                </div>
-                <div className="adm-muted">{picked.household?.addressLine ?? "No address on file"}</div>
-                <Button
-                  size="sm"
-                  style={{ marginTop: 12 }}
-                  onClick={() => {
-                    setPicked(null);
-                    setSearch("");
-                    setQ("");
-                  }}
-                >
-                  Change resident
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="adm-row" style={{ marginBottom: 10 }}>
-                  <input
-                    className="cbms-input cbms-input--search"
-                    placeholder="Search by name or PhilSys…"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        setSearch(q.trim());
-                      }
-                    }}
-                  />
-                  <Button type="button" onClick={() => setSearch(q.trim())}>
-                    Search
-                  </Button>
-                </div>
-                {!search ? (
-                  <EmptyNote>Search for the requesting resident.</EmptyNote>
-                ) : (
-                  <Async loading={results.loading} error={results.error}>
-                    <div className="adm-scroll">
-                      <DataTable
-                        columns={[
-                          { key: "name", header: "Name", render: (r) => fullName(r) },
-                          {
-                            key: "purok",
-                            header: "Purok",
-                            render: (r) => r.household?.purok ?? "—",
-                          },
-                          { key: "age", header: "Age", render: (r) => String(age(r.birthDate) ?? "—") },
-                        ]}
-                        rows={results.data?.items ?? []}
-                        empty="No resident matched."
-                        onRowClick={(r) => setPicked(r)}
-                      />
-                    </div>
-                  </Async>
-                )}
-              </>
-            )}
+          <Panel title="2 · Resident / Inhabitant">
+            <div style={{ marginTop: 4 }}>
+              <InhabitantSearchDropdown
+                selectedInhabitant={picked}
+                onSelect={(inh) => setPicked(inh)}
+                onClear={() => setPicked(null)}
+                disabled={busy}
+              />
+            </div>
           </Panel>
         </div>
 

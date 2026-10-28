@@ -674,6 +674,7 @@ export interface Concern {
 
 export interface SosAlert {
   id: string;
+  barangayId?: string;
   kind: string;
   latitude?: number | null;
   longitude?: number | null;
@@ -681,10 +682,34 @@ export interface SosAlert {
   status: string;
   isTest: boolean;
   acknowledgedAt?: string | null;
+  respondedById?: string | null;
   resolvedAt?: string | null;
   responseNote?: string | null;
   createdAt: string;
-  inhabitant?: { firstName: string; lastName: string; contactPhone?: string | null } | null;
+  updatedAt?: string;
+  inhabitant?: { id?: string; firstName: string; lastName: string; contactPhone?: string | null } | null;
+}
+
+export interface SosStats {
+  total: number;
+  active: number;
+  dispatched: number;
+  resolved: number;
+  medianResponseMinutes: number;
+}
+
+export interface SosDispatchHistory {
+  id: string;
+  alertId: string;
+  barangayId: string;
+  action: string;
+  statusBefore?: string | null;
+  statusAfter: string;
+  officerId?: string | null;
+  officerName?: string | null;
+  notes: string;
+  createdAt: string;
+  alert?: SosAlert | null;
 }
 
 export interface Announcement {
