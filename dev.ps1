@@ -56,8 +56,17 @@ try {
   Write-Host "  [WARN] Docker check skipped or container not found. Assuming external DB is accessible." -ForegroundColor DarkYellow
 }
 
-# 2. Build or verify cbms-server.exe
-Write-Host "`n[2/3] Checking Go Backend Binary..." -ForegroundColor Yellow
+# 2. Clean up any lingering processes on Backend/Frontend ports & build cbms-server.exe
+Write-Host "`n[2/3] Preparing Ports & Checking Go Backend Binary..." -ForegroundColor Yellow
+Get-Process -Name "cbms-server" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+foreach ($port in @($BackendPort, $FrontendPort)) {
+  $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+  foreach ($c in $conns) {
+    if ($c.OwningProcess -gt 0) {
+      Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
+    }
+  }
+}
 Write-Host "  Compiling latest cbms-server.exe in $BackendDir..." -ForegroundColor Yellow
 Push-Location $BackendDir
 go build -o cbms-server.exe ./cmd/server
@@ -71,7 +80,10 @@ $backendJob = Start-Job -ScriptBlock {
   param($dir)
   $ErrorActionPreference = "Continue"
   Set-Location $dir
-  cmd.exe /c ".\cbms-server.exe 2>&1"
+  while ($true) {
+    cmd.exe /c ".\cbms-server.exe 2>&1"
+    Start-Sleep -Seconds 1
+  }
 } -ArgumentList $BackendDir
 
 $frontendScript = if ($AllApps) {
@@ -135,5 +147,13 @@ finally {
 
   # Ensure no orphan cbms-server or next processes linger
   Get-Process -Name "cbms-server" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  foreach ($port in @($BackendPort, $FrontendPort)) {
+    $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    foreach ($c in $conns) {
+      if ($c.OwningProcess -gt 0) {
+        Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
+      }
+    }
+  }
   Write-Host "[OK] All processes cleanly stopped. Goodbye!`n" -ForegroundColor Green
 }

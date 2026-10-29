@@ -17,9 +17,12 @@ export function handleTreasuryMock(ctx: MockContext): any {
       const queryParams = new URLSearchParams(queryString);
       const fund = queryParams.get("fund") || "all";
       const direction = queryParams.get("direction") || "all";
-      const q = (queryParams.get("q") || "").toLowerCase().trim();
+      const year = queryParams.get("year") || "all";
+      const dateFrom = queryParams.get("dateFrom") || "";
+      const dateTo = queryParams.get("dateTo") || "";
+      const q = (queryParams.get("search") || queryParams.get("q") || "").toLowerCase().trim();
       const page = parseInt(queryParams.get("page") || "1", 10);
-      const pageSize = parseInt(queryParams.get("pageSize") || "25", 10);
+      const pageSize = parseInt(queryParams.get("pageSize") || "20", 10);
 
       let list = (store.LedgerEntry || STATIC_LEDGER_ENTRIES) as any[];
       if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
@@ -43,13 +46,32 @@ export function handleTreasuryMock(ctx: MockContext): any {
       if (direction !== "all") {
         list = list.filter((x) => x.direction && x.direction.toLowerCase() === direction.toLowerCase());
       }
+      if (year !== "all") {
+        const targetYear = parseInt(year, 10);
+        if (!isNaN(targetYear)) {
+          list = list.filter((x) => x.postedAt && new Date(x.postedAt).getFullYear() === targetYear);
+        }
+      }
+      if (dateFrom) {
+        const fromMs = new Date(`${dateFrom}T00:00:00`).getTime();
+        if (!isNaN(fromMs)) {
+          list = list.filter((x) => x.postedAt && new Date(x.postedAt).getTime() >= fromMs);
+        }
+      }
+      if (dateTo) {
+        const toMs = new Date(`${dateTo}T23:59:59.999`).getTime();
+        if (!isNaN(toMs)) {
+          list = list.filter((x) => x.postedAt && new Date(x.postedAt).getTime() <= toMs);
+        }
+      }
       if (q) {
         list = list.filter(
           (x) =>
             (x.description && x.description.toLowerCase().includes(q)) ||
             (x.accountCode && x.accountCode.toLowerCase().includes(q)) ||
             (x.orNumber && x.orNumber.toLowerCase().includes(q)) ||
-            (x.dvNumber && x.dvNumber.toLowerCase().includes(q)),
+            (x.dvNumber && x.dvNumber.toLowerCase().includes(q)) ||
+            (x.payorPayee && x.payorPayee.toLowerCase().includes(q)),
         );
       }
 
@@ -58,12 +80,14 @@ export function handleTreasuryMock(ctx: MockContext): any {
       const total = list.length;
       const startIndex = (page - 1) * pageSize;
       const items = list.slice(startIndex, startIndex + pageSize);
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
       return {
         items,
         total,
         page,
         pageSize,
+        totalPages,
       };
     }
 
@@ -82,8 +106,12 @@ export function handleTreasuryMock(ctx: MockContext): any {
     if (cleanPath === "/finance/receipts") {
       const queryString = path.includes("?") ? path.split("?")[1] : "";
       const queryParams = new URLSearchParams(queryString);
+      const year = queryParams.get("year") || "all";
+      const dateFrom = queryParams.get("dateFrom") || "";
+      const dateTo = queryParams.get("dateTo") || "";
+      const q = (queryParams.get("search") || queryParams.get("q") || "").toLowerCase().trim();
       const page = parseInt(queryParams.get("page") || "1", 10);
-      const pageSize = parseInt(queryParams.get("pageSize") || "50", 10);
+      const pageSize = parseInt(queryParams.get("pageSize") || "20", 10);
 
       let list = (store.OfficialReceipt || STATIC_OFFICIAL_RECEIPTS) as any[];
       if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
@@ -101,17 +129,46 @@ export function handleTreasuryMock(ctx: MockContext): any {
         amount: typeof item.amount === "object" && item.amount !== null ? item.amount.value : Number(item.amount),
       }));
 
+      if (year !== "all") {
+        const targetYear = parseInt(year, 10);
+        if (!isNaN(targetYear)) {
+          list = list.filter((x) => x.issuedAt && new Date(x.issuedAt).getFullYear() === targetYear);
+        }
+      }
+      if (dateFrom) {
+        const fromMs = new Date(`${dateFrom}T00:00:00`).getTime();
+        if (!isNaN(fromMs)) {
+          list = list.filter((x) => x.issuedAt && new Date(x.issuedAt).getTime() >= fromMs);
+        }
+      }
+      if (dateTo) {
+        const toMs = new Date(`${dateTo}T23:59:59.999`).getTime();
+        if (!isNaN(toMs)) {
+          list = list.filter((x) => x.issuedAt && new Date(x.issuedAt).getTime() <= toMs);
+        }
+      }
+      if (q) {
+        list = list.filter(
+          (x) =>
+            (x.orNumber && x.orNumber.toLowerCase().includes(q)) ||
+            (x.payorName && x.payorName.toLowerCase().includes(q)) ||
+            (x.particulars && x.particulars.toLowerCase().includes(q)),
+        );
+      }
+
       list = [...list].sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime());
 
       const total = list.length;
       const startIndex = (page - 1) * pageSize;
       const items = list.slice(startIndex, startIndex + pageSize);
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
       return {
         items,
         total,
         page,
         pageSize,
+        totalPages,
       };
     }
 

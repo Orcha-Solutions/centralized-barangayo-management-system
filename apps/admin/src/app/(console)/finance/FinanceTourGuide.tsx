@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { TourGuideOverlay, GuideToggle, TourStep } from "../../../components/TourGuide";
@@ -8,13 +8,13 @@ export const FINANCE_TOUR_STEPS: TourStep[] = [
     id: "finance-overview",
     targetId: "tour-finance-stats",
     title: "Barangay Treasury & Ledger (BFMS Parity)",
-    badge: "Step 1 of 7 · Treasury Overview & Balances",
-    roleIcon: "💰",
+    badge: "Step 1 of 7 Â· Treasury Overview & Balances",
+    roleIcon: "ðŸ’°",
     description:
       "Welcome to the Barangay Treasury & General Ledger module. Compliant with DILG BFMS (Barangay Financial Management System) and Commission on Audit (COA) circulars, this manages double-entry bookkeeping, official receipts, and annual appropriation tracking.",
     capabilities: [
       "Live balances: Credits (Inflows/Collections), Debits (Disbursements/Expenses), and Total Official Receipts",
-      "Annual Appropriation monitoring under Local Government Code §314",
+      "Annual Appropriation monitoring under Local Government Code Â§314",
       "Segregated tracking across statutory funds (General Fund, 20% BDF, 10% SK, 5% BDRRMF, 5% GAD)",
     ],
     tip: "Keep an eye on the Debits counter to monitor operating expenditure against collection targets.",
@@ -23,8 +23,8 @@ export const FINANCE_TOUR_STEPS: TourStep[] = [
     id: "finance-tabs",
     targetId: "tour-finance-tabs",
     title: "Core Financial Pillars & Subsystems",
-    badge: "Step 2 of 7 · Navigation Tabs",
-    roleIcon: "📑",
+    badge: "Step 2 of 7 Â· Navigation Tabs",
+    roleIcon: "ðŸ“‘",
     description:
       "Seamlessly switch between the three core pillars of barangay fiscal administration using the navigation tabs:",
     capabilities: [
@@ -36,26 +36,26 @@ export const FINANCE_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "finance-encoding-btn",
-    targetId: "tour-finance-record-btn",
+    targetId: "finance-actions-btn",
     title: "Data Encoding: Record Journal Entry",
-    badge: "Step 3 of 7 · Ledger Encoding",
-    roleIcon: "✍️",
+    badge: "Step 3 of 7 Â· Ledger Encoding",
+    roleIcon: "âœï¸",
     description:
       "Click '+ Record Journal Entry' to post financial transactions directly into the barangay books with immediate debit/credit validation.",
     capabilities: [
       "Fast slide-over drawer without leaving the active ledger sheet",
       "Real-time validation ensuring balanced accounting entries",
     ],
-    tip: "Click '👉 Open Journal Entry Drawer' below or the button at top to view the transaction fields.",
-    actionText: "👉 Open Journal Entry Drawer",
+    tip: "Click 'ðŸ‘‰ Open Journal Entry Drawer' below or the button at top to view the transaction fields.",
+    actionText: "ðŸ‘‰ Open Journal Entry Drawer",
     actionId: "open-record-drawer",
   },
   {
     id: "finance-record-drawer",
     targetId: "tour-finance-record-drawer",
     title: "Journal Entry Form: COA Accounts & Fund Allocation",
-    badge: "Step 4 of 7 · Journal Voucher Form",
-    roleIcon: "📝",
+    badge: "Step 4 of 7 Â· Journal Voucher Form",
+    roleIcon: "ðŸ“",
     description:
       "Encode transaction entries adhering strictly to the COA New Government Accounting System (NGAS) for Barangays.",
     capabilities: [
@@ -70,8 +70,8 @@ export const FINANCE_TOUR_STEPS: TourStep[] = [
     id: "finance-reading-table",
     targetId: "tour-finance-table",
     title: "Data Reading: General Ledger & Audit Trail",
-    badge: "Step 5 of 7 · Ledger Masterlist",
-    roleIcon: "📋",
+    badge: "Step 5 of 7 Â· Ledger Masterlist",
+    roleIcon: "ðŸ“‹",
     description:
       "Inspect posted transactions in real-time. View chronological timestamps, account codes, debit/credit distributions, and reference numbers.",
     capabilities: [
@@ -85,8 +85,8 @@ export const FINANCE_TOUR_STEPS: TourStep[] = [
     id: "finance-receipts",
     targetId: "tour-finance-receipt-btn",
     title: "Official Receipts & Revenue Collections",
-    badge: "Step 6 of 7 · Revenue Collections",
-    roleIcon: "🧾",
+    badge: "Step 6 of 7 Â· Revenue Collections",
+    roleIcon: "ðŸ§¾",
     description:
       "Treasury staff can issue computerized Official Receipts (OR) for clearances, CTCs, and rental fees with immediate automated debit/credit ledger posting.",
     capabilities: [
@@ -100,8 +100,8 @@ export const FINANCE_TOUR_STEPS: TourStep[] = [
     id: "finance-export",
     targetId: "tour-finance-export-btn",
     title: "COA Compliance & Ledger CSV Export",
-    badge: "Step 7 of 7 · Audit & Compliance",
-    roleIcon: "📊",
+    badge: "Step 7 of 7 Â· Audit & Compliance",
+    roleIcon: "ðŸ“Š",
     description:
       "Export transaction registers in CSV format for City/Municipal Accounting audit submission and DILG SGLGB Financial Administration assessments.",
     capabilities: [
@@ -163,3 +163,4 @@ export function FinanceTourGuide({
 }
 
 export { GuideToggle as FinanceGuideToggle };
+

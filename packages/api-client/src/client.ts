@@ -69,7 +69,11 @@ export function isLiveBackendEndpoint(cleanPath: string): boolean {
     cleanPath === "/certificate-types" ||
     cleanPath.startsWith("/certificate-types/") ||
     cleanPath === "/sos" ||
-    cleanPath.startsWith("/sos/")
+    cleanPath.startsWith("/sos/") ||
+    cleanPath === "/finance" ||
+    cleanPath.startsWith("/finance/") ||
+    cleanPath === "/rpt" ||
+    cleanPath.startsWith("/rpt/")
   );
 }
 
@@ -218,6 +222,10 @@ export async function realBackendFetch<T = any>(
     return enrichHouseholdForUi(payload) as unknown as T;
   }
 
+  if ((cleanPath === "/rpt" || cleanPath === "/rpt/dues") && !path.includes("page=") && payload && Array.isArray(payload.items)) {
+    return payload.items as unknown as T;
+  }
+
   return payload as T;
 }
 
@@ -231,7 +239,12 @@ export async function api<T = any>(
       try {
         return await realBackendFetch<T>(path, opts);
       } catch (err) {
-        if (err instanceof ApiError) {
+        const isUnmountedRoute404 =
+          err instanceof ApiError &&
+          err.status === 404 &&
+          typeof err.message === "string" &&
+          err.message.startsWith("Cannot ");
+        if (err instanceof ApiError && !isUnmountedRoute404) {
           throw err;
         }
         console.warn(`[CBMS API] Backend unreachable for ${path}, falling back to offline store:`, err);

@@ -459,6 +459,7 @@ export interface DisbursementBatch {
 
 export interface LedgerEntry {
   id: string;
+  barangayId?: string;
   postedAt: string;
   fund: string;
   accountCode: string;
@@ -467,16 +468,41 @@ export interface LedgerEntry {
   amount: number;
   orNumber?: string | null;
   dvNumber?: string | null;
+  checkNumber?: string | null;
   refType?: string | null;
+  referenceId?: string | null;
+  payorPayee?: string;
+  status?: string;
+  createdById?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface OfficialReceipt {
   id: string;
+  barangayId?: string;
   orNumber: string;
   payorName: string;
   amount: number;
   particulars: string;
   issuedAt: string;
+  status?: string;
+  cancellationReason?: string | null;
+  cancelledAt?: string | null;
+  referenceId?: string | null;
+  refType?: string;
+  paymentMethod?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LedgerStats {
+  totalCredit: number;
+  totalDebit: number;
+  netBalance: number;
+  fundSummary: Record<string, number>;
+  activeCount: number;
+  voidedCount: number;
 }
 
 export interface BudgetLine {
