@@ -12,8 +12,6 @@ export interface CreateLedgerDrawerProps {
   onSubmit: (payload: CreateLedgerPayload) => void;
 }
 
-
-
 export function CreateLedgerDrawer({
   open,
   busy,
@@ -31,6 +29,8 @@ export function CreateLedgerDrawer({
   const [payorPayee, setPayorPayee] = React.useState("");
   const [postedAt, setPostedAt] = React.useState<string>(new Date().toISOString().slice(0, 16));
   const [error, setError] = React.useState<string | null>(null);
+
+  const parsedAmount = parseFloat(amount || "0");
 
   React.useEffect(() => {
     if (open) {
@@ -244,10 +244,8 @@ export function CreateLedgerDrawer({
               className="cbms-select"
             >
               <option value="general">General Fund (GF)</option>
-              <option value="bdrrmf">Disaster Risk Reduction Fund (BDRRMF - 5%)</option>
-              <option value="development">20% Development Fund</option>
-              <option value="sk">Sangguniang Kabataan Fund (SK - 10%)</option>
-              <option value="gad">Gender and Development Fund (GAD - 5%)</option>
+              <option value="trust">Trust Fund</option>
+              <option value="special">Special Purpose Fund</option>
             </select>
           </div>
 

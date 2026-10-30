@@ -32,6 +32,17 @@ export function getStore(): Record<string, any[]> {
       window.localStorage.removeItem("cbms.store");
       window.localStorage.removeItem("cbms.store_v2");
       window.localStorage.removeItem("cbms.store_v3");
+      const delta = window.localStorage.getItem("cbms.mutations");
+      if (delta) {
+        const parsed = JSON.parse(delta);
+        delete parsed.LedgerEntry;
+        delete parsed.OfficialReceipt;
+        delete parsed.Budget;
+        delete parsed.DisbursementBatch;
+        delete parsed.DisbursementBatchItem;
+        delete parsed.StatutorySectors;
+        window.localStorage.setItem("cbms.mutations", JSON.stringify(parsed));
+      }
     } catch {}
 
     const initializedStore: Record<string, any[]> = JSON.parse(JSON.stringify(seedData));
@@ -70,18 +81,15 @@ export function getStore(): Record<string, any[]> {
       ...STATIC_SOS_ALERTS,
       ...(initializedStore.SosAlert || []).filter((x) => !STATIC_SOS_ALERTS.some((s) => s.id === x.id)),
     ];
-    initializedStore.LedgerEntry = [
-      ...STATIC_LEDGER_ENTRIES,
-      ...(initializedStore.LedgerEntry || []).filter((x) => !STATIC_LEDGER_ENTRIES.some((s) => s.id === x.id)),
-    ];
-    initializedStore.OfficialReceipt = [
-      ...STATIC_OFFICIAL_RECEIPTS,
-      ...(initializedStore.OfficialReceipt || []).filter((x) => !STATIC_OFFICIAL_RECEIPTS.some((s) => s.id === x.id)),
-    ];
-    initializedStore.Budget = [
-      ...STATIC_BUDGETS,
-      ...(initializedStore.Budget || []).filter((x) => !STATIC_BUDGETS.some((s) => s.id === x.id)),
-    ];
+    initializedStore.LedgerEntry = (initializedStore.LedgerEntry || []).filter(
+      (x) => !STATIC_LEDGER_ENTRIES.some((s) => s.id === x.id)
+    );
+    initializedStore.OfficialReceipt = (initializedStore.OfficialReceipt || []).filter(
+      (x) => !STATIC_OFFICIAL_RECEIPTS.some((s) => s.id === x.id)
+    );
+    initializedStore.Budget = (initializedStore.Budget || []).filter(
+      (x) => !STATIC_BUDGETS.some((s) => s.id === x.id)
+    );
     initializedStore.RptProperty = [
       ...STATIC_RPT_PROPERTIES,
       ...(initializedStore.RptProperty || []).filter((x) => !STATIC_RPT_PROPERTIES.some((s) => s.id === x.id)),
@@ -90,14 +98,12 @@ export function getStore(): Record<string, any[]> {
       ...STATIC_RPT_TAX_DUES,
       ...(initializedStore.RptTaxDue || []).filter((x) => !STATIC_RPT_TAX_DUES.some((s) => s.id === x.id)),
     ];
-    initializedStore.DisbursementBatch = [
-      ...STATIC_DISBURSEMENT_BATCHES,
-      ...(initializedStore.DisbursementBatch || []).filter((x) => !STATIC_DISBURSEMENT_BATCHES.some((s) => s.id === x.id)),
-    ];
-    initializedStore.DisbursementBatchItem = [
-      ...STATIC_DISBURSEMENT_ITEMS,
-      ...(initializedStore.DisbursementBatchItem || []).filter((x) => !STATIC_DISBURSEMENT_ITEMS.some((s) => s.id === x.id)),
-    ];
+    initializedStore.DisbursementBatch = (initializedStore.DisbursementBatch || []).filter(
+      (x) => !STATIC_DISBURSEMENT_BATCHES.some((s) => s.id === x.id)
+    );
+    initializedStore.DisbursementBatchItem = (initializedStore.DisbursementBatchItem || []).filter(
+      (x) => !STATIC_DISBURSEMENT_ITEMS.some((s) => s.id === x.id)
+    );
     initializedStore.Property = [
       ...STATIC_PROPERTIES,
       ...(initializedStore.Property || []).filter((x) => !STATIC_PROPERTIES.some((s) => s.id === x.id)),

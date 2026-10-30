@@ -81,10 +81,13 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Finance",
     items: [
+      { href: "/budget/planning", label: "Budget Planning", icon: "📋", perm: "finance:view" },
+      { href: "/budget", label: "Statutory", icon: "🏛️", perm: "finance:view" },
       { href: "/finance", label: "Treasury & Ledger", icon: "🏦", perm: "finance:view" },
       { href: "/rpt", label: "Real Property Tax", icon: "🏷️", perm: "finance:view" },
       { href: "/wallet", label: "E-Wallet", icon: "📱", perm: "wallet:manage" },
-      { href: "/wallet/batches", label: "Disbursements", icon: "💸", perm: "wallet:manage" },
+      // Hidden for now (disbursements already handled in Treasury & Ledger)
+      // { href: "/wallet/batches", label: "Disbursements", icon: "💸", perm: "wallet:manage" },
     ],
   },
   {

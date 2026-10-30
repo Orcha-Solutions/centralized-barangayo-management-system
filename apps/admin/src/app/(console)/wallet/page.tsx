@@ -43,11 +43,6 @@ export default function WalletPage() {
         subtitle="Adoption scorecard and the transaction ledger for the barangay e-money rail. Balances are held in centavos; the EMI connection is a mock adapter."
         breadcrumb="Finance"
         exclusive
-        actions={
-          <Link href="/wallet/batches" className="cbms-btn">
-            💸 Disbursement batches
-          </Link>
-        }
       />
 
       <StatGrid>

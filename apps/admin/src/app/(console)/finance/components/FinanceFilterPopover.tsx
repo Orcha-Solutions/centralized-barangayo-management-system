@@ -31,12 +31,10 @@ export const FISCAL_YEARS = [
 ];
 
 export const FUNDS = [
-  { value: "all", label: "All statutory funds" },
+  { value: "all", label: "All funds" },
   { value: "general", label: "General Fund (GF)" },
-  { value: "bdrrmf", label: "Disaster Fund (BDRRMF 5%)" },
-  { value: "development", label: "Development Fund (20%)" },
-  { value: "sk", label: "SK Youth Fund (10%)" },
-  { value: "gad", label: "Gender & Dev (GAD 5%)" },
+  { value: "trust", label: "Trust Fund" },
+  { value: "special", label: "Special Purpose Fund" },
 ];
 
 export function FinanceFilterPopover({
@@ -281,14 +279,14 @@ export function FinanceFilterPopover({
             )}
           </div>
 
-          {/* Ledger Specific: Statutory Fund */}
+          {/* Ledger Specific: Fund */}
           {activeTab === "ledger" && (
             <div>
               <label
                 htmlFor="filter-fund"
                 style={{ display: "block", fontSize: "0.825rem", fontWeight: 600, marginBottom: "0.35rem", color: "var(--color-text, #334155)" }}
               >
-                Statutory Fund
+                Fund Account
               </label>
               <select
                 id="filter-fund"

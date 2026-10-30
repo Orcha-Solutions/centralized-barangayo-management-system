@@ -369,128 +369,33 @@ export function FinanceToolbar({
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center", paddingLeft: "0.25rem" }}>
           <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 500 }}>Active filters:</span>
           {year !== "all" && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.3rem",
-                backgroundColor: "#eff6ff",
-                color: "#1d4ed8",
-                border: "1px solid #bfdbfe",
-                borderRadius: "14px",
-                padding: "2px 8px",
-                fontSize: "0.75rem",
-                fontWeight: 500,
-              }}
-            >
+            <span style={pillStyle("#eff6ff", "#1d4ed8", "#bfdbfe")}>
               Year: {currentYearLabel}
-              <button
-                type="button"
-                onClick={() => onYearChange("all")}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#1d4ed8", fontWeight: 700 }}
-              >
-                ✕
-              </button>
+              <button type="button" onClick={() => onYearChange("all")} style={pillCloseBtn("#1d4ed8")}>✕</button>
             </span>
           )}
           {dateFrom && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.3rem",
-                backgroundColor: "#f0fdf4",
-                color: "#15803d",
-                border: "1px solid #bbf7d0",
-                borderRadius: "14px",
-                padding: "2px 8px",
-                fontSize: "0.75rem",
-                fontWeight: 500,
-              }}
-            >
+            <span style={pillStyle("#f0fdf4", "#15803d", "#bbf7d0")}>
               From: {dateFrom}
-              <button
-                type="button"
-                onClick={() => onDateFromChange("")}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#15803d", fontWeight: 700 }}
-              >
-                ✕
-              </button>
+              <button type="button" onClick={() => onDateFromChange("")} style={pillCloseBtn("#15803d")}>✕</button>
             </span>
           )}
           {dateTo && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.3rem",
-                backgroundColor: "#f0fdf4",
-                color: "#15803d",
-                border: "1px solid #bbf7d0",
-                borderRadius: "14px",
-                padding: "2px 8px",
-                fontSize: "0.75rem",
-                fontWeight: 500,
-              }}
-            >
+            <span style={pillStyle("#f0fdf4", "#15803d", "#bbf7d0")}>
               To: {dateTo}
-              <button
-                type="button"
-                onClick={() => onDateToChange("")}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#15803d", fontWeight: 700 }}
-              >
-                ✕
-              </button>
+              <button type="button" onClick={() => onDateToChange("")} style={pillCloseBtn("#15803d")}>✕</button>
             </span>
           )}
-          {activeTab === "ledger" && fund !== "all" && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.3rem",
-                backgroundColor: "#fdf4ff",
-                color: "#86198f",
-                border: "1px solid #f5d0fe",
-                borderRadius: "14px",
-                padding: "2px 8px",
-                fontSize: "0.75rem",
-                fontWeight: 500,
-              }}
-            >
+          {fund !== "all" && (
+            <span style={pillStyle("#fdf4ff", "#86198f", "#f5d0fe")}>
               Fund: {currentFundLabel}
-              <button
-                type="button"
-                onClick={() => onFundChange("all")}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#86198f", fontWeight: 700 }}
-              >
-                ✕
-              </button>
+              <button type="button" onClick={() => onFundChange("all")} style={pillCloseBtn("#86198f")}>✕</button>
             </span>
           )}
           {activeTab === "ledger" && direction !== "all" && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.3rem",
-                backgroundColor: "#fffbeb",
-                color: "#b45309",
-                border: "1px solid #fde68a",
-                borderRadius: "14px",
-                padding: "2px 8px",
-                fontSize: "0.75rem",
-                fontWeight: 500,
-              }}
-            >
+            <span style={pillStyle("#fffbeb", "#b45309", "#fde68a")}>
               Flow: {direction === "credit" ? "Collections (Credit)" : "Disbursements (Debit)"}
-              <button
-                type="button"
-                onClick={() => onDirectionChange("all")}
-                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#b45309", fontWeight: 700 }}
-              >
-                ✕
-              </button>
+              <button type="button" onClick={() => onDirectionChange("all")} style={pillCloseBtn("#b45309")}>✕</button>
             </span>
           )}
         </div>
@@ -498,3 +403,25 @@ export function FinanceToolbar({
     </div>
   );
 }
+
+const pillStyle = (bg: string, color: string, border: string): React.CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.3rem",
+  backgroundColor: bg,
+  color,
+  border: `1px solid ${border}`,
+  borderRadius: "14px",
+  padding: "2px 8px",
+  fontSize: "0.75rem",
+  fontWeight: 500,
+});
+
+const pillCloseBtn = (color: string): React.CSSProperties => ({
+  background: "none",
+  border: "none",
+  cursor: "pointer",
+  padding: 0,
+  color,
+  fontWeight: 700,
+});

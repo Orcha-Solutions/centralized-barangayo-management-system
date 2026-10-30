@@ -91,6 +91,23 @@ export function handleTreasuryMock(ctx: MockContext): any {
       };
     }
 
+    if (cleanPath === "/finance/ledger/stats") {
+      const list = (store.LedgerEntry || STATIC_LEDGER_ENTRIES) as any[];
+      let totalCollections = 0;
+      let totalDisbursements = 0;
+      for (const item of list) {
+        const rawAmt = typeof item.amount === "object" && item.amount !== null ? item.amount.value : Number(item.amount || 0);
+        if (item.direction === "credit") totalCollections += rawAmt;
+        if (item.direction === "debit") totalDisbursements += rawAmt;
+      }
+      return {
+        totalCollections,
+        totalDisbursements,
+        netGeneralFund: totalCollections - totalDisbursements,
+        activeCount: list.length,
+      };
+    }
+
     const ledgerDetailMatch = cleanPath.match(/^\/finance\/ledger\/([^/]+)$/);
     if (ledgerDetailMatch) {
       const id = ledgerDetailMatch[1];
@@ -192,50 +209,31 @@ export function handleTreasuryMock(ctx: MockContext): any {
       let list = (store.Budget || STATIC_BUDGETS) as any[];
       if (currentUser.barangayId && currentUser.scope !== "city" && currentUser.scope !== "platform") {
         const filteredByBrgy = list.filter(
-          (x) =>
-            !x.barangayId ||
-            x.barangayId === currentUser.barangayId ||
-            x.barangayId === STATIC_BARANGAY_ID,
+          (x) => !x.barangayId || x.barangayId === currentUser.barangayId || x.barangayId === STATIC_BARANGAY_ID,
         );
         if (filteredByBrgy.length > 0) list = filteredByBrgy;
       }
 
       list = list.map((b) => {
-        let rawLines = b.lines;
-        if (rawLines && typeof rawLines === "object" && !Array.isArray(rawLines) && Array.isArray(rawLines.create)) {
-          rawLines = rawLines.create;
-        }
-        const lines = Array.isArray(rawLines)
-          ? rawLines.map((l: any, idx: number) => ({
-              id: l.id || `bl-${idx + 1}`,
-              expenseClass: l.expenseClass || "MOOE",
-              accountCode: l.accountCode || "",
-              description: l.description || "",
-              amount: typeof l.amount === "object" && l.amount !== null ? l.amount.value : Number(l.amount || 0),
-              obligated:
-                typeof l.obligated === "object" && l.obligated !== null ? l.obligated.value : Number(l.obligated || 0),
-              disbursed:
-                typeof l.disbursed === "object" && l.disbursed !== null ? l.disbursed.value : Number(l.disbursed || 0),
-            }))
-          : [];
+        const rawLines = b.lines?.create || b.lines || [];
+        const lines = Array.isArray(rawLines) ? rawLines.map((l: any, idx: number) => ({
+          id: l.id || `bl-${idx + 1}`,
+          expenseClass: l.expenseClass || "MOOE",
+          accountCode: l.accountCode || "",
+          description: l.description || "",
+          amount: typeof l.amount === "object" && l.amount !== null ? l.amount.value : Number(l.amount || 0),
+          obligated: typeof l.obligated === "object" && l.obligated !== null ? l.obligated.value : Number(l.obligated || 0),
+          disbursed: typeof l.disbursed === "object" && l.disbursed !== null ? l.disbursed.value : Number(l.disbursed || 0),
+        })) : [];
         return {
           ...b,
-          totalAmount:
-            typeof b.totalAmount === "object" && b.totalAmount !== null ? b.totalAmount.value : Number(b.totalAmount || 0),
-          skFundAmount:
-            typeof b.skFundAmount === "object" && b.skFundAmount !== null
-              ? b.skFundAmount.value
-              : Number(b.skFundAmount || 0),
+          totalAmount: typeof b.totalAmount === "object" && b.totalAmount !== null ? b.totalAmount.value : Number(b.totalAmount || 0),
+          skFundAmount: typeof b.skFundAmount === "object" && b.skFundAmount !== null ? b.skFundAmount.value : Number(b.skFundAmount || 0),
           lines,
         };
       });
 
-      return {
-        items: list,
-        total: list.length,
-        page: 1,
-        pageSize,
-      };
+      return { items: list, total: list.length, page: 1, pageSize };
     }
 
     const budgetDetailMatch = cleanPath.match(/^\/finance\/budgets\/([^/]+)$/);
@@ -244,37 +242,103 @@ export function handleTreasuryMock(ctx: MockContext): any {
       const list = (store.Budget || STATIC_BUDGETS) as any[];
       const found = list.find((b) => b.id === id) || list[0];
       if (found) {
-        let rawLines = found.lines;
-        if (rawLines && typeof rawLines === "object" && !Array.isArray(rawLines) && Array.isArray(rawLines.create)) {
-          rawLines = rawLines.create;
-        }
-        const lines = Array.isArray(rawLines)
-          ? rawLines.map((l: any, idx: number) => ({
-              id: l.id || `bl-${idx + 1}`,
-              expenseClass: l.expenseClass || "MOOE",
-              accountCode: l.accountCode || "",
-              description: l.description || "",
-              amount: typeof l.amount === "object" && l.amount !== null ? l.amount.value : Number(l.amount || 0),
-              obligated:
-                typeof l.obligated === "object" && l.obligated !== null ? l.obligated.value : Number(l.obligated || 0),
-              disbursed:
-                typeof l.disbursed === "object" && l.disbursed !== null ? l.disbursed.value : Number(l.disbursed || 0),
-            }))
-          : [];
+        const rawLines = found.lines?.create || found.lines || [];
+        const lines = Array.isArray(rawLines) ? rawLines.map((l: any, idx: number) => ({
+          id: l.id || `bl-${idx + 1}`,
+          expenseClass: l.expenseClass || "MOOE",
+          accountCode: l.accountCode || "",
+          description: l.description || "",
+          amount: typeof l.amount === "object" && l.amount !== null ? l.amount.value : Number(l.amount || 0),
+          obligated: typeof l.obligated === "object" && l.obligated !== null ? l.obligated.value : Number(l.obligated || 0),
+          disbursed: typeof l.disbursed === "object" && l.disbursed !== null ? l.disbursed.value : Number(l.disbursed || 0),
+        })) : [];
         return {
           ...found,
-          totalAmount:
-            typeof found.totalAmount === "object" && found.totalAmount !== null
-              ? found.totalAmount.value
-              : Number(found.totalAmount || 0),
-          skFundAmount:
-            typeof found.skFundAmount === "object" && found.skFundAmount !== null
-              ? found.skFundAmount.value
-              : Number(found.skFundAmount || 0),
+          totalAmount: typeof found.totalAmount === "object" && found.totalAmount !== null ? found.totalAmount.value : Number(found.totalAmount || 0),
+          skFundAmount: typeof found.skFundAmount === "object" && found.skFundAmount !== null ? found.skFundAmount.value : Number(found.skFundAmount || 0),
           lines,
         };
       }
       return null;
+    }
+
+    if (cleanPath === "/budget/overview" || cleanPath === "/v1/budget/overview") {
+      const baseSectors: any[] = [];
+      const rawSectors = store.StatutorySectors || baseSectors;
+      const ledgerEntries = (store.LedgerEntry || []) as any[];
+      const sectorObligations: Record<string, number> = {};
+
+      for (const entry of ledgerEntries) {
+        if (entry.direction === "debit") {
+          const rawAmt = typeof entry.amount === "object" && entry.amount !== null ? entry.amount.value : Number(entry.amount || 0);
+          const amtCentavos = Math.round(rawAmt * 100);
+          const sId = (entry.sectorFundId || entry.fund || "").toLowerCase();
+          if (sId) sectorObligations[sId] = (sectorObligations[sId] || 0) + amtCentavos;
+        }
+      }
+
+      const sectors = rawSectors.map((s: any) => {
+        const obligated = sectorObligations[s.id.toLowerCase()] || 0;
+        const balance = Math.max(0, s.appropriatedCentavos - obligated);
+        return { ...s, obligatedCentavos: obligated, balanceCentavos: balance };
+      });
+
+      const totalAppropriatedCentavos = sectors.reduce((acc: number, s: any) => acc + s.appropriatedCentavos, 0);
+      const totalObligatedCentavos = sectors.reduce((acc: number, s: any) => acc + s.obligatedCentavos, 0);
+      const totalBalanceCentavos = Math.max(0, totalAppropriatedCentavos - totalObligatedCentavos);
+      const overallBurnRatePercent = totalAppropriatedCentavos > 0
+        ? Number(((totalObligatedCentavos / totalAppropriatedCentavos) * 100).toFixed(1))
+        : 0;
+
+      return {
+        budget: {
+          id: "budget-2026",
+          year: 2026,
+          ordinanceNo: "SBO-2026-001",
+          title: "Annual General Appropriations Ordinance FY 2026",
+          totalAmountCentavos: 1845000000,
+          status: "enacted",
+          sectors,
+        },
+        stats: {
+          totalAnnualBudgetCentavos: 1845000000,
+          totalAppropriatedCentavos,
+          totalObligatedCentavos,
+          totalBalanceCentavos,
+          overallBurnRatePercent,
+          sectorCount: sectors.length,
+        },
+      };
+    }
+
+    if (cleanPath === "/budget/sectors" || cleanPath === "/v1/budget/sectors") {
+      const overview = handleTreasuryMock({ ...ctx, cleanPath: "/budget/overview" });
+      return {
+        data: overview.budget.sectors,
+        total: overview.budget.sectors.length,
+      };
+    }
+
+    const disbMatch = cleanPath.match(/^\/(?:v1\/)?budget\/sectors\/([^/]+)\/disbursements$/);
+    if (disbMatch) {
+      const sectorId = disbMatch[1].toLowerCase();
+      const list = (store.LedgerEntry || STATIC_LEDGER_ENTRIES) as any[];
+      const filtered = list.filter((e) => {
+        if (!e.sectorFundId) return false;
+        return e.sectorFundId.toLowerCase() === sectorId || e.fund?.toLowerCase() === sectorId;
+      });
+
+      const items = filtered.map((e) => ({
+        ledgerId: e.id,
+        accountCode: e.accountCode,
+        description: e.description,
+        dvNumber: e.dvNumber || "",
+        payee: e.payorPayee || "N/A",
+        amount: typeof e.amount === "object" && e.amount !== null ? e.amount.value : Number(e.amount),
+        postedAt: e.postedAt,
+      }));
+
+      return { data: items, count: items.length };
     }
   }
 
@@ -294,6 +358,7 @@ export function handleTreasuryMock(ctx: MockContext): any {
         amount: Number(body.amount) || 0,
         orNumber: body.orNumber || null,
         dvNumber: body.dvNumber || null,
+        sectorFundId: body.sectorFundId || null,
         refType:
           body.refType ||
           (body.orNumber ? "official_receipt" : body.dvNumber ? "disbursement_voucher" : "manual"),
@@ -350,6 +415,19 @@ export function handleTreasuryMock(ctx: MockContext): any {
         saveStore(store);
       }
       return item || {};
+    }
+  }
+
+  // 3. DELETE requests
+  if (method === "DELETE") {
+    const ledgerDeleteMatch = cleanPath.match(/^\/finance\/ledger\/([^/]+)$/);
+    if (ledgerDeleteMatch) {
+      const id = ledgerDeleteMatch[1];
+      store.LedgerEntry = ((store.LedgerEntry || []) as any[]).filter(
+        (x: any) => x.id !== id && x.dvNumber !== id && x.orNumber !== id,
+      );
+      saveStore(store);
+      return { success: true };
     }
   }
 

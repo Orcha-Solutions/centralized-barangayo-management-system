@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { TourGuideOverlay, GuideToggle, TourStep } from "../../../components/TourGuide";
@@ -15,7 +15,7 @@ export const FINANCE_TOUR_STEPS: TourStep[] = [
     capabilities: [
       "Live balances: Credits (Inflows/Collections), Debits (Disbursements/Expenses), and Total Official Receipts",
       "Annual Appropriation monitoring under Local Government Code Â§314",
-      "Segregated tracking across statutory funds (General Fund, 20% BDF, 10% SK, 5% BDRRMF, 5% GAD)",
+      "Segregated tracking across fund accounts (General Fund, Trust Fund, Special Purpose Fund)",
     ],
     tip: "Keep an eye on the Debits counter to monitor operating expenditure against collection targets.",
   },

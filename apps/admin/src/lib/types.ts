@@ -471,6 +471,7 @@ export interface LedgerEntry {
   checkNumber?: string | null;
   refType?: string | null;
   referenceId?: string | null;
+  sectorFundId?: string | null;
   payorPayee?: string;
   status?: string;
   createdById?: string | null;

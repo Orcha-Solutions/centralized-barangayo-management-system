@@ -347,6 +347,8 @@ export default function FinancePage() {
         )}
       </Panel>
 
+      {/* Statutory Budget and Appropriations (RAAO Floor Limits) */}
+
       {/* Modals & Drawers */}
       <CreateLedgerDrawer
         open={createLedgerOpen}

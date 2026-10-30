@@ -52,6 +52,7 @@ export interface CreateLedgerPayload {
   checkNumber?: string | null;
   refType?: string;
   referenceId?: string | null;
+  sectorFundId?: string | null;
   payorPayee?: string;
 }
 
@@ -66,6 +67,8 @@ export interface UpdateLedgerPayload {
   dvNumber?: string | null;
   checkNumber?: string | null;
   refType?: string;
+  referenceId?: string | null;
+  sectorFundId?: string | null;
   payorPayee?: string;
   status?: string;
 }

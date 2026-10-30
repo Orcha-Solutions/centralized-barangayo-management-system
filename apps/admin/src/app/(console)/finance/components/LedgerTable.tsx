@@ -127,10 +127,8 @@ export function LedgerTable({
       render: (r: LedgerEntry) => {
         const fundLabels: Record<string, string> = {
           general: "General Fund",
-          bdrrmf: "BDRRMF (5%)",
-          development: "Dev Fund (20%)",
-          sk: "SK Fund (10%)",
-          gad: "GAD (5%)",
+          trust: "Trust Fund",
+          special: "Special Fund",
         };
         return <Chip tone="gray">{fundLabels[r.fund] ?? r.fund.toUpperCase()}</Chip>;
       },

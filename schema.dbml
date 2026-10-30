@@ -951,11 +951,34 @@ Table Budget {
   id String [pk, default: `cuid()`]
   barangayId String
   year Int
-  ordinanceId String
+  ordinanceNo String
+  title String
   totalAmount Decimal
-  skFundAmount Decimal [default: 0]
-  status String [default: 'draft']
+  isSupplemental Boolean [default: false]
+  status String [default: 'draft'] // draft | enacted | reviewed | closed
+  enactedAt DateTime
+  reviewedAt DateTime
+  createdById String
   createdAt DateTime [default: `now()`]
+  updatedAt DateTime [default: `now()`]
+}
+
+Table StatutorySectorFund {
+  id String [pk, default: `cuid()`]
+  budgetId String
+  barangayId String
+  code String // e.g. BDF-2000, SK-7000, GAD-8000, SPORTS-9000
+  name String
+  category String // mandatory_statutory | discretionary_local
+  statutoryMinPct Decimal
+  appropriatedCentavos BigInt
+  obligatedCentavos BigInt [default: 0]
+  balanceCentavos BigInt
+  legalBasis String
+  icon String [default: '🏛️']
+  isActive Boolean [default: true]
+  createdAt DateTime [default: `now()`]
+  updatedAt DateTime [default: `now()`]
 }
 
 Table BudgetLine {
@@ -996,6 +1019,7 @@ Table LedgerEntry {
   refType String
   refId String
   transactionId String
+  sectorFundId String // Links debit disbursements to Statutory / Discretionary Sector Funds
   createdById String
   createdAt DateTime [default: `now()`]
 }
@@ -1871,7 +1895,10 @@ Ref: InstitutionMember.inhabitantId > Inhabitant.id
 Ref: InstitutionMinutes.institutionId > Institution.id
 Ref: Budget.barangayId > Barangay.id
 Ref: BudgetLine.budgetId > Budget.id
+Ref: StatutorySectorFund.budgetId > Budget.id
+Ref: StatutorySectorFund.barangayId > Barangay.id
 Ref: LedgerEntry.barangayId > Barangay.id
+Ref: LedgerEntry.sectorFundId > StatutorySectorFund.id
 Ref: LedgerEntry.transactionId > WalletTransaction.id
 Ref: OfficialReceipt.barangayId > Barangay.id
 Ref: SitePage.barangayId > Barangay.id
